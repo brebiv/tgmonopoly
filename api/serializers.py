@@ -1,0 +1,44 @@
+from rest_framework import serializers
+from game.models import Tile, Property
+from collections import OrderedDict
+
+
+class TileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tile
+        fields = ('id', 'position', 'name', 'type', 'propertyData')
+    
+    propertyData = serializers.SerializerMethodField()
+    
+    def get_propertyData(self, obj):
+        if obj.type == Tile.PROPERTY:
+            try:
+                return PropertySerializer(obj.property).data
+            except:
+                return None
+        else:
+            return None
+        
+    def to_representation(self, instance):
+        """Removes fields that are null"""
+        result = super(TileSerializer, self).to_representation(instance)
+        return OrderedDict([(key, result[key]) for key in result if result[key] is not None])
+
+
+
+class PropertySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Property
+        fields = (
+            'price', 'mortgage_value', 'house_price', 'rent', 
+            'rent_with_1_house', 'rent_with_2_houses', 'rent_with_3_houses', 
+            'rent_with_4_houses', 'rent_with_5_houses', 'group_color', 'icon'
+        )
+    
+    group_color = serializers.SerializerMethodField()
+    
+    def get_group_color(self, obj):
+        if obj.group:
+            return obj.group.color
+        else:
+            return None

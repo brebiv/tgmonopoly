@@ -1,5 +1,5 @@
 import { useEffect, useState, createContext } from "react";
-import BoardTile from "./Tile";
+import BoardTile from "./BoardTile";
 import { useTiles } from "@/hooks";
 
 const boardContext = {
@@ -29,8 +29,8 @@ function Board() {
 
     boardElement.style.aspectRatio = "1/1";
 
-    const boardWidth = boardElement.clientWidth - 4 - 4; // 4 px padding on each side
-    const boardHeight = boardElement.clientHeight - 4 - 4; // 4 px padding on each side
+    const boardWidth = boardElement.clientWidth - 12 - 12; // 4 px padding on each side
+    const boardHeight = boardElement.clientHeight - 12 - 12; // 4 px padding on each side
 
     const gridCellWidth =
       (boardWidth * (100 - cornerSizeInPercent * 2)) / 100 / 9;
@@ -50,15 +50,20 @@ function Board() {
     <BoardContext.Provider
       value={{ gridCellWidth, gridCellHeight, cornerSizeInPercent }}
     >
-      <div id="board" className="relative w-full bg-green-600 p-1">
+      <div
+        id="board"
+        className="relative w-full p-3"
+        style={{
+          backgroundColor:
+            // @ts-ignore
+            window.Telegram.WebApp.themeParams.bg_color || "#334155",
+        }}
+      >
         <div id="tiles" className="relative h-full w-full">
           {!isTilesLoading &&
             !isTilesError &&
             tiles &&
             tiles.map((tile) => <BoardTile key={tile.position} tile={tile} />)}
-          {/* {[...Array(40).keys()].map((id) => (
-            <Tile key={id} id={id} />
-          ))} */}
         </div>
       </div>
     </BoardContext.Provider>

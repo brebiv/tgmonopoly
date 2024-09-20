@@ -4,7 +4,6 @@ export enum TileType {
   CHANCE = "CHANCE",
   TAX = "TAX",
   UTILITY = "UTILITY",
-  UTILITY_2 = "UTILITY_2",
   JAIL = "JAIL",
   CASINO = "CASINO",
   POLICE = "POLICE",
@@ -20,6 +19,7 @@ export type PropertyData = {
   rent_with_3_houses: number;
   rent_with_4_houses: number;
   rent_with_5_houses: number;
+  group_id: number;
   group_color: string;
   icon: string;
 };

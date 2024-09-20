@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from game.models import Tile, Property
+from game.models import Tile, Property, Utility
 from collections import OrderedDict
 
 
@@ -11,11 +11,17 @@ class TileSerializer(serializers.ModelSerializer):
     propertyData = serializers.SerializerMethodField()
     
     def get_propertyData(self, obj):
-        if obj.type == Tile.PROPERTY:
-            try:
-                return PropertySerializer(obj.property).data
-            except:
-                return None
+        if obj.type == Tile.PROPERTY or obj.type == Tile.UTILITY:
+            if obj.type == Tile.PROPERTY:
+                try:
+                    return PropertySerializer(obj.property).data
+                except:
+                    return None
+            elif obj.type == Tile.UTILITY:
+                try:
+                    return UtilitySerializer(obj.utility).data
+                except:
+                    return None
         else:
             return None
         
@@ -32,7 +38,22 @@ class PropertySerializer(serializers.ModelSerializer):
         fields = (
             'price', 'mortgage_value', 'house_price', 'rent', 
             'rent_with_1_house', 'rent_with_2_houses', 'rent_with_3_houses', 
-            'rent_with_4_houses', 'rent_with_5_houses', 'group_color', 'icon'
+            'rent_with_4_houses', 'rent_with_5_houses', 'group_id', 'group_color', 'icon'
+        )
+    
+    group_color = serializers.SerializerMethodField()
+    
+    def get_group_color(self, obj):
+        if obj.group:
+            return obj.group.color
+        else:
+            return None
+
+class UtilitySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Utility
+        fields = (
+            'price', 'mortgage_value', 'type', 'group_id', 'group_color', 'icon'
         )
     
     group_color = serializers.SerializerMethodField()

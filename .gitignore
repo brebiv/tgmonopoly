@@ -7,6 +7,7 @@ venv/
 # Django stuff
 static/
 media/
+db.sqlite3
 
 # Node modules
 node_modules/
@@ -16,3 +17,6 @@ frontend/assets/
 
 # OS stuff
 .DS_Store
+
+# Temp
+property_data

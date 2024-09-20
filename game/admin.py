@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Game, Player, Tile, PropertyGroup, Property, Ownership, Card, Transaction
+from .models import Game, Player, Tile, PropertyGroup, Property, Utility, Ownership, Card, Transaction
 
 # Register your models here.
 @admin.register(Game)
@@ -36,6 +36,13 @@ class PropertyAdmin(admin.ModelAdmin):
     search_fields = ('board_space__name',)
     ordering = ('board_space__position',)
     raw_id_fields = ('board_space',)
+
+@admin.register(Utility)
+class UtilityAdmin(admin.ModelAdmin):
+    list_display = ('board_space', 'price', 'mortgage_value', 'type')
+    search_fields = ('board_space__name',)
+    ordering = ('board_space__position',)
+    # raw_id_fields = ('board_space', 'group')
 
 @admin.register(Ownership)
 class OwnershipAdmin(admin.ModelAdmin):

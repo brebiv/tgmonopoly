@@ -1,7 +1,7 @@
 import { useContext } from "react";
 import { BoardContext } from "./Board";
 import { TileType, Tile } from "@/types/api";
-import { Goal } from "lucide-react";
+import { Clover, Coins, Columns4, Goal, PiggyBank, Siren } from "lucide-react";
 import Property from "./Property";
 
 interface TileProps {
@@ -68,7 +68,7 @@ function BoardTile({ tile }: TileProps) {
 
   return (
     <div
-      className="absolute z-10 flex items-center justify-center bg-yellow-300"
+      className="absolute z-10 flex items-center justify-center"
       style={{
         width: width,
         height: height,
@@ -77,6 +77,9 @@ function BoardTile({ tile }: TileProps) {
         bottom: bottom !== -1 ? bottom : "unset",
         top: top !== -1 ? top : "unset",
         // boxShadow: "inset 0px 0px 8px -4px rgba(0,0,0,0.75)",
+        backgroundColor:
+          // @ts-ignore
+          window.Telegram.WebApp.themeParams.text_color || "orange",
       }}
     >
       {type === TileType.START && (
@@ -84,10 +87,32 @@ function BoardTile({ tile }: TileProps) {
           <Goal />
         </div>
       )}
-      {type === TileType.PROPERTY && <Property tile={tile} />}
-      {(type === TileType.CHANCE || type === TileType.TAX) && (
+      {type === TileType.JAIL && (
         <div>
-          <div className="text-center">{tile.position}</div>
+          <Columns4 />
+        </div>
+      )}
+      {type === TileType.CASINO && (
+        <div>
+          <Coins />
+        </div>
+      )}
+      {type === TileType.POLICE && (
+        <div>
+          <Siren />
+        </div>
+      )}
+      {(type === TileType.PROPERTY || type === TileType.UTILITY) && (
+        <Property tile={tile} />
+      )}
+      {type === TileType.CHANCE && (
+        <div>
+          <Clover />
+        </div>
+      )}
+      {type === TileType.TAX && (
+        <div>
+          <PiggyBank />
         </div>
       )}
     </div>

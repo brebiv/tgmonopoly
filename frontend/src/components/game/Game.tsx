@@ -10,7 +10,14 @@ function Game() {
 
   return (
     <QueryClientProvider client={new QueryClient()}>
-      <div className="flex min-h-screen flex-col bg-green-100">
+      <div
+        className="flex min-h-screen flex-col"
+        style={{
+          backgroundColor:
+            // @ts-ignore
+            window.Telegram.WebApp.themeParams.bg_color || "#334155",
+        }}
+      >
         <Board />
       </div>
     </QueryClientProvider>

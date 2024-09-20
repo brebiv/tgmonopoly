@@ -51,7 +51,6 @@ class Tile(models.Model):
     CHANCE = 'CHANCE'
     TAX = 'TAX'
     UTILITY = 'UTILITY'
-    UTILITY_2 = 'UTILITY_2'
     JAIL = 'JAIL'
     CASINO = 'CASINO'
     POLICE = 'POLICE'
@@ -62,7 +61,6 @@ class Tile(models.Model):
         (CHANCE, 'Chance'),
         (TAX, 'Tax'),
         (UTILITY, 'Utility'),
-        (UTILITY_2, 'Utility 2'),
         (JAIL, 'Jail'),
         (CASINO, 'Casino'),
         (POLICE, 'Police'),
@@ -85,6 +83,9 @@ class PropertyGroup(models.Model):
 
 
 class Property(models.Model):
+    class Meta:
+        unique_together = ('board_space', 'group')
+
     board_space = models.OneToOneField(Tile, on_delete=models.CASCADE)
     price = models.IntegerField()
     mortgage_value = models.IntegerField()
@@ -95,6 +96,29 @@ class Property(models.Model):
     rent_with_3_houses = models.IntegerField()
     rent_with_4_houses = models.IntegerField()
     rent_with_5_houses = models.IntegerField()
+    group = models.ForeignKey(PropertyGroup, on_delete=models.CASCADE, null=True, blank=True)
+
+    icon = models.ImageField(upload_to='properties', null=True, blank=True)
+
+    def __str__(self):
+        return self.board_space.name
+    
+class Utility(models.Model):
+
+    UTILITY_1 = 'UTILITY_1'
+    UTILITY_2 = 'UTILITY_2'
+
+    TYPES = [
+        (UTILITY_1, 'Utility 1'),
+        (UTILITY_2, 'Utility 2'),
+    ]
+    class Meta:
+        unique_together = ('board_space', 'group')
+    
+    board_space = models.OneToOneField(Tile, on_delete=models.CASCADE)
+    price = models.IntegerField()
+    mortgage_value = models.IntegerField()
+    type = models.CharField(max_length=20, choices=TYPES)
     group = models.ForeignKey(PropertyGroup, on_delete=models.CASCADE, null=True, blank=True)
 
     icon = models.ImageField(upload_to='properties', null=True, blank=True)

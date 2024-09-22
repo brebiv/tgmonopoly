@@ -7,6 +7,15 @@ function assembleAuthHeader() {
   return `twa ${window.Telegram.WebApp.initData}`;
 }
 
+function getCsrfToken() {
+  return (
+    document
+      .querySelector('meta[name="csrf-token"]')
+      ?.getAttribute("content") || ""
+  );
+}
+
+axios.defaults.headers.common["X-CSRFToken"] = getCsrfToken();
 axios.defaults.headers.common["Authorization"] = assembleAuthHeader();
 axios.defaults.headers.common["Content-Type"] = "application/json";
 
@@ -28,4 +37,28 @@ export const getMe = () => {
   return axios.get("/api/me/").then((response) => {
     return response.data;
   });
+};
+
+export const createGame = (maxPlayers: number) => {
+  return axios
+    .post("/api/create_game/", { max_players: maxPlayers })
+    .then((response) => {
+      return response.data;
+    });
+};
+
+export const getGame = (gameUuid: string) => {
+  // @ts-ignore
+  if (window && window.game) {
+    // @ts-ignore
+    return Promise.resolve(window.game as Game);
+  }
+};
+
+export const getPlayers = (gameUuid: string) => {
+  // @ts-ignore
+  if (window && window.players) {
+    // @ts-ignore
+    return Promise.resolve(window.players as Player[]);
+  }
 };

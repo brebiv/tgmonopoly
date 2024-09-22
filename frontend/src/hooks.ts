@@ -1,5 +1,5 @@
-import { useQuery } from "react-query";
-import { getMe, getTiles } from "./api";
+import { useMutation, useQuery } from "react-query";
+import { createGame, getGame, getMe, getPlayers, getTiles } from "./api";
 
 export const useTiles = () => {
   return useQuery(["tiles"], getTiles, {
@@ -28,6 +28,34 @@ export const useTiles = () => {
 
 export const useMe = (runImmediately = false, enableRetry = false) => {
   return useQuery(["me"], getMe, {
+    enabled: runImmediately,
+    retry: enableRetry,
+  });
+};
+
+export const useCreateGame = () => {
+  return useMutation({
+    mutationFn: createGame,
+  });
+};
+
+export const useGame = (
+  gameUuid: string,
+  runImmediately = false,
+  enableRetry = false,
+) => {
+  return useQuery(["game", gameUuid], () => getGame(gameUuid), {
+    enabled: runImmediately,
+    retry: enableRetry,
+  });
+};
+
+export const usePlayers = (
+  gameUuid: string,
+  runImmediately = false,
+  enableRetry = false,
+) => {
+  return useQuery(["players", gameUuid], () => getPlayers(gameUuid), {
     enabled: runImmediately,
     retry: enableRetry,
   });

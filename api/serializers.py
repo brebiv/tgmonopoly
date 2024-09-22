@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from game.models import Tile, Property, Utility, Game
+from game.models import Tile, Property, Utility, Game, Player
 from collections import OrderedDict
 
 
@@ -74,4 +74,11 @@ class GameSerializer(serializers.ModelSerializer):
         model = Game
         fields = (
             'uuid', 'max_players', 'turn', 'status', 'created'
+        )
+
+class PlayerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Player
+        fields = (
+            'id', 'position', 'cash', 'color', 'in_jail', 'jail_turns'
         )

@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import Board from "./Board";
 
+import { useGame, usePlayers } from "@/hooks";
+
 function Game() {
   useEffect(() => {
     // @ts-ignore
@@ -14,6 +16,28 @@ function Game() {
       return true;
     });
   }, []);
+
+  const { data: game, refetch: refetchGame } = useGame(
+    window.location.pathname.split("/")[2],
+  );
+
+  const { data: players, refetch: refetchPlayers } = usePlayers(
+    window.location.pathname.split("/")[2],
+  );
+
+  useEffect(() => {
+    refetchGame();
+    refetchPlayers();
+  }, []);
+
+  useEffect(() => {
+    if (game) {
+      console.log("Game", game);
+    }
+    if (players) {
+      console.log("Players", players);
+    }
+  }, [game, players]);
 
   return (
     <div

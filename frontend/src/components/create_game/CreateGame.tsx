@@ -9,13 +9,18 @@ import {
   SelectValue,
 } from "../ui/select";
 import { Users } from "lucide-react";
-import { useMe } from "@/hooks";
+import { useCreateGame, useMe } from "@/hooks";
 import Forbidden from "../Forbidden";
 import LoadingScreen from "../LoadingScreen";
 
 function CreateGame() {
   const [playerCount, setPlayerCount] = useState("2");
   const { data: me, isLoading: isMeLoading, isError: isMeError } = useMe(true);
+  const {
+    mutate: createGame,
+    isLoading: isCreateGameLoading,
+    data: createGameData,
+  } = useCreateGame();
 
   useEffect(() => {
     // @ts-ignore
@@ -28,6 +33,12 @@ function CreateGame() {
       return true;
     });
   }, []);
+
+  useEffect(() => {
+    if (createGameData) {
+      window.location.href = createGameData.next_url;
+    }
+  }, [createGameData, isCreateGameLoading]);
 
   if (isMeError) {
     return <Forbidden />;
@@ -162,7 +173,7 @@ function CreateGame() {
             }}
             onClick={(e) => {
               e.preventDefault();
-              window.location.href = "/game/1";
+              createGame(parseInt(playerCount));
             }}
           >
             Start Game

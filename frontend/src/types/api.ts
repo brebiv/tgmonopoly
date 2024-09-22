@@ -9,6 +9,12 @@ export enum TileType {
   POLICE = "POLICE",
 }
 
+export enum GameStatus {
+  WAITING = "WAITING",
+  PLAYING = "PLAYING",
+  FINISHED = "FINISHED",
+}
+
 export type PropertyData = {
   price: number;
   mortgage_value: number;
@@ -30,4 +36,21 @@ export type Tile = {
   name: string;
   type: TileType;
   propertyData: PropertyData | null;
+};
+
+export type Player = {
+  id: number;
+  position: number;
+  cash: number;
+  color: string;
+  in_jail: boolean;
+  jail_turns: number;
+};
+
+export type Game = {
+  uuid: string;
+  max_players: number;
+  turn: number;
+  status: GameStatus;
+  created: string;
 };

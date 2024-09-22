@@ -5,7 +5,7 @@ import uuid
 # Create your models here.
 class Game(models.Model):
 
-    uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    uuid = models.UUIDField(default=uuid.uuid4)
     max_players = models.IntegerField(default=2)
     turn = models.IntegerField(default=0)
 

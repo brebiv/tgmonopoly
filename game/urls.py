@@ -4,5 +4,5 @@ from . import views
 urlpatterns = [
     path('', views.home, name='home'),
     path('create_game', views.create_game, name='create_game'),
-    path('game/<int:game_id>', views.game, name='game'),
+    path('game/<uuid:game_uuid>', views.game, name='game'),
 ]

@@ -29,8 +29,8 @@ function Board() {
 
     boardElement.style.aspectRatio = "1/1";
 
-    const boardWidth = boardElement.clientWidth - 12 - 12; // 4 px padding on each side
-    const boardHeight = boardElement.clientHeight - 12 - 12; // 4 px padding on each side
+    const boardWidth = boardElement.clientWidth - 12 - 12; // 12 px padding on each side
+    const boardHeight = boardElement.clientHeight - 12 - 12; // 12 px padding on each side
 
     const gridCellWidth =
       (boardWidth * (100 - cornerSizeInPercent * 2)) / 100 / 9;

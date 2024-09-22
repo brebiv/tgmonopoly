@@ -1,5 +1,5 @@
 import { useQuery } from "react-query";
-import { getTiles } from "./api";
+import { getMe, getTiles } from "./api";
 
 export const useTiles = () => {
   return useQuery(["tiles"], getTiles, {
@@ -23,5 +23,12 @@ export const useTiles = () => {
         }
       });
     },
+  });
+};
+
+export const useMe = (runImmediately = false, enableRetry = false) => {
+  return useQuery(["me"], getMe, {
+    enabled: runImmediately,
+    retry: enableRetry,
   });
 };

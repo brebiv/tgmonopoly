@@ -1,9 +1,10 @@
 from django.shortcuts import render
-from django.http import HttpRequest
+from django.http import HttpRequest, HttpResponse
+from django.utils import timezone
 import json
 
-from .models import Tile
-from api.serializers import TileSerializer
+from .models import Tile, Game
+from api.serializers import TileSerializer, GameSerializer
 
 # Create your views here.
 def home(request: HttpRequest):
@@ -11,7 +12,10 @@ def home(request: HttpRequest):
 
 
 def create_game(request: HttpRequest):
-    return render(request, 'game/create_game.html')
+    if request.method == 'GET':
+        return render(request, 'game/create_game.html')
+    else:
+        return HttpResponse(status=405)
 
 
 def game(request: HttpRequest, game_id: int):

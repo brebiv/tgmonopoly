@@ -9,11 +9,13 @@ import {
   SelectValue,
 } from "../ui/select";
 import { Users } from "lucide-react";
+import { useMe } from "@/hooks";
+import Forbidden from "../Forbidden";
+import LoadingScreen from "../LoadingScreen";
 
 function CreateGame() {
   const [playerCount, setPlayerCount] = useState("2");
-  // const [timeLimit, setTimeLimit] = useState("0");
-  // const [privateGame, setPrivateGame] = useState(false);
+  const { data: me, isLoading: isMeLoading, isError: isMeError } = useMe(true);
 
   useEffect(() => {
     // @ts-ignore
@@ -26,6 +28,14 @@ function CreateGame() {
       return true;
     });
   }, []);
+
+  if (isMeError) {
+    return <Forbidden />;
+  }
+
+  if (me == undefined || isMeLoading) {
+    return <LoadingScreen />;
+  }
 
   return (
     <div

@@ -1,7 +1,20 @@
 import { Button } from "../ui/button";
 import { DollarSign, PlayCircle, Settings, Book, Globe } from "lucide-react";
+import { useMe } from "@/hooks";
+import LoadingScreen from "../LoadingScreen";
+import Forbidden from "../Forbidden";
 
 function Home() {
+  const { data: me, isLoading: isMeLoading, isError: isMeError } = useMe(true);
+
+  if (isMeError) {
+    return <Forbidden />;
+  }
+
+  if (me == undefined || isMeLoading) {
+    return <LoadingScreen />;
+  }
+
   return (
     <div
       className="flex min-h-screen flex-col items-center justify-center p-4"
@@ -37,15 +50,16 @@ function Home() {
           <Button
             className="w-full py-6 text-lg font-semibold"
             variant="default"
-            onClick={() => (window.location.href = "/create_game")}
+            onClick={() => {
+              window.location.href = "/create_game";
+            }}
             style={{
               backgroundColor:
                 // @ts-ignore
-                window.Telegram.WebApp.themeParams.button_color || "#334155",
+                window.Telegram.WebApp.themeParams.button_color || "",
               color:
                 // @ts-ignore
-                window.Telegram.WebApp.themeParams.button_text_color ||
-                "#334155",
+                window.Telegram.WebApp.themeParams.button_text_color || "",
             }}
           >
             <PlayCircle className="mr-2 h-6 w-6" />

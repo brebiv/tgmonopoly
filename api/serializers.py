@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from game.models import Tile, Property, Utility
+from game.models import Tile, Property, Utility, Game
 from collections import OrderedDict
 
 
@@ -63,3 +63,15 @@ class UtilitySerializer(serializers.ModelSerializer):
             return obj.group.color
         else:
             return None
+
+
+class CreateGameSerializer(serializers.Serializer):
+    max_players = serializers.IntegerField()
+
+
+class GameSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Game
+        fields = (
+            'uuid', 'max_players', 'turn', 'status', 'created'
+        )

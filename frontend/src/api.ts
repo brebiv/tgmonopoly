@@ -1,5 +1,15 @@
 import { Tile } from "./types/api";
 
+import axios from "axios";
+
+function assembleAuthHeader() {
+  // @ts-ignore
+  return `twa ${window.Telegram.WebApp.initData}`;
+}
+
+axios.defaults.headers.common["Authorization"] = assembleAuthHeader();
+axios.defaults.headers.common["Content-Type"] = "application/json";
+
 export const getTiles = () => {
   //@ts-ignore
   if (window && window.tiles) {
@@ -12,4 +22,10 @@ export const getTiles = () => {
   //   return fetch("/api/tiles/")
   //     .then((response) => response.json())
   //     .then((data) => data as Tile[]);
+};
+
+export const getMe = () => {
+  return axios.get("/api/me/").then((response) => {
+    return response.data;
+  });
 };

@@ -28,9 +28,24 @@ function CreateGame() {
   }, []);
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-green-100 p-4">
+    <div
+      className="flex min-h-screen flex-col items-center justify-center bg-green-100 p-4"
+      style={{
+        backgroundColor:
+          // @ts-ignore
+          window.Telegram.WebApp.themeParams.secondary_bg_color || "#334155",
+      }}
+    >
       <div className="w-full max-w-md overflow-hidden rounded-lg bg-white shadow-xl">
-        <div className="relative bg-red-600 p-4 text-center">
+        <div
+          className="relative bg-red-600 p-4 text-center"
+          style={{
+            backgroundColor:
+              // @ts-ignore
+              window.Telegram.WebApp.themeParams.bottom_bar_bg_color ||
+              "#334155",
+          }}
+        >
           <h1 className="text-2xl font-bold tracking-wider text-white">
             NEW GAME
           </h1>
@@ -126,6 +141,15 @@ function CreateGame() {
           <Button
             className="w-full py-6 text-lg font-semibold"
             variant="default"
+            style={{
+              backgroundColor:
+                // @ts-ignore
+                window.Telegram.WebApp.themeParams.button_color || "#334155",
+              color:
+                // @ts-ignore
+                window.Telegram.WebApp.themeParams.button_text_color ||
+                "#334155",
+            }}
             onClick={(e) => {
               e.preventDefault();
               window.location.href = "/game/1";

@@ -5,16 +5,24 @@ import telebot
 from telebot import apihelper
 
 
+
+BOT_TOKEN = settings.BOT_TOKEN_PROD
+
 if settings.USE_TELEGRAM_TEST_ENV:
+    BOT_TOKEN = settings.BOT_TOKEN_DEV
     apihelper.API_URL = 'https://api.telegram.org/bot{0}/test/{1}'
 
-bot = telebot.TeleBot(settings.BOT_TOKEN, threaded=False)
+
+bot = telebot.TeleBot(BOT_TOKEN, threaded=False)
 
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     
-    webapp_info = WebAppInfo('http://127.0.0.1:8000/')
+    if settings.USE_TELEGRAM_TEST_ENV:
+        webapp_info = WebAppInfo('http://127.0.0.1:8000/')
+    else:
+        webapp_info = WebAppInfo('https://dev-webapp.beatkeeper.me/')
 
     keyboard = InlineKeyboardMarkup()
     keyboard.add(InlineKeyboardButton("Start", web_app=webapp_info))

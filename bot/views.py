@@ -8,6 +8,7 @@ from .handlers import bot
 def update(request):
     if request.method != 'POST':
         return HttpResponse("You will be reported for this action. 😡", status=405)
+
     update_json = request.body.decode()
     update = telebot.types.Update.de_json(update_json)
     bot.process_new_updates([update])

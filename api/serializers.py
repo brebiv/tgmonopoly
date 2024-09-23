@@ -3,6 +3,10 @@ from game.models import Tile, Property, Utility, Game, Player
 from collections import OrderedDict
 
 
+class GameEventTypes:
+    CONNECTED = 'CONNECTED'
+
+
 class TileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tile
@@ -82,3 +86,7 @@ class PlayerSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'position', 'cash', 'color', 'in_jail', 'jail_turns'
         )
+
+
+class GameEventSerializer(serializers.Serializer):
+    type = serializers.CharField()

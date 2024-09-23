@@ -1,5 +1,8 @@
-import { useMutation, useQuery } from "react-query";
+import { useMutation, useQuery, useQueryClient } from "react-query";
 import { createGame, getGame, getMe, getPlayers, getTiles } from "./api";
+import React from "react";
+import { buildGameWebsocketUrl } from "./lib/utils";
+import { GameEvent, GameEventScope } from "./types/api";
 
 export const useTiles = () => {
   return useQuery(["tiles"], getTiles, {
@@ -44,9 +47,10 @@ export const useGame = (
   runImmediately = false,
   enableRetry = false,
 ) => {
-  return useQuery(["game", gameUuid], () => getGame(gameUuid), {
-    enabled: runImmediately,
-    retry: enableRetry,
+  return useQuery({
+    queryKey: ["game"],
+    enabled: false,
+    retry: false,
   });
 };
 
@@ -55,8 +59,49 @@ export const usePlayers = (
   runImmediately = false,
   enableRetry = false,
 ) => {
-  return useQuery(["players", gameUuid], () => getPlayers(gameUuid), {
-    enabled: runImmediately,
-    retry: enableRetry,
+  return useQuery({
+    queryKey: ["players"],
+    enabled: false,
+    retry: false,
   });
+};
+
+export const useReactQuerySubscription = (gameUUID: string) => {
+  const queryClient = useQueryClient();
+
+  React.useEffect(() => {
+    // const websocket = new WebSocket("wss://echo.websocket.org/");
+    const websocket = new WebSocket(buildGameWebsocketUrl(gameUUID));
+
+    websocket.onopen = () => {
+      // websocket.send("Hello, Server!");
+    };
+
+    websocket.onmessage = (event) => {
+      const gameEvent: GameEvent = JSON.parse(event.data);
+
+      let eventScope = gameEvent.type.split(".")[0];
+
+      if (eventScope === GameEventScope.GAME) {
+        if (gameEvent.type === "game.connected") {
+          queryClient.setQueryData(["game"], () => gameEvent.game);
+          queryClient.setQueryData(["players"], () => gameEvent.players);
+        }
+      }
+
+      // const queryKey = ["game"];
+      // // queryClient.setQueryData(queryKey, (oldData) => {
+      // queryClient.setQueryData(queryKey, () => {
+      //   return {
+      //     game: JSON.parse(event.data),
+      //     // ...oldData,
+      //     // ...data,
+      //   };
+      // });
+    };
+
+    return () => {
+      websocket.close();
+    };
+  }, [queryClient]);
 };

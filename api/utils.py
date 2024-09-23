@@ -32,6 +32,16 @@ def verify_telegram_init_data(init_data: dict, bot_token: str) -> bool:
     return verification_hash == hash
 
 
+def parse_user_from_qs(init_data_raw: str) -> TelegramUser:
+    init_data = {k: v[0] for k, v in parse_qs(init_data_raw).items()}
+    user_data = json.loads(init_data.get('user'))
+    if user_data == None:
+        return None
+    
+    user = TelegramUser.objects.get(user_id=int(user_data['id']))
+    return user
+
+
 def telegram_auth_required(view_func):
     @wraps(view_func)
     def _wrapped_view(request: CustomRequest, *args, **kwargs):

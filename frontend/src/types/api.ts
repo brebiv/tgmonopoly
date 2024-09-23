@@ -15,6 +15,14 @@ export enum GameStatus {
   FINISHED = "FINISHED",
 }
 
+export enum GameEventScope {
+  GAME = "game",
+}
+
+export enum GameEventType {
+  GAME_CONNECTED = "game.connected",
+}
+
 export type PropertyData = {
   price: number;
   mortgage_value: number;
@@ -53,4 +61,10 @@ export type Game = {
   turn: number;
   status: GameStatus;
   created: string;
+};
+
+export type GameEvent = {
+  type: GameEventType;
+  game: Game | null;
+  players: Player[] | null;
 };

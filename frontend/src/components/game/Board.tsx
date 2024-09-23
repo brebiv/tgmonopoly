@@ -59,6 +59,7 @@ function Board() {
             window.Telegram.WebApp.themeParams.bg_color || "#334155",
         }}
       >
+        {/* Generating tiles */}
         <div id="tiles" className="relative h-full w-full">
           {!isTilesLoading &&
             !isTilesError &&

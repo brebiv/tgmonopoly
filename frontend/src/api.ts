@@ -47,6 +47,7 @@ export const createGame = (maxPlayers: number) => {
     });
 };
 
+// @ts-ignore
 export const getGame = (gameUuid: string) => {
   // @ts-ignore
   if (window && window.game) {
@@ -55,6 +56,7 @@ export const getGame = (gameUuid: string) => {
   }
 };
 
+// @ts-ignore
 export const getPlayers = (gameUuid: string) => {
   // @ts-ignore
   if (window && window.players) {

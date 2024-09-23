@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import Board from "./Board";
 
-import { useGame, usePlayers } from "@/hooks";
+import { useGame, usePlayers, useReactQuerySubscription } from "@/hooks";
 
 function Game() {
   useEffect(() => {
@@ -17,18 +17,11 @@ function Game() {
     });
   }, []);
 
-  const { data: game, refetch: refetchGame } = useGame(
-    window.location.pathname.split("/")[2],
-  );
+  const gameUUID = window.location.pathname.split("/")[2];
+  const { data: game } = useGame(gameUUID, true);
+  const { data: players } = usePlayers(gameUUID, true);
 
-  const { data: players, refetch: refetchPlayers } = usePlayers(
-    window.location.pathname.split("/")[2],
-  );
-
-  useEffect(() => {
-    refetchGame();
-    refetchPlayers();
-  }, []);
+  useReactQuerySubscription(gameUUID);
 
   useEffect(() => {
     if (game) {

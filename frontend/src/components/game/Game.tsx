@@ -1,7 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Board from "./Board";
 
-import { useGame, usePlayers, useReactQuerySubscription } from "@/hooks";
+import { useGame, useMe, usePlayers, useReactQuerySubscription } from "@/hooks";
+import PlayersChipController from "./PlayersChipController";
+import Forbidden from "../Forbidden";
+import LoadingScreen from "../LoadingScreen";
 
 function Game() {
   useEffect(() => {
@@ -18,8 +21,15 @@ function Game() {
   }, []);
 
   const gameUUID = window.location.pathname.split("/")[2];
-  const { data: game } = useGame(gameUUID, true);
-  const { data: players } = usePlayers(gameUUID, true);
+  const { data: me, isLoading: isMeLoading, isError: isMeError } = useMe(true);
+  const { data: game } = useGame();
+  const { data: players = [] } = usePlayers();
+
+  const [boardLoaded, setBoardLoaded] = useState(false);
+
+  if (isMeError) {
+    return <Forbidden />;
+  }
 
   useReactQuerySubscription(gameUUID);
 
@@ -41,7 +51,13 @@ function Game() {
           window.Telegram.WebApp.themeParams.bg_color || "#334155",
       }}
     >
-      <Board />
+      {(me == undefined ||
+        isMeLoading ||
+        game == undefined ||
+        players == undefined ||
+        !boardLoaded) && <LoadingScreen />}
+      <Board boardLoaded={boardLoaded} setBoardLoaded={setBoardLoaded} />
+      <PlayersChipController players={players} boardLoaded={boardLoaded} />
     </div>
   );
 }

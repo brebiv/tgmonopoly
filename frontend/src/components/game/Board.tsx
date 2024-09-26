@@ -1,6 +1,7 @@
 import { useEffect, useState, createContext } from "react";
 import BoardTile from "./BoardTile";
 import { useTiles } from "@/hooks";
+// import { sleep } from "@/lib/utils";
 
 const boardContext = {
   gridCellWidth: 0,
@@ -10,15 +11,11 @@ const boardContext = {
 
 const BoardContext = createContext(boardContext);
 
-function Board() {
+function Board({ boardLoaded, setBoardLoaded }: { boardLoaded: boolean; setBoardLoaded: any }) {
   const [gridCellWidth, setGridCellWidth] = useState<number>(0);
   const [gridCellHeight, setGridCellHeight] = useState<number>(0);
   const [cornerSizeInPercent] = useState<number>(13);
-  const {
-    data: tiles,
-    isLoading: isTilesLoading,
-    isError: isTilesError,
-  } = useTiles();
+  const { data: tiles, isLoading: isTilesLoading, isError: isTilesError } = useTiles();
 
   useEffect(() => {
     const boardElement = document.getElementById("board");
@@ -29,16 +26,18 @@ function Board() {
 
     boardElement.style.aspectRatio = "1/1";
 
+    // sleep(300).then(() => {
     const boardWidth = boardElement.clientWidth - 12 - 12; // 12 px padding on each side
     const boardHeight = boardElement.clientHeight - 12 - 12; // 12 px padding on each side
 
-    const gridCellWidth =
-      (boardWidth * (100 - cornerSizeInPercent * 2)) / 100 / 9;
-    const gridCellHeight =
-      (boardHeight * (100 - cornerSizeInPercent * 2)) / 100 / 9;
+    const gridCellWidth = (boardWidth * (100 - cornerSizeInPercent * 2)) / 100 / 9;
+    const gridCellHeight = (boardHeight * (100 - cornerSizeInPercent * 2)) / 100 / 9;
     setGridCellWidth(gridCellWidth);
     setGridCellHeight(gridCellHeight);
-  }, []);
+
+    setBoardLoaded(true);
+    // });
+  }, [boardLoaded]);
 
   useEffect(() => {
     if (!isTilesLoading && !isTilesError) {
@@ -47,9 +46,7 @@ function Board() {
   }, [isTilesLoading, isTilesError, tiles]);
 
   return (
-    <BoardContext.Provider
-      value={{ gridCellWidth, gridCellHeight, cornerSizeInPercent }}
-    >
+    <BoardContext.Provider value={{ gridCellWidth, gridCellHeight, cornerSizeInPercent }}>
       <div
         id="board"
         className="relative w-full p-3"
@@ -60,12 +57,14 @@ function Board() {
         }}
       >
         {/* Generating tiles */}
-        <div id="tiles" className="relative h-full w-full">
-          {!isTilesLoading &&
-            !isTilesError &&
-            tiles &&
-            tiles.map((tile) => <BoardTile key={tile.position} tile={tile} />)}
-        </div>
+        {boardLoaded && (
+          <div id="tiles" className="relative h-full w-full">
+            {!isTilesLoading &&
+              !isTilesError &&
+              tiles &&
+              tiles.map((tile) => <BoardTile key={tile.position} tile={tile} />)}
+          </div>
+        )}
       </div>
     </BoardContext.Provider>
   );

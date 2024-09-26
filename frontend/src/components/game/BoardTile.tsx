@@ -68,7 +68,8 @@ function BoardTile({ tile }: TileProps) {
 
   return (
     <div
-      className="absolute z-10 flex items-center justify-center"
+      data-position={position}
+      className="tile absolute z-10 flex items-center justify-center"
       style={{
         width: width,
         height: height,

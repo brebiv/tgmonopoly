@@ -55,6 +55,11 @@ export type Player = {
   jail_turns: number;
 };
 
+export type PlayerChip = Player & {
+  x: number | undefined;
+  y: number | undefined;
+};
+
 export type Game = {
   uuid: string;
   max_players: number;

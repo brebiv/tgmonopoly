@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "react-query";
-import { createGame, getGame, getMe, getPlayers, getTiles } from "./api";
+import { createGame, getMe, getTiles } from "./api";
 import React from "react";
 import { buildGameWebsocketUrl } from "./lib/utils";
 import { GameEvent, GameEventScope } from "./types/api";
@@ -42,11 +42,7 @@ export const useCreateGame = () => {
   });
 };
 
-export const useGame = (
-  gameUuid: string,
-  runImmediately = false,
-  enableRetry = false,
-) => {
+export const useGame = () => {
   return useQuery({
     queryKey: ["game"],
     enabled: false,
@@ -54,11 +50,7 @@ export const useGame = (
   });
 };
 
-export const usePlayers = (
-  gameUuid: string,
-  runImmediately = false,
-  enableRetry = false,
-) => {
+export const usePlayers = () => {
   return useQuery({
     queryKey: ["players"],
     enabled: false,
@@ -79,6 +71,8 @@ export const useReactQuerySubscription = (gameUUID: string) => {
 
     websocket.onmessage = (event) => {
       const gameEvent: GameEvent = JSON.parse(event.data);
+      console.log("GameEvent", gameEvent);
+      console.log(gameEvent.players);
 
       let eventScope = gameEvent.type.split(".")[0];
 

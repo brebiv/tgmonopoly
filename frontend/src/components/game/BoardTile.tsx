@@ -10,8 +10,7 @@ interface TileProps {
 
 function BoardTile({ tile }: TileProps) {
   const { position, type } = tile;
-  const { gridCellWidth, gridCellHeight, cornerSizeInPercent } =
-    useContext(BoardContext);
+  const { gridCellWidth, gridCellHeight, cornerSizeInPercent } = useContext(BoardContext);
 
   let left: string | number = -1;
   let right: string | number = -1;
@@ -28,25 +27,16 @@ function BoardTile({ tile }: TileProps) {
   }
 
   if (position > 0 && position < 11) {
-    left =
-      `calc(${cornerSizeInPercent}% + ` +
-      gridCellWidth * (position - 1) +
-      `px + ${gap}px)`;
+    left = `calc(${cornerSizeInPercent}% + ` + gridCellWidth * (position - 1) + `px + ${gap}px)`;
     height = `calc(${cornerSizeInPercent}% - ${gap}px)`;
   } else if (position > 10 && position < 21) {
     left = -1;
     right = 0;
-    top =
-      `calc(${cornerSizeInPercent}% + ` +
-      gridCellHeight * (position - 11) +
-      `px + ${gap}px)`;
+    top = `calc(${cornerSizeInPercent}% + ` + gridCellHeight * (position - 11) + `px + ${gap}px)`;
     width = `calc(${cornerSizeInPercent}% - ${gap}px)`;
   } else if (position > 20 && position < 31) {
     left = -1;
-    right =
-      `calc(${cornerSizeInPercent}% + ` +
-      gridCellWidth * (position - 21) +
-      `px + ${gap}px)`;
+    right = `calc(${cornerSizeInPercent}% + ` + gridCellWidth * (position - 21) + `px + ${gap}px)`;
     top = -1;
     bottom = 0;
     height = `calc(${cornerSizeInPercent}% - ${gap}px)`;
@@ -55,9 +45,7 @@ function BoardTile({ tile }: TileProps) {
     right = "unset";
     top = -1;
     bottom =
-      `calc(${cornerSizeInPercent}% + ` +
-      gridCellHeight * (position - 31) +
-      `px + ${gap}px)`;
+      `calc(${cornerSizeInPercent}% + ` + gridCellHeight * (position - 31) + `px + ${gap}px)`;
     width = `calc(${cornerSizeInPercent}% - ${gap}px)`;
   }
 
@@ -80,7 +68,7 @@ function BoardTile({ tile }: TileProps) {
         // boxShadow: "inset 0px 0px 8px -4px rgba(0,0,0,0.75)",
         backgroundColor:
           // @ts-ignore
-          window.Telegram.WebApp.themeParams.text_color || "orange",
+          window.Telegram.WebApp.themeParams.text_color || "white",
       }}
     >
       {type === TileType.START && (
@@ -103,9 +91,7 @@ function BoardTile({ tile }: TileProps) {
           <Siren />
         </div>
       )}
-      {(type === TileType.PROPERTY || type === TileType.UTILITY) && (
-        <Property tile={tile} />
-      )}
+      {(type === TileType.PROPERTY || type === TileType.UTILITY) && <Property tile={tile} />}
       {type === TileType.CHANCE && (
         <div>
           <Clover />

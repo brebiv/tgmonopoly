@@ -47,18 +47,14 @@ function Property({ tile }: PropertyProps) {
           style={{
             color:
               // @ts-ignore
-              window.Telegram.WebApp.themeParams.text_color || "red",
+              window.Telegram.WebApp.themeParams.text_color || "white",
           }}
         >
           {(side == "top" || side == "bottom") && (
             <p className="text-xs">{tile.propertyData?.price}</p>
           )}
-          {side == "right" && (
-            <p className="rotate-90 text-xs">{tile.propertyData?.price}</p>
-          )}
-          {side == "left" && (
-            <p className="-rotate-90 text-xs">{tile.propertyData?.price}</p>
-          )}
+          {side == "right" && <p className="rotate-90 text-xs">{tile.propertyData?.price}</p>}
+          {side == "left" && <p className="-rotate-90 text-xs">{tile.propertyData?.price}</p>}
         </div>
       </div>
     </div>

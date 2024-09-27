@@ -4,6 +4,65 @@ import React, { useEffect, useRef } from "react";
 import { buildGameWebsocketUrl } from "./lib/utils";
 import { GameEvent, GameEventScope } from "./types/api";
 
+const players = [
+  {
+    cash: 1500,
+    color: "red",
+    id: 38,
+    in_jail: false,
+    jail_turns: 0,
+    position: 0,
+  },
+  {
+    cash: 1500,
+    color: "#918ff7",
+    id: 39,
+    in_jail: false,
+    jail_turns: 0,
+    position: 2,
+  },
+  {
+    cash: 1500,
+    color: "green",
+    id: 40,
+    in_jail: false,
+    jail_turns: 0,
+    position: 5,
+  },
+  {
+    cash: 1500,
+    color: "purple",
+    id: 42,
+    in_jail: false,
+    jail_turns: 0,
+    position: 5,
+  },
+  {
+    cash: 1500,
+    color: "yellow",
+    id: 41,
+    in_jail: false,
+    jail_turns: 0,
+    position: 7,
+  },
+  {
+    cash: 1500,
+    color: "orange",
+    id: 43,
+    in_jail: false,
+    jail_turns: 0,
+    position: 7,
+  },
+  {
+    cash: 1500,
+    color: "pink",
+    id: 44,
+    in_jail: false,
+    jail_turns: 0,
+    position: 7,
+  },
+];
+
 export const useTiles = () => {
   return useQuery(["tiles"], getTiles, {
     // staleTime: 5 * 60 * 1000, // 5 minutes
@@ -72,7 +131,6 @@ export const useReactQuerySubscription = (gameUUID: string) => {
     websocket.onmessage = (event) => {
       const gameEvent: GameEvent = JSON.parse(event.data);
       console.log("GameEvent", gameEvent);
-      console.log(gameEvent.players);
 
       let eventScope = gameEvent.type.split(".")[0];
 
@@ -80,6 +138,7 @@ export const useReactQuerySubscription = (gameUUID: string) => {
         if (gameEvent.type === "game.connected") {
           queryClient.setQueryData(["game"], () => gameEvent.game);
           queryClient.setQueryData(["players"], () => gameEvent.players);
+          // queryClient.setQueryData(["players"], () => players);
         }
       }
 

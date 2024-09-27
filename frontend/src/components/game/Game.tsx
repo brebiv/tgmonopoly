@@ -64,19 +64,21 @@ function Game() {
       <PlayersChipController players={players} boardLoaded={boardLoaded} />
       <div className="flex flex-col items-center pt-4">
         <Button
+          variant={"default"}
           onClick={() => {
             // @ts-ignore
             queryClient.setQueryData(["players"], (oldData) => {
               // @ts-ignore
               const updatedPlayers = oldData.map((player, index) => {
                 if (index === 0) {
-                  return { ...player, position: (player.position + 10) % 40 };
+                  return { ...player, position: (player.position + 1) % 40 };
                 }
                 return player;
               });
 
               // Return the updated players data
-              console.log({ updatedPlayers });
+              // console.dir(updatedPlayers);
+              // console.log({ updatedPlayers });
 
               return updatedPlayers;
             });

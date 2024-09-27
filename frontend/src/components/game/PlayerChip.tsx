@@ -9,12 +9,13 @@ function PlayerChip({
 }) {
   return (
     <div
-      className="absolute z-10 h-3 w-3 rounded-full"
+      className="absolute z-10 h-3 w-3 rounded-full outline outline-2"
       style={{
         backgroundColor: color,
         left: left,
         top: top,
-        transition: "left 0.5s, top 0.5s",
+        transition: "left 300ms, top 300ms",
+        // boxShadow: `0px 0px 8px 2px rgba(0,0,0,0.55)`,
       }}
     ></div>
   );

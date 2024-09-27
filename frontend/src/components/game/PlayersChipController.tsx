@@ -41,10 +41,6 @@ function PlayersChipController({
       return;
     }
 
-    console.log({ players });
-
-    console.log("players", players);
-
     const groupedByPosition = players.reduce((acc: any, player: Player) => {
       if (!acc[player.position]) {
         acc[player.position] = [];
@@ -52,8 +48,6 @@ function PlayersChipController({
       acc[player.position].push(player);
       return acc;
     }, {});
-
-    console.log("groupedByPosition", groupedByPosition);
 
     const newPlayerChips = [];
     const tilePositionsWithPlayers = Object.keys(groupedByPosition).map((key) => parseInt(key));
@@ -69,7 +63,7 @@ function PlayersChipController({
         let halfChipSize = 6;
         let x, y;
         let side = position < 10 ? 0 : position < 20 ? 1 : position < 30 ? 2 : 3;
-        if (i == 0 || i == 10 || i == 20 || i == 30) {
+        if (position == 0 || position == 10 || position == 20 || position == 30) {
           side = -1;
         }
 
@@ -77,11 +71,18 @@ function PlayersChipController({
           x = tilePos.x + tilePos.width / 2 - halfChipSize;
           y = tilePos.y + tilePos.height / 2 - halfChipSize;
         } else if (playersOnTheTile.length == 2) {
+          console.log("playersOnTheTile", playersOnTheTile);
+          console.log("side", side);
+
           if (side == 0 || side == 2) {
             if (j == 0) {
+              console.log("HEREREIRJEIJ 1");
+
               x = tilePos.x + tilePos.width / 2 - halfChipSize;
               y = tilePos.y + tilePos.height / 4 - halfChipSize;
             } else if (j == 1) {
+              console.log("HEREREIRJEIJ 2");
+
               x = tilePos.x + tilePos.width / 2 - halfChipSize;
               y = tilePos.y + tilePos.height / 2 + halfChipSize;
             }
@@ -123,16 +124,16 @@ function PlayersChipController({
           if (side == 0 || side == 1 || side == 2 || side == 3 || side == -1) {
             if (j == 0) {
               x = tilePos.x + tilePos.width / 3.8 - halfChipSize;
-              y = tilePos.y + tilePos.height / (2 - 0.5) - halfChipSize;
+              y = tilePos.y + tilePos.height / (2 + 1.7) - halfChipSize;
             } else if (j == 1) {
               x = tilePos.x + tilePos.width / 1.25 - halfChipSize;
-              y = tilePos.y + tilePos.height / (2 - 0.5) - halfChipSize;
+              y = tilePos.y + tilePos.height / (2 + 1.7) - halfChipSize;
             } else if (j == 2) {
               x = tilePos.x + tilePos.width / 3.8 - halfChipSize;
-              y = tilePos.y + tilePos.height / (2 + 1.7) - halfChipSize;
+              y = tilePos.y + tilePos.height / (2 - 0.5) - halfChipSize;
             } else if (j == 3) {
               x = tilePos.x + tilePos.width / 1.25 - halfChipSize;
-              y = tilePos.y + tilePos.height / (2 + 1.7) - halfChipSize;
+              y = tilePos.y + tilePos.height / (2 - 0.5) - halfChipSize;
             }
           }
         }
@@ -145,14 +146,11 @@ function PlayersChipController({
         });
       }
     }
-    console.log("here");
-    console.log({ newPlayerChips });
+
+    newPlayerChips.sort((a, b) => a.id - b.id);
+
     setPlayerChips(newPlayerChips);
   }, [players, boardLoaded]);
-
-  useEffect(() => {
-    console.log({ playerChips });
-  }, [playerChips]);
 
   return (
     <div className="players absolute">

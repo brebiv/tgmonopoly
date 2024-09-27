@@ -18,6 +18,10 @@ function PlayersChipController({
 
   // Collect tile positions
   useEffect(() => {
+    if (!boardLoaded) {
+      return;
+    }
+
     const tiles = document.querySelectorAll(".tile[data-position]");
     tiles.forEach((tile) => {
       const position = tile.getAttribute("data-position");
@@ -30,12 +34,16 @@ function PlayersChipController({
         height: rect.height,
       };
     });
-  }, []);
+  }, [boardLoaded]);
 
   useEffect(() => {
     if (!boardLoaded) {
       return;
     }
+
+    console.log({ players });
+
+    console.log("players", players);
 
     const groupedByPosition = players.reduce((acc: any, player: Player) => {
       if (!acc[player.position]) {
@@ -45,7 +53,7 @@ function PlayersChipController({
       return acc;
     }, {});
 
-    console.log(groupedByPosition);
+    console.log("groupedByPosition", groupedByPosition);
 
     const newPlayerChips = [];
     const tilePositionsWithPlayers = Object.keys(groupedByPosition).map((key) => parseInt(key));
@@ -55,9 +63,9 @@ function PlayersChipController({
       // @ts-ignore
       let tilePos = tilePositions.current[position];
       // let position = Object.keys(groupedByPosition)
-      for (let j = 0; j < groupedByPosition[i].length; j++) {
-        let player = groupedByPosition[i][j];
-        let playersOnTheTile = groupedByPosition[i];
+      for (let j = 0; j < groupedByPosition[position].length; j++) {
+        let player = groupedByPosition[position][j];
+        let playersOnTheTile = groupedByPosition[position];
         let halfChipSize = 6;
         let x, y;
         let side = position < 10 ? 0 : position < 20 ? 1 : position < 30 ? 2 : 3;
@@ -136,16 +144,21 @@ function PlayersChipController({
           side: side,
         });
       }
-
-      setPlayerChips(newPlayerChips);
     }
+    console.log("here");
+    console.log({ newPlayerChips });
+    setPlayerChips(newPlayerChips);
   }, [players, boardLoaded]);
+
+  useEffect(() => {
+    console.log({ playerChips });
+  }, [playerChips]);
 
   return (
     <div className="players absolute">
       {playerChips.map((playerChip) => (
         <PlayerChip
-          key={playerChip.position + Math.random()}
+          key={playerChip.id}
           left={playerChip.x}
           top={playerChip.y}
           color={playerChip.color}

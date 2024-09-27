@@ -1,7 +1,6 @@
-import { useEffect, useState, createContext } from "react";
+import { useEffect, useState, createContext, useLayoutEffect } from "react";
 import BoardTile from "./BoardTile";
 import { useTiles } from "@/hooks";
-// import { sleep } from "@/lib/utils";
 
 const boardContext = {
   gridCellWidth: 0,
@@ -24,9 +23,9 @@ function Board({ boardLoaded, setBoardLoaded }: { boardLoaded: boolean; setBoard
       return;
     }
 
+    // This will tirgger useLayoutEffect
     boardElement.style.aspectRatio = "1/1";
 
-    // sleep(300).then(() => {
     const boardWidth = boardElement.clientWidth - 12 - 12; // 12 px padding on each side
     const boardHeight = boardElement.clientHeight - 12 - 12; // 12 px padding on each side
 
@@ -34,16 +33,11 @@ function Board({ boardLoaded, setBoardLoaded }: { boardLoaded: boolean; setBoard
     const gridCellHeight = (boardHeight * (100 - cornerSizeInPercent * 2)) / 100 / 9;
     setGridCellWidth(gridCellWidth);
     setGridCellHeight(gridCellHeight);
-
-    setBoardLoaded(true);
-    // });
   }, [boardLoaded]);
 
-  useEffect(() => {
-    if (!isTilesLoading && !isTilesError) {
-      console.log("Tiles", tiles);
-    }
-  }, [isTilesLoading, isTilesError, tiles]);
+  useLayoutEffect(() => {
+    setBoardLoaded(true);
+  }, []);
 
   return (
     <BoardContext.Provider value={{ gridCellWidth, gridCellHeight, cornerSizeInPercent }}>

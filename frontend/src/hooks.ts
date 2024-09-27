@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "react-query";
 import { createGame, getMe, getTiles } from "./api";
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { buildGameWebsocketUrl } from "./lib/utils";
 import { GameEvent, GameEventScope } from "./types/api";
 
@@ -98,4 +98,12 @@ export const useReactQuerySubscription = (gameUUID: string) => {
       websocket.close();
     };
   }, [queryClient]);
+};
+
+export const usePrevious = (value: any) => {
+  const ref = useRef();
+  useEffect(() => {
+    ref.current = value;
+  });
+  return ref.current;
 };

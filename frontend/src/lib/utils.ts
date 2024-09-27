@@ -7,9 +7,10 @@ export function cn(...inputs: ClassValue[]) {
 
 export function buildGameWebsocketUrl(gameUUID: string) {
   const path = "ws/game/" + gameUUID;
+  const protocol = import.meta.env.VITE_USE_HTTPS === "true" ? "wss" : "ws";
 
   return (
-    `ws://${window.location.host}/${path}/` +
+    `${protocol}://${window.location.host}/${path}/` +
     // @ts-ignore
     `?${window.Telegram.WebApp.initData}`
   );

@@ -1,66 +1,84 @@
 import { useMutation, useQuery, useQueryClient } from "react-query";
-import { createGame, getMe, getTiles } from "./api";
+import { createGame, getAuth, getTiles } from "./api";
 import React, { useEffect, useRef } from "react";
 import { buildGameWebsocketUrl } from "./lib/utils";
-import { GameEvent, GameEventScope } from "./types/api";
+import { Game, GameEvent, GameEventScope } from "./types/api";
+import { useEventStore } from "./stores/EventStore";
+import { useGameStore } from "./stores/GameStore";
+import { processGameData } from "./lib/game";
 
+// @ts-ignore
 const players = [
+  // {
+  //   name: "Leo",
+  //   cash: 1500,
+  //   color: "red",
+  //   id: 38,
+  //   in_jail: false,
+  //   jail_turns: 0,
+  //   position: 0,
+  //   avatar: "https://api.dicebear.com/9.x/pixel-art-neutral/png?seed=Leo",
+  // },
   {
-    cash: 1500,
-    color: "red",
-    id: 38,
-    in_jail: false,
-    jail_turns: 0,
-    position: 0,
-  },
-  {
+    name: "Anna",
     cash: 1500,
     color: "#918ff7",
     id: 39,
     in_jail: false,
     jail_turns: 0,
     position: 2,
+    avatar: "https://api.dicebear.com/9.x/pixel-art-neutral/png?seed=Anna",
   },
   {
+    name: "John",
     cash: 1500,
     color: "green",
     id: 40,
     in_jail: false,
     jail_turns: 0,
     position: 5,
+    avatar: "https://api.dicebear.com/9.x/pixel-art-neutral/png?seed=John",
   },
   {
+    name: "Emily",
     cash: 1500,
     color: "purple",
     id: 42,
     in_jail: false,
     jail_turns: 0,
     position: 5,
+    avatar: "https://api.dicebear.com/9.x/pixel-art-neutral/png?seed=Emily",
   },
-  {
-    cash: 1500,
-    color: "yellow",
-    id: 41,
-    in_jail: false,
-    jail_turns: 0,
-    position: 7,
-  },
-  {
-    cash: 1500,
-    color: "orange",
-    id: 43,
-    in_jail: false,
-    jail_turns: 0,
-    position: 7,
-  },
-  {
-    cash: 1500,
-    color: "pink",
-    id: 44,
-    in_jail: false,
-    jail_turns: 0,
-    position: 7,
-  },
+  // {
+  //   name: "Chris",
+  //   cash: 1500,
+  //   color: "yellow",
+  //   id: 41,
+  //   in_jail: false,
+  //   jail_turns: 0,
+  //   position: 7,
+  //   avatar: "https://api.dicebear.com/9.x/pixel-art-neutral/png?seed=Chris",
+  // },
+  // {
+  //   name: "Sophia",
+  //   cash: 1500,
+  //   color: "orange",
+  //   id: 43,
+  //   in_jail: false,
+  //   jail_turns: 0,
+  //   position: 7,
+  //   avatar: "https://api.dicebear.com/9.x/pixel-art-neutral/png?seed=Sophia",
+  // },
+  // {
+  //   name: "Michael",
+  //   cash: 1500,
+  //   color: "pink",
+  //   id: 44,
+  //   in_jail: false,
+  //   jail_turns: 0,
+  //   position: 7,
+  //   avatar: "https://api.dicebear.com/9.x/pixel-art-neutral/png?seed=Michael",
+  // },
 ];
 
 export const useTiles = () => {
@@ -88,8 +106,8 @@ export const useTiles = () => {
   });
 };
 
-export const useMe = (runImmediately = false, enableRetry = false) => {
-  return useQuery(["me"], getMe, {
+export const useAuth = (runImmediately = false, enableRetry = false) => {
+  return useQuery(["me"], getAuth, {
     enabled: runImmediately,
     retry: enableRetry,
   });
@@ -102,7 +120,7 @@ export const useCreateGame = () => {
 };
 
 export const useGame = () => {
-  return useQuery({
+  return useQuery<Game>({
     queryKey: ["game"],
     enabled: false,
     retry: false,
@@ -119,6 +137,8 @@ export const usePlayers = () => {
 
 export const useReactQuerySubscription = (gameUUID: string) => {
   const queryClient = useQueryClient();
+  const addEvent = useEventStore((state) => state.addEvent);
+  const { setMe, setMyTurn } = useGameStore();
 
   React.useEffect(() => {
     // const websocket = new WebSocket("wss://echo.websocket.org/");
@@ -137,20 +157,25 @@ export const useReactQuerySubscription = (gameUUID: string) => {
       if (eventScope === GameEventScope.GAME) {
         if (gameEvent.type === "game.connected") {
           queryClient.setQueryData(["game"], () => gameEvent.game);
-          queryClient.setQueryData(["players"], () => gameEvent.players);
-          // queryClient.setQueryData(["players"], () => players);
-        }
-      }
+          // queryClient.setQueryData(["players"], () => gameEvent.players);
+          // @ts-ignore
+          queryClient.setQueryData(["players"], () => [...gameEvent.players, ...players]);
+          setMe(gameEvent.me!);
+        } else if (gameEvent.type === "game.action") {
+          addEvent(gameEvent);
 
-      // const queryKey = ["game"];
-      // // queryClient.setQueryData(queryKey, (oldData) => {
-      // queryClient.setQueryData(queryKey, () => {
-      //   return {
-      //     game: JSON.parse(event.data),
-      //     // ...oldData,
-      //     // ...data,
-      //   };
-      // });
+          const me = useGameStore.getState().me;
+
+          if (gameEvent.game?.current_player == me?.id) {
+            setMyTurn(true);
+          } else {
+            setMyTurn(false);
+          }
+        }
+        console.log("Before processing gameData", gameEvent.game);
+
+        processGameData(gameEvent.game!);
+      }
     };
 
     return () => {

@@ -1,4 +1,4 @@
-import { Tile } from "./types/api";
+import { GameAction, Tile } from "./types/api";
 
 import axios from "axios";
 
@@ -8,11 +8,7 @@ function assembleAuthHeader() {
 }
 
 function getCsrfToken() {
-  return (
-    document
-      .querySelector('meta[name="csrf-token"]')
-      ?.getAttribute("content") || ""
-  );
+  return document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") || "";
 }
 
 axios.defaults.headers.common["X-CSRFToken"] = getCsrfToken();
@@ -33,18 +29,16 @@ export const getTiles = () => {
   //     .then((data) => data as Tile[]);
 };
 
-export const getMe = () => {
+export const getAuth = () => {
   return axios.get("/api/me/").then((response) => {
     return response.data;
   });
 };
 
 export const createGame = (maxPlayers: number) => {
-  return axios
-    .post("/api/create_game/", { max_players: maxPlayers })
-    .then((response) => {
-      return response.data;
-    });
+  return axios.post("/api/create_game/", { max_players: maxPlayers }).then((response) => {
+    return response.data;
+  });
 };
 
 // @ts-ignore
@@ -63,4 +57,10 @@ export const getPlayers = (gameUuid: string) => {
     // @ts-ignore
     return Promise.resolve(window.players as Player[]);
   }
+};
+
+export const sendGameAction = (action: GameAction) => {
+  return axios.post("/api/game_action/", action).then((response) => {
+    return response.data;
+  });
 };

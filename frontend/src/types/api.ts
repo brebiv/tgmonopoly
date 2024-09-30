@@ -23,7 +23,14 @@ export enum GameEventType {
   GAME_CONNECTED = "game.connected",
 }
 
-export type PropertyData = {
+export enum GameActionType {
+  START_GAME = "start_game",
+  ROLL_DICE = "roll_dice",
+}
+
+// Enums end here
+
+type PropertyData = {
   price: number;
   mortgage_value: number;
   house_price: number;
@@ -53,6 +60,9 @@ export type Player = {
   color: string;
   in_jail: boolean;
   jail_turns: number;
+  effects: string[];
+  name: string;
+  avatar: string;
 };
 
 export type PlayerChip = Player & {
@@ -63,6 +73,7 @@ export type PlayerChip = Player & {
 export type Game = {
   uuid: string;
   max_players: number;
+  current_player: number | null;
   turn: number;
   status: GameStatus;
   created: string;
@@ -70,6 +81,14 @@ export type Game = {
 
 export type GameEvent = {
   type: GameEventType;
+  action: GameActionType | null;
   game: Game | null;
   players: Player[] | null;
+  dices: number[] | null;
+  me: Player | null;
+};
+
+export type GameAction = {
+  action: GameActionType;
+  game_uuid: string;
 };

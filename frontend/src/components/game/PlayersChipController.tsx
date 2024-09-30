@@ -76,13 +76,9 @@ function PlayersChipController({
 
           if (side == 0 || side == 2) {
             if (j == 0) {
-              console.log("HEREREIRJEIJ 1");
-
               x = tilePos.x + tilePos.width / 2 - halfChipSize;
               y = tilePos.y + tilePos.height / 4 - halfChipSize;
             } else if (j == 1) {
-              console.log("HEREREIRJEIJ 2");
-
               x = tilePos.x + tilePos.width / 2 - halfChipSize;
               y = tilePos.y + tilePos.height / 2 + halfChipSize;
             }
@@ -153,7 +149,7 @@ function PlayersChipController({
   }, [players, boardLoaded]);
 
   return (
-    <div className="players absolute">
+    <div className="players absolute z-20">
       {playerChips.map((playerChip) => (
         <PlayerChip
           key={playerChip.id}

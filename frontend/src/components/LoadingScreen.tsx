@@ -1,7 +1,7 @@
 function LoadingScreen() {
   return (
     <div
-      className="flex min-h-screen w-full flex-col items-center justify-center gap-4"
+      className="z-20 flex min-h-screen w-full flex-col items-center justify-center gap-4"
       style={{
         // @ts-ignore
         backgroundColor: window.Telegram.WebApp.themeParams.bg_color,

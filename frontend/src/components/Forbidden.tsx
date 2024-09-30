@@ -1,7 +1,7 @@
-import { useMe } from "@/hooks";
+import { useAuth } from "@/hooks";
 import axios from "axios";
 function Forbidden() {
-  const { isError: isMeError, error } = useMe();
+  const { isError: isMeError, error } = useAuth();
 
   let errorMessage = "An error occurred";
 

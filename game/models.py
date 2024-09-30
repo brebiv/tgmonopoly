@@ -8,6 +8,7 @@ class Game(models.Model):
     uuid = models.UUIDField(default=uuid.uuid4)
     max_players = models.IntegerField(default=2)
     turn = models.IntegerField(default=0)
+    current_player = models.ForeignKey('game.Player', related_name='current_player', on_delete=models.CASCADE, null=True, blank=True)
 
     WAITING = 'WAITING'
     PLAYING = 'PLAYING'
@@ -174,6 +175,27 @@ class Transaction(models.Model):
 
     def __str__(self):
         return f"Transaction in {self.game.name} - {self.description}"
+
+
+class GameEffect(models.Model):
+
+    START_GAME = 'start_game'
+    ROLL_DICE = 'roll_dice'
+
+    EFFECT_TYPES = [
+        (START_GAME, 'Start Game'),
+        (ROLL_DICE, 'Roll Dice'),
+    ]
+
+    game = models.ForeignKey(Game, related_name='effects', on_delete=models.CASCADE)
+    user = models.ForeignKey(Player, related_name='effects', on_delete=models.CASCADE)
+    name = models.CharField(max_length=20, choices=EFFECT_TYPES)
+    description = models.TextField(null=True, blank=True)
+
+    created = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"GameEffect in {self.game.name} - {self.name}"
 
 
 # class Trade(models.Model):

@@ -2,14 +2,15 @@ import "vite/modulepreload-polyfill";
 
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { QueryClient, QueryClientProvider } from "react-query";
+import { QueryClientProvider } from "react-query";
 import "../index.css";
 
 import Game from "../components/game/Game";
+import { queryClient } from "@/lib/queryClient";
 
 createRoot(document.getElementById("game")!).render(
   <StrictMode>
-    <QueryClientProvider client={new QueryClient()}>
+    <QueryClientProvider client={queryClient}>
       <Game />
     </QueryClientProvider>
   </StrictMode>,

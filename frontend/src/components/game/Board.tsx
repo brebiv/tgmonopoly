@@ -1,4 +1,4 @@
-import { useEffect, useState, createContext, useLayoutEffect } from "react";
+import { useEffect, useState, createContext } from "react";
 import BoardTile from "./BoardTile";
 import { useTiles } from "@/hooks";
 
@@ -23,9 +23,6 @@ function Board({ boardLoaded, setBoardLoaded }: { boardLoaded: boolean; setBoard
       return;
     }
 
-    // This will tirgger useLayoutEffect
-    boardElement.style.aspectRatio = "1/1";
-
     const boardWidth = boardElement.clientWidth - 12 - 12; // 12 px padding on each side
     const boardHeight = boardElement.clientHeight - 12 - 12; // 12 px padding on each side
 
@@ -33,32 +30,31 @@ function Board({ boardLoaded, setBoardLoaded }: { boardLoaded: boolean; setBoard
     const gridCellHeight = (boardHeight * (100 - cornerSizeInPercent * 2)) / 100 / 9;
     setGridCellWidth(gridCellWidth);
     setGridCellHeight(gridCellHeight);
-  }, [boardLoaded]);
-
-  useLayoutEffect(() => {
     setBoardLoaded(true);
-  }, []);
+  }, [boardLoaded]);
 
   return (
     <BoardContext.Provider value={{ gridCellWidth, gridCellHeight, cornerSizeInPercent }}>
-      <div
-        id="board"
-        className="relative w-full p-3"
-        style={{
-          backgroundColor:
-            // @ts-ignore
-            window.Telegram.WebApp.themeParams.bg_color || "#334155",
-        }}
-      >
-        {/* Generating tiles */}
-        {boardLoaded && (
-          <div id="tiles" className="relative h-full w-full">
-            {!isTilesLoading &&
-              !isTilesError &&
-              tiles &&
-              tiles.map((tile) => <BoardTile key={tile.position} tile={tile} />)}
-          </div>
-        )}
+      <div className="aspect-square w-full">
+        <div
+          id="board"
+          className="board relative h-full w-full p-3"
+          style={{
+            backgroundColor:
+              // @ts-ignore
+              window.Telegram.WebApp.themeParams.bg_color || "#334155",
+          }}
+        >
+          {/* Generating tiles */}
+          {boardLoaded && (
+            <div id="tiles" className="relative h-full w-full">
+              {!isTilesLoading &&
+                !isTilesError &&
+                tiles &&
+                tiles.map((tile) => <BoardTile key={tile.position} tile={tile} />)}
+            </div>
+          )}
+        </div>
       </div>
     </BoardContext.Provider>
   );

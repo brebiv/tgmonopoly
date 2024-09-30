@@ -77,16 +77,45 @@ class GameSerializer(serializers.ModelSerializer):
     class Meta:
         model = Game
         fields = (
-            'uuid', 'max_players', 'turn', 'status', 'created'
+            'uuid', 'max_players', 'turn', 'current_player', 'status', 'created'
         )
+
 
 class PlayerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Player
         fields = (
-            'id', 'position', 'cash', 'color', 'in_jail', 'jail_turns'
+            'id', 'position', 'cash', 'color', 'in_jail', 'jail_turns', 'effects',
+            'name'
         )
+    
+    effects = serializers.SerializerMethodField()
+    name = serializers.SerializerMethodField()
+    
+    def get_effects(self, obj):
+        if obj.effects.count() > 0:
+            return [effect.name for effect in obj.effects.all()]
+        else:
+            return []
+    
+    def get_name(self, obj):
+        return obj.user.first_name
 
 
 class GameEventSerializer(serializers.Serializer):
     type = serializers.CharField()
+
+
+class GameActionSerializer(serializers.Serializer):
+    action = serializers.CharField()
+    game_uuid = serializers.UUIDField()
+
+
+class GameEventSerializer(serializers.Serializer):
+    type = serializers.CharField()
+    action = serializers.CharField()
+    dices = serializers.ListField(child=serializers.IntegerField(), required=False)
+    players = serializers.ListField(required=False)
+    game = serializers.DictField(required=False)
+    events = serializers.ListField(required=False)
+

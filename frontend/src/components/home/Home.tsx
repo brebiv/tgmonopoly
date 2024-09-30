@@ -1,11 +1,11 @@
 import { Button } from "../ui/button";
 import { DollarSign, PlayCircle, Settings, Book, Globe } from "lucide-react";
-import { useMe } from "@/hooks";
+import { useAuth } from "@/hooks";
 import LoadingScreen from "../LoadingScreen";
 import Forbidden from "../Forbidden";
 
 function Home() {
-  const { data: me, isLoading: isMeLoading, isError: isMeError } = useMe(true);
+  const { data: me, isLoading: isMeLoading, isError: isMeError } = useAuth(true);
 
   if (isMeError) {
     return <Forbidden />;
@@ -30,13 +30,10 @@ function Home() {
           style={{
             backgroundColor:
               // @ts-ignore
-              window.Telegram.WebApp.themeParams.bottom_bar_bg_color ||
-              "#334155",
+              window.Telegram.WebApp.themeParams.bottom_bar_bg_color || "#334155",
           }}
         >
-          <h1 className="text-4xl font-bold tracking-wider text-white">
-            MONOPOLY
-          </h1>
+          <h1 className="text-4xl font-bold tracking-wider text-white">MONOPOLY</h1>
         </div>
 
         <div
@@ -65,27 +62,15 @@ function Home() {
             <PlayCircle className="mr-2 h-6 w-6" />
             New Game
           </Button>
-          <Button
-            className="w-full py-6 text-lg font-semibold"
-            variant="outline"
-            disabled
-          >
+          <Button className="w-full py-6 text-lg font-semibold" variant="outline" disabled>
             <Globe className="mr-2 h-6 w-6" />
             Browse Games
           </Button>
-          <Button
-            className="w-full py-6 text-lg font-semibold"
-            variant="outline"
-            disabled
-          >
+          <Button className="w-full py-6 text-lg font-semibold" variant="outline" disabled>
             <Settings className="mr-2 h-6 w-6" />
             Settings
           </Button>
-          <Button
-            className="w-full py-6 text-lg font-semibold"
-            variant="outline"
-            disabled
-          >
+          <Button className="w-full py-6 text-lg font-semibold" variant="outline" disabled>
             <Book className="mr-2 h-6 w-6" />
             Rules
           </Button>
@@ -96,8 +81,7 @@ function Home() {
           style={{
             backgroundColor:
               // @ts-ignore
-              window.Telegram.WebApp.themeParams.bottom_bar_bg_color ||
-              "#334155",
+              window.Telegram.WebApp.themeParams.bottom_bar_bg_color || "#334155",
           }}
         >
           <DollarSign className="h-12 w-12 text-yellow-300" />

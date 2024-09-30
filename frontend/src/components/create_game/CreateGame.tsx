@@ -1,21 +1,15 @@
 import { useEffect, useState } from "react";
 import { Button } from "../ui/button";
 import { Label } from "../ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Users } from "lucide-react";
-import { useCreateGame, useMe } from "@/hooks";
+import { useCreateGame, useAuth } from "@/hooks";
 import Forbidden from "../Forbidden";
 import LoadingScreen from "../LoadingScreen";
 
 function CreateGame() {
   const [playerCount, setPlayerCount] = useState("2");
-  const { data: me, isLoading: isMeLoading, isError: isMeError } = useMe(true);
+  const { data: me, isLoading: isMeLoading, isError: isMeError } = useAuth(true);
   const {
     mutate: createGame,
     isLoading: isCreateGameLoading,
@@ -63,13 +57,10 @@ function CreateGame() {
           style={{
             backgroundColor:
               // @ts-ignore
-              window.Telegram.WebApp.themeParams.bottom_bar_bg_color ||
-              "#334155",
+              window.Telegram.WebApp.themeParams.bottom_bar_bg_color || "#334155",
           }}
         >
-          <h1 className="text-2xl font-bold tracking-wider text-white">
-            NEW GAME
-          </h1>
+          <h1 className="text-2xl font-bold tracking-wider text-white">NEW GAME</h1>
         </div>
 
         <form className="space-y-6 p-6">
@@ -168,8 +159,7 @@ function CreateGame() {
                 window.Telegram.WebApp.themeParams.button_color || "#334155",
               color:
                 // @ts-ignore
-                window.Telegram.WebApp.themeParams.button_text_color ||
-                "#334155",
+                window.Telegram.WebApp.themeParams.button_text_color || "#334155",
             }}
             onClick={(e) => {
               e.preventDefault();

@@ -91,48 +91,53 @@ def game_action(request: CustomRequest):
 
         try:
             game = Game.objects.get(uuid=request.data['game_uuid'])
+            player = Player.objects.get(game=game, user=request.telegram_user)
         except Game.DoesNotExist:
+            return HttpResponse(status=400)
+        except Player.DoesNotExist:
             return HttpResponse(status=400)
 
         channel_layer = get_channel_layer()
         game_group_name = f"game_{game.uuid}"
 
         if request.data['action'] == GameActionType.ROLL_DICE:
-            dices = [random.randint(1, 6) for _ in range(2)]
-            
-            response_data = {
-                # 'dices': dices,
-                "status": "ok",
-            }
-
-            game_event = {
-                'type': 'game.action',
-                'action': GameActionType.ROLL_DICE,
-                'game_uuid': game.uuid,
-                'dices': dices,
-            }
-            
-            game_event_serializer = GameEventSerializer(data=game_event)
-            if not game_event_serializer.is_valid():
+            events = GameService.roll_dice(game, player)
+            events_serializer = GameEventSerializer(data=events, many=True)
+            if not events_serializer.is_valid():
                 return HttpResponse(status=400)
+            
+            game_frame = {
+                'type': 'game.action',
+                'action': GameActionType.START_GAME,
+                'game': GameSerializer(game).data,
+                'players': [PlayerSerializer(player).data for player in game.players.all()],
+                'events': events_serializer.data,
+            }
 
             async_to_sync(channel_layer.group_send)(
-                game_group_name, game_event_serializer.data
+                game_group_name, game_frame
             )
 
-            return JsonResponse(response_data, status=201)
+            return JsonResponse({"status": "ok",}, status=201)
         elif request.data['action'] == GameActionType.START_GAME:
-            player = Player.objects.get(game=game, user=request.telegram_user)
 
             events = GameService.start_game(game, player)
             
-            game_event_serializer = GameEventSerializer(data=events)
+            events_serializer = GameEventSerializer(data=events, many=True)
 
-            if not game_event_serializer.is_valid():
+            if not events_serializer.is_valid():
                 return JsonResponse({"status": "!ok", "error": "Invalid events"}, status=400)
+            
+            game_frame = {
+                'type': 'game.action',
+                'action': GameActionType.START_GAME,
+                'game': GameSerializer(game).data,
+                'players': [PlayerSerializer(player).data for player in game.players.all()],
+                'events': events_serializer.data,
+            }
 
             async_to_sync(channel_layer.group_send)(
-                game_group_name, game_event_serializer.data
+                game_group_name, game_frame
             )
             return JsonResponse({"status": "ok",}, status=200)
         else:

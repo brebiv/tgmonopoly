@@ -102,10 +102,6 @@ class PlayerSerializer(serializers.ModelSerializer):
         return obj.user.first_name
 
 
-class GameEventSerializer(serializers.Serializer):
-    type = serializers.CharField()
-
-
 class GameActionSerializer(serializers.Serializer):
     action = serializers.CharField()
     game_uuid = serializers.UUIDField()
@@ -114,8 +110,6 @@ class GameActionSerializer(serializers.Serializer):
 class GameEventSerializer(serializers.Serializer):
     type = serializers.CharField()
     action = serializers.CharField()
+    player = serializers.IntegerField()
     dices = serializers.ListField(child=serializers.IntegerField(), required=False)
-    players = serializers.ListField(required=False)
-    game = serializers.DictField(required=False)
-    events = serializers.ListField(required=False)
-
+    position = serializers.IntegerField(required=False)

@@ -26,6 +26,7 @@ export enum GameEventType {
 export enum GameActionType {
   START_GAME = "start_game",
   ROLL_DICE = "roll_dice",
+  MOVE_PLAYER = "move_player",
 }
 
 // Enums end here
@@ -80,11 +81,19 @@ export type Game = {
 };
 
 export type GameEvent = {
+  type: GameEventType | null;
+  action: GameActionType | null;
+  player: number | null;
+  dices: number[] | null;
+  position: number | null;
+};
+
+export type GameFrame = {
   type: GameEventType;
   action: GameActionType | null;
   game: Game | null;
   players: Player[] | null;
-  dices: number[] | null;
+  events: GameEvent[] | null;
   me: Player | null;
 };
 

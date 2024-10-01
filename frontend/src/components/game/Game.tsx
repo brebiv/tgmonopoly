@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import Board from "./Board";
 
-import { useGame, useAuth, usePlayers, useReactQuerySubscription } from "@/hooks";
+import { useAuth, useReactQuerySubscription } from "@/hooks";
 import PlayersChipController from "./PlayersChipController";
 import Forbidden from "../Forbidden";
 import LoadingScreen from "../LoadingScreen";
@@ -30,12 +30,12 @@ function Game() {
 
   const gameUUID = window.location.pathname.split("/")[2];
   const { data: auth, isLoading: isMeLoading, isError: isMeError } = useAuth(true);
-  const { data: game } = useGame();
-  const { data: players = [] } = usePlayers();
+  // const { data: game } = useGame();
+  // const { data: players = [] } = usePlayers();
   const eventQueue = useEventStore((state) => state.eventQueue);
 
   const [boardLoaded, setBoardLoaded] = useState(false);
-  const { me, myTurn } = useGameStore((state) => state);
+  const { me, myTurn, game, players } = useGameStore((state) => state);
 
   if (isMeError) {
     return <Forbidden />;

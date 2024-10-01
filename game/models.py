@@ -41,6 +41,16 @@ class Player(models.Model):
 
     created = models.DateTimeField(auto_now_add=True)
 
+    def move_forward(self, amount: int) -> int:
+        """Moves player forward by amount of tiles and returns new position"""
+        self.position = (self.position + amount) % 40
+        return self.position
+    
+    def move_backward(self, amount: int) -> int:
+        """Moves player backward by amount of tiles and returns new position"""
+        self.position = (self.position - amount) % 40
+        return self.position
+
     def __str__(self):
         return f"{self.user.username} in {self.game.name}"
 

@@ -1,12 +1,15 @@
-import { GameActionType, GameEvent } from "@/types/api";
+import { Game, GameActionType, GameEvent, Player } from "@/types/api";
 import { create } from "zustand";
 
+import { sleep } from "@/lib/utils";
+import { DICE_ANIMATION_DURATION_SECONDS, PLAYER_CHIP_MOVE_DURATION_MS } from "@/config";
+import { useGameStore } from "./GameStore";
 import { queryClient } from "@/lib/queryClient";
 
 interface EventStore {
-  eventQueue: GameEvent[];
+  eventQueue: GameEvent[] | [];
   isProcessing: boolean;
-  addEvent: (event: GameEvent) => void;
+  addEvents: (event: GameEvent[]) => void;
   processNextEvent: () => void;
 }
 
@@ -14,8 +17,8 @@ export const useEventStore = create<EventStore>((set, get) => ({
   eventQueue: [],
   isProcessing: false,
 
-  addEvent: (event) => {
-    set((state) => ({ eventQueue: [...state.eventQueue, event] }));
+  addEvents: (events: GameEvent[]) => {
+    set((state) => ({ eventQueue: [...state.eventQueue, ...events] }));
     // Start processing if not already
     if (!get().isProcessing) {
       get().processNextEvent();
@@ -27,6 +30,13 @@ export const useEventStore = create<EventStore>((set, get) => ({
     if (eventQueue.length === 0) {
       set({ isProcessing: false });
       console.log("No more events to process");
+
+      const { setPlayers, setGame } = useGameStore.getState();
+      let players = queryClient.getQueriesData<Player[]>(["players"])[0][1];
+      let game = queryClient.getQueriesData<Game>(["game"])[0][1];
+
+      setPlayers(players);
+      setGame(game);
       return;
     }
 
@@ -46,9 +56,20 @@ export const useEventStore = create<EventStore>((set, get) => ({
 }));
 
 const processEvent = async (event: GameEvent) => {
+  const { setDices, setShowDices, movePlayer } = useGameStore.getState();
+
   if (event.action === GameActionType.START_GAME) {
     console.log("Processing start game");
-    queryClient.setQueryData(["players"], () => event.players);
-    queryClient.setQueryData(["game"], () => event.game);
+  } else if (event.action === GameActionType.ROLL_DICE) {
+    console.log("Processing roll dice");
+
+    setShowDices(true);
+    setDices(event.dices);
+    await sleep(DICE_ANIMATION_DURATION_SECONDS * 1000);
+    await sleep(PLAYER_CHIP_MOVE_DURATION_MS);
+    setShowDices(false);
+  } else if (event.action === GameActionType.MOVE_PLAYER) {
+    console.log("Processing move player");
+    movePlayer(event.player!, event.position!);
   }
 };

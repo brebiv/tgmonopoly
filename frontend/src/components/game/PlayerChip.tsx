@@ -1,3 +1,5 @@
+import { PLAYER_CHIP_MOVE_DURATION_MS } from "@/config";
+
 function PlayerChip({
   color,
   left,
@@ -14,7 +16,7 @@ function PlayerChip({
         backgroundColor: color,
         left: left,
         top: top,
-        transition: "left 300ms, top 300ms",
+        transition: `left ${PLAYER_CHIP_MOVE_DURATION_MS}ms, top ${PLAYER_CHIP_MOVE_DURATION_MS}ms`,
         // boxShadow: `0px 0px 8px 2px rgba(0,0,0,0.55)`,
       }}
     ></div>

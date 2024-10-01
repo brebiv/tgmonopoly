@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "react-query";
 import { createGame, getAuth, getTiles } from "./api";
 import React, { useEffect, useRef } from "react";
 import { buildGameWebsocketUrl } from "./lib/utils";
-import { Game, GameEvent, GameEventScope } from "./types/api";
+import { Game, GameFrame, GameEventScope } from "./types/api";
 import { useEventStore } from "./stores/EventStore";
 import { useGameStore } from "./stores/GameStore";
 import { processGameData } from "./lib/game";
@@ -137,8 +137,8 @@ export const usePlayers = () => {
 
 export const useReactQuerySubscription = (gameUUID: string) => {
   const queryClient = useQueryClient();
-  const addEvent = useEventStore((state) => state.addEvent);
-  const { setMe, setMyTurn } = useGameStore();
+  const addEvents = useEventStore((state) => state.addEvents);
+  const { setMe, setMyTurn, setGame, setPlayers } = useGameStore();
 
   React.useEffect(() => {
     // const websocket = new WebSocket("wss://echo.websocket.org/");
@@ -149,32 +149,41 @@ export const useReactQuerySubscription = (gameUUID: string) => {
     };
 
     websocket.onmessage = (event) => {
-      const gameEvent: GameEvent = JSON.parse(event.data);
-      console.log("GameEvent", gameEvent);
+      const gameFrame: GameFrame = JSON.parse(event.data);
+      console.log("GameEvent", gameFrame);
 
-      let eventScope = gameEvent.type.split(".")[0];
+      let eventScope = gameFrame.type.split(".")[0];
 
       if (eventScope === GameEventScope.GAME) {
-        if (gameEvent.type === "game.connected") {
-          queryClient.setQueryData(["game"], () => gameEvent.game);
-          // queryClient.setQueryData(["players"], () => gameEvent.players);
+        if (gameFrame.type === "game.connected") {
+          queryClient.setQueryData(["game"], () => gameFrame.game);
+          queryClient.setQueryData(["players"], () => gameFrame.players);
           // @ts-ignore
-          queryClient.setQueryData(["players"], () => [...gameEvent.players, ...players]);
-          setMe(gameEvent.me!);
-        } else if (gameEvent.type === "game.action") {
-          addEvent(gameEvent);
+          // queryClient.setQueryData(["players"], () => [...gameFrame.players, ...players]);
+          setPlayers(gameFrame.players!);
+          setGame(gameFrame.game!);
+          setMe(gameFrame.me!);
+        } else if (gameFrame.type === "game.action") {
+          queryClient.setQueryData(["game"], () => gameFrame.game);
+          queryClient.setQueryData(["players"], () => gameFrame.players);
+          // queryClient.setQueryData(["players"], () => [...gameFrame.players, ...players]);
+          addEvents(gameFrame.events!);
+
+          // Key poing for todays nigth
+          // Two states, one in the store, one in the queryClient
+          // store truth in the queryClient, and update zustand state after event is processed
 
           const me = useGameStore.getState().me;
 
-          if (gameEvent.game?.current_player == me?.id) {
+          if (gameFrame.game?.current_player == me?.id) {
             setMyTurn(true);
           } else {
             setMyTurn(false);
           }
         }
-        console.log("Before processing gameData", gameEvent.game);
+        console.log("Before processing gameData", gameFrame.game);
 
-        processGameData(gameEvent.game!);
+        processGameData(gameFrame.game!);
       }
     };
 

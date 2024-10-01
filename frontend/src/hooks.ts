@@ -168,7 +168,9 @@ export const useReactQuerySubscription = (gameUUID: string) => {
           // queryClient.setQueryData(["players"], () => [...gameFrame.players, ...players]);
         }
         processGameData(gameFrame.game!);
-        addEvents(gameFrame.events!);
+        if (gameFrame.events) {
+          addEvents(gameFrame.events);
+        }
       }
     };
 

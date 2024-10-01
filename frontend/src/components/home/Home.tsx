@@ -3,6 +3,7 @@ import { DollarSign, PlayCircle, Settings, Book, Globe } from "lucide-react";
 import { useAuth } from "@/hooks";
 import LoadingScreen from "../LoadingScreen";
 import Forbidden from "../Forbidden";
+import { joinGame } from "@/api";
 
 function Home() {
   const { data: me, isLoading: isMeLoading, isError: isMeError } = useAuth(true);
@@ -62,7 +63,16 @@ function Home() {
             <PlayCircle className="mr-2 h-6 w-6" />
             New Game
           </Button>
-          <Button className="w-full py-6 text-lg font-semibold" variant="outline" disabled>
+          <Button
+            className="w-full py-6 text-lg font-semibold"
+            variant="outline"
+            onClick={async () => {
+              let resp = await joinGame("random-uuid");
+              if (resp.status === "ok") {
+                window.location.href = resp.next_url;
+              }
+            }}
+          >
             <Globe className="mr-2 h-6 w-6" />
             Browse Games
           </Button>

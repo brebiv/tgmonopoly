@@ -50,6 +50,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set({ players });
   },
   movePlayer: (playerId: number, position: number) => {
+    console.log("movePlayer", playerId, position);
+
     const { players, setPlayers } = get();
     if (!players) {
       console.error("Players array is undefined");
@@ -62,6 +64,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     } else {
       console.warn(`Player with id ${playerId} not found`);
     }
+    console.log("newPlayers", newPlayers);
 
     setPlayers(newPlayers);
   },

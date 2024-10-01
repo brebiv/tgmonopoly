@@ -8,6 +8,20 @@ from .types import GameActionType
 class GameService:
 
     @staticmethod
+    def _calculate_next_player(game: Game, after_player: Player) -> Player:
+        game_players = game.players.all().order_by('created')
+
+        current_index = next((index for index, p in enumerate(game_players) if p == after_player), -1)
+        next_index = (current_index + 1) % len(game_players)
+
+        next_player = game_players[next_index]
+
+        # if next_player.state == Player.LOSE or next_player.state == Player.TIMEOUT:
+        #     return GameService._calculate_next_player(game, next_player)
+
+        return game_players[next_index]
+
+    @staticmethod
     def start_game(game: Game, player: Player) -> list:
         events = []
         effect = GameEffect.objects.create(
@@ -51,5 +65,8 @@ class GameService:
             'position': player.position,
         })
 
+        game.current_player = GameService._calculate_next_player(game, player)
+        game.save()
         player.save()
+
         return events

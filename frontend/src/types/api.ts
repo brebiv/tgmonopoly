@@ -101,3 +101,13 @@ export type GameAction = {
   action: GameActionType;
   game_uuid: string;
 };
+
+export type JoinGameResponse = {
+  status: "ok" | "!ok";
+  next_url: string;
+};
+
+export type CreateGameResponse = {
+  status: "ok" | "!ok";
+  next_url: string;
+};

@@ -24,8 +24,8 @@ class GameConsumer(WebsocketConsumer):
 
         try:
             if True or verify_telegram_init_data(parsed_qs, settings.BOT_TOKEN):
-                # user = parse_user_from_qs(init_data_raw)
-                user = TelegramUser.objects.first()
+                user = parse_user_from_qs(init_data_raw)
+                # user = TelegramUser.objects.first()
 
                 try:
                     game = Game.objects.get(uuid=game_uuid)
@@ -80,5 +80,4 @@ class GameConsumer(WebsocketConsumer):
         #     return
         
         # self.send(text_data=json.dumps(game_action_serializer.data))
-        print(event)
         self.send(text_data=json.dumps(event))

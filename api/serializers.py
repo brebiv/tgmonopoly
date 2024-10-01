@@ -113,3 +113,7 @@ class GameEventSerializer(serializers.Serializer):
     player = serializers.IntegerField()
     dices = serializers.ListField(child=serializers.IntegerField(), required=False)
     position = serializers.IntegerField(required=False)
+
+
+class JoinGameSerializer(serializers.Serializer):
+    game_uuid = serializers.UUIDField()

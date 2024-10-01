@@ -10,6 +10,10 @@ export const processGameData = (gameData: Game) => {
   }
 
   if (gameData.current_player == me.id) {
+    console.log("Setting my turn to true");
     setMyTurn(true);
+  } else {
+    console.log("Setting my turn to false");
+    setMyTurn(false);
   }
 };

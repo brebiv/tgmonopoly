@@ -1,4 +1,4 @@
-import { GameAction, Tile } from "./types/api";
+import { GameAction, JoinGameResponse, Tile } from "./types/api";
 
 import axios from "axios";
 
@@ -37,6 +37,12 @@ export const getAuth = () => {
 
 export const createGame = (maxPlayers: number) => {
   return axios.post("/api/create_game/", { max_players: maxPlayers }).then((response) => {
+    return response.data;
+  });
+};
+
+export const joinGame = (gameUUID: string): Promise<JoinGameResponse> => {
+  return axios.post("/api/join_game/", { game_uuid: gameUUID }).then((response) => {
     return response.data;
   });
 };

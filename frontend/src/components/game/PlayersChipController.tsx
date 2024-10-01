@@ -34,7 +34,7 @@ function PlayersChipController({
         height: rect.height,
       };
     });
-  }, [boardLoaded]);
+  }, [boardLoaded, players]);
 
   useEffect(() => {
     if (!boardLoaded) {

@@ -47,13 +47,13 @@ def telegram_auth_required(view_func):
     def _wrapped_view(request: CustomRequest, *args, **kwargs):
         auth_header = request.headers.get('AUTHORIZATION')
 
-        if settings.DEBUG:
-            client_ip = request.META.get('REMOTE_ADDR')
-            if client_ip in settings.WHITELISTED_IPS:
-                user = TelegramUser.objects.first()
-                request.is_telegram_authenticated = user != None
-                request.telegram_user = user
-                return view_func(request, *args, **kwargs)
+        # if settings.DEBUG:
+        #     client_ip = request.META.get('REMOTE_ADDR')
+        #     if client_ip in settings.WHITELISTED_IPS:
+        #         user = TelegramUser.objects.first()
+        #         request.is_telegram_authenticated = user != None
+        #         request.telegram_user = user
+        #         return view_func(request, *args, **kwargs)
 
         if auth_header:
             parts = auth_header.split(' ', 1)

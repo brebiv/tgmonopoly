@@ -31,12 +31,15 @@ export const useEventStore = create<EventStore>((set, get) => ({
       set({ isProcessing: false });
       console.log("No more events to process");
 
-      const { setPlayers, setGame } = useGameStore.getState();
+      const { setPlayers, setGame, setShowTurnMenu, myTurn } = useGameStore.getState();
       let players = queryClient.getQueriesData<Player[]>(["players"])[0][1];
       let game = queryClient.getQueriesData<Game>(["game"])[0][1];
 
       setPlayers(players);
       setGame(game);
+      if (myTurn) {
+        setShowTurnMenu(true);
+      }
       return;
     }
 
@@ -56,20 +59,21 @@ export const useEventStore = create<EventStore>((set, get) => ({
 }));
 
 const processEvent = async (event: GameEvent) => {
-  const { setDices, setShowDices, movePlayer } = useGameStore.getState();
+  const { setDices, setShowDices, setShowTurnMenu, movePlayer } = useGameStore.getState();
 
   if (event.action === GameActionType.START_GAME) {
     console.log("Processing start game");
   } else if (event.action === GameActionType.ROLL_DICE) {
     console.log("Processing roll dice");
 
+    setShowTurnMenu(false);
     setShowDices(true);
     setDices(event.dices);
     await sleep(DICE_ANIMATION_DURATION_SECONDS * 1000);
-    await sleep(PLAYER_CHIP_MOVE_DURATION_MS);
-    setShowDices(false);
   } else if (event.action === GameActionType.MOVE_PLAYER) {
     console.log("Processing move player");
     movePlayer(event.player!, event.position!);
+    await sleep(PLAYER_CHIP_MOVE_DURATION_MS);
+    setShowDices(false);
   }
 };

@@ -42,7 +42,7 @@ function Board({ boardLoaded, setBoardLoaded }: { boardLoaded: boolean; setBoard
           style={{
             backgroundColor:
               // @ts-ignore
-              window.Telegram.WebApp.themeParams.bg_color || "#334155",
+              window.Telegram.WebApp.themeParams.secondary_bg_color || "#334155",
           }}
         >
           {/* Generating tiles */}

@@ -4,7 +4,10 @@ from rest_framework.decorators import api_view
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 
-from .serializers import CreateGameSerializer, GameSerializer, PlayerSerializer, GameActionSerializer, GameEventSerializer
+from .serializers import (
+    CreateGameSerializer, GameSerializer, PlayerSerializer, 
+    GameActionSerializer, GameEventSerializer, JoinGameSerializer
+)
 from .utils import telegram_auth_required, CustomRequest
 from .types import GameActionType
 from game.models import Player, Game, GameEffect
@@ -78,7 +81,32 @@ def create_game(request: CustomRequest):
     else:
         return HttpResponse(status=405)
 
-import random
+@api_view(['POST',])
+@telegram_auth_required
+def join_game(request: CustomRequest):
+    if request.method == 'POST':
+        game_join_serializer = JoinGameSerializer(data=request.data)
+        if not game_join_serializer.is_valid():
+            pass
+            # return HttpResponse(status=400)
+        
+        game = Game.objects.last()
+        player = Player.objects.create(
+            user=request.telegram_user,
+            game=game,
+            color="green",
+        )
+
+        response_data = {
+            'status': 'ok',
+            'next_url': f'/game/{game.uuid}',
+        }
+        return JsonResponse(response_data, status=201)
+
+        # try:
+        #     game = Game.objects.get(uuid=request.data['game_uuid'])
+        # except Game.DoesNotExist:
+        #     return HttpResponse(status=400)
 
 
 @api_view(['POST',])

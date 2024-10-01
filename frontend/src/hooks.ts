@@ -138,7 +138,7 @@ export const usePlayers = () => {
 export const useReactQuerySubscription = (gameUUID: string) => {
   const queryClient = useQueryClient();
   const addEvents = useEventStore((state) => state.addEvents);
-  const { setMe, setMyTurn, setGame, setPlayers } = useGameStore();
+  const { setMe, setGame, setPlayers } = useGameStore();
 
   React.useEffect(() => {
     // const websocket = new WebSocket("wss://echo.websocket.org/");
@@ -158,7 +158,6 @@ export const useReactQuerySubscription = (gameUUID: string) => {
         if (gameFrame.type === "game.connected") {
           queryClient.setQueryData(["game"], () => gameFrame.game);
           queryClient.setQueryData(["players"], () => gameFrame.players);
-          // @ts-ignore
           // queryClient.setQueryData(["players"], () => [...gameFrame.players, ...players]);
           setPlayers(gameFrame.players!);
           setGame(gameFrame.game!);
@@ -167,23 +166,9 @@ export const useReactQuerySubscription = (gameUUID: string) => {
           queryClient.setQueryData(["game"], () => gameFrame.game);
           queryClient.setQueryData(["players"], () => gameFrame.players);
           // queryClient.setQueryData(["players"], () => [...gameFrame.players, ...players]);
-          addEvents(gameFrame.events!);
-
-          // Key poing for todays nigth
-          // Two states, one in the store, one in the queryClient
-          // store truth in the queryClient, and update zustand state after event is processed
-
-          const me = useGameStore.getState().me;
-
-          if (gameFrame.game?.current_player == me?.id) {
-            setMyTurn(true);
-          } else {
-            setMyTurn(false);
-          }
         }
-        console.log("Before processing gameData", gameFrame.game);
-
         processGameData(gameFrame.game!);
+        addEvents(gameFrame.events!);
       }
     };
 

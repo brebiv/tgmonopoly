@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     # 3rd party
     'django_vite',
     'rest_framework',
+    'sslserver',
 
     # Local
     'api',
@@ -160,6 +161,7 @@ BOT_USERNAME = '@TestBot2fiojfeijfieBot'
 TG_WEBHOOK_SECRET = '66e818ee'
 
 USE_TELEGRAM_TEST_ENV = True
+USE_TELEGRAM_TEST_ENV_HTTPS = False
 if USE_TELEGRAM_TEST_ENV:
     BOT_TOKEN = BOT_TOKEN_DEV
 else:

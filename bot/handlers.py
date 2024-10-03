@@ -16,7 +16,11 @@ bot = telebot.TeleBot(settings.BOT_TOKEN, threaded=False)
 def send_welcome(message: Message):
     
     if settings.USE_TELEGRAM_TEST_ENV:
-        webapp_info = WebAppInfo('http://127.0.0.1:8000/')
+        if settings.USE_TELEGRAM_TEST_ENV_HTTPS:
+            print("https")
+            webapp_info = WebAppInfo('https://127.0.0.1:8000/')
+        else:
+            webapp_info = WebAppInfo('http://127.0.0.1:8000/')
     else:
         webapp_info = WebAppInfo('https://dev-webapp.beatkeeper.me/')
 

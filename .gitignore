@@ -24,3 +24,6 @@ property_data
 
 # Frontend
 frontend/.env*
+
+# Dev stuff
+dev_env/

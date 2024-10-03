@@ -23,19 +23,31 @@ class Game(models.Model):
     created = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.name
+        return str(self.uuid)
 
 
 class Player(models.Model):
     class Meta:
         unique_together = ('user', 'game')
 
+    BLUE = 'blue'
+    RED = 'red'
+    GREEN = 'green'
+    YELLOW = 'yellow'
+    
+    COLOR_CHOICES = [
+        (BLUE, 'Blue'),
+        (RED, 'Red'),
+        (GREEN, 'Green'),
+        (YELLOW, 'Yellow'),
+    ]
+
     user = models.ForeignKey(TelegramUser, on_delete=models.CASCADE)
     game = models.ForeignKey(Game, related_name='players', on_delete=models.CASCADE)
 
     position = models.IntegerField(default=0)
     cash = models.IntegerField(default=1500)
-    color = models.CharField(max_length=10, null=True, blank=True)
+    color = models.CharField(max_length=10, choices=COLOR_CHOICES, null=True, blank=True)
     in_jail = models.BooleanField(default=False)
     jail_turns = models.IntegerField(default=0)
 
@@ -52,7 +64,7 @@ class Player(models.Model):
         return self.position
 
     def __str__(self):
-        return f"{self.user.username} in {self.game.name}"
+        return f"{self.user.username} in {self.game.uuid}"
 
 
 class Tile(models.Model):

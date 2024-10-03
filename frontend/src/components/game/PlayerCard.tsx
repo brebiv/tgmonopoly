@@ -4,6 +4,7 @@ import { Card, CardContent } from "../ui/card";
 import { useEffect, useState } from "react";
 import { useGame } from "@/hooks";
 import { Dices } from "lucide-react";
+import { PLAYER_CHIP_COLORS } from "@/config";
 
 type PlayerCardProps = {
   player: Player;
@@ -12,6 +13,7 @@ type PlayerCardProps = {
 function PlayerCard({ player }: PlayerCardProps) {
   const { data: game } = useGame();
   const [isCurrentPlayer, setIsCurrentPlayer] = useState(false);
+  const [primaryColor, _] = PLAYER_CHIP_COLORS[player.color as keyof typeof PLAYER_CHIP_COLORS];
 
   useEffect(() => {
     if (game) {
@@ -29,7 +31,7 @@ function PlayerCard({ player }: PlayerCardProps) {
         <Avatar
           className="border-2"
           style={{
-            borderColor: player.color || "unset",
+            borderColor: primaryColor || "black",
           }}
         >
           <AvatarImage src={player.avatar} />

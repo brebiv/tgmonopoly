@@ -136,7 +136,7 @@ def game_action(request: CustomRequest):
             
             game_frame = {
                 'type': 'game.action',
-                'action': GameActionType.START_GAME,
+                'action': GameActionType.ROLL_DICE,
                 'game': GameSerializer(game).data,
                 'players': [PlayerSerializer(player).data for player in game.players.all()],
                 'events': events_serializer.data,

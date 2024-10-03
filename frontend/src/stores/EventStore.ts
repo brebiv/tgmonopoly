@@ -31,12 +31,15 @@ export const useEventStore = create<EventStore>((set, get) => ({
       set({ isProcessing: false });
       console.log("No more events to process");
 
-      const { setPlayers, setGame } = useGameStore.getState();
+      const { setPlayers, setGame, myTurn, setShowTurnMenu } = useGameStore.getState();
       let players = queryClient.getQueriesData<Player[]>(["players"])[0][1];
       let game = queryClient.getQueriesData<Game>(["game"])[0][1];
 
       setPlayers(players);
       setGame(game);
+      if (myTurn) {
+        setShowTurnMenu(true);
+      }
       return;
     }
 

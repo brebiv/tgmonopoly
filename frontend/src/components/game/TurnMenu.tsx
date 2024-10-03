@@ -34,8 +34,19 @@ function TurnMenu() {
         >
           <Sheet.Header />
           <Sheet.Content>
-            <div className="flex flex-col items-center gap-4 px-2 pb-12">
-              <h1 className="text-2xl font-semibold">It's your turn!</h1>
+            <div className="flex flex-col items-center gap-6 px-2 pb-12">
+              <div className="flex flex-col items-center">
+                <h1 className="text-2xl font-semibold">It's your turn!</h1>
+                <p
+                  style={{
+                    color:
+                      // @ts-ignore
+                      window.Telegram.WebApp.themeParams.hint_color || "white",
+                  }}
+                >
+                  You are likely to land on a property ____
+                </p>
+              </div>
               <div className="flex w-full flex-col">
                 <Button
                   style={{

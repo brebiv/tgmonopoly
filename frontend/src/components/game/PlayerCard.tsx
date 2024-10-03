@@ -17,6 +17,8 @@ function PlayerCard({ player }: PlayerCardProps) {
     if (game) {
       if (game.current_player == player.id) {
         setIsCurrentPlayer(true);
+      } else {
+        setIsCurrentPlayer(false);
       }
     }
   }, [game]);
@@ -34,7 +36,9 @@ function PlayerCard({ player }: PlayerCardProps) {
           <AvatarFallback>o_o</AvatarFallback>
         </Avatar>
         <div className="h-full w-full">
-          <p className="text-sm">{player.name}</p>
+          <p className="text-sm">
+            {player.name} {player.id}
+          </p>
           <p
             className="text-sm font-thin"
             style={{

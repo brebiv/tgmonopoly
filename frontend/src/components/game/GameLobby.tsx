@@ -12,7 +12,7 @@ function GameLobby() {
 
   return (
     <div
-      className="flex h-screen w-full flex-col items-center bg-green-900 p-4"
+      className="flex h-screen w-full flex-col items-center gap-2 bg-green-900 p-4"
       style={{
         backgroundColor:
           // @ts-ignore

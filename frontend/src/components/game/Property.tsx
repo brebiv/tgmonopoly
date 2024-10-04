@@ -1,4 +1,8 @@
+import { PLAYER_CHIP_COLORS } from "@/config";
+import { getPlayerById, hexToRGBA } from "@/lib/utils";
+import { useGameStore } from "@/stores/GameStore";
 import { Tile } from "@/types/api";
+import { useEffect, useState } from "react";
 
 interface PropertyProps {
   tile: Tile;
@@ -17,8 +21,37 @@ function Property({ tile }: PropertyProps) {
     side = "left";
   }
 
+  const { ownerships, players } = useGameStore((state) => state);
+  // const [ownership, setOwnership] = useState<Ownership | undefined>(undefined);
+  // const [player, setPlayer] = useState<Player | undefined>(undefined);
+  const [color, setColor] = useState<string>("");
+
+  useEffect(() => {
+    let ownership = ownerships?.find((ownership) => ownership.property === tile.propertyData?.id);
+    // setOwnership(ownership);
+    if (ownership) {
+      if (players) {
+        // const player = useGameStore.getState().players?.find((player) => player.id === ownership.player);
+        let player = getPlayerById(players, ownership.player);
+        if (player) {
+          // setPlayer(player);
+          let color = PLAYER_CHIP_COLORS[player.color as keyof typeof PLAYER_CHIP_COLORS][0];
+          let opacity = 0.6;
+          setColor(hexToRGBA(color, opacity));
+        }
+      }
+    }
+  }, [ownerships, players]);
+
   return (
-    <div className="relative flex h-full w-full flex-col items-center justify-center p-1">
+    <div
+      className="relative flex h-full w-full flex-col items-center justify-center p-1"
+      style={{
+        backgroundColor: color || "unset",
+        boxShadow: color ? `inset 0px 0px 4px 1px rgb(0, 0, 0, 0.5)` : "unset",
+      }}
+    >
+      {/* Body */}
       {(side == "top" || side == "bottom") && (
         <img src={tile.propertyData?.icon} className="-rotate-90" />
       )}

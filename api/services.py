@@ -1,8 +1,8 @@
 import random
 
-from game.models import Game, Player, GameEffect
+from game.models import Game, Player, GameEffect, Tile, Ownership
 from .serializers import GameSerializer, PlayerSerializer
-from .types import GameActionType
+from .types import GameActionType, GameEventType
 
 
 class GameService:
@@ -24,11 +24,11 @@ class GameService:
     @staticmethod
     def start_game(game: Game, player: Player) -> list:
         events = []
+
         effect = GameEffect.objects.create(
             game=game,
-            user=player,
+            player=player,
             name=GameEffect.ROLL_DICE,
-            description="Players start the game",
         )
 
         game.turn += 1
@@ -50,23 +50,110 @@ class GameService:
 
         events.append({
             'type': 'game.action',
-            'action': GameActionType.ROLL_DICE,
+            'action': GameEventType.ROLL_DICE,
             'player': player.pk,
             'dices': dices,
         })
 
+        effect = GameEffect.objects.filter(player=player, name=GameEffect.ROLL_DICE).last()
+        effect.delete()
 
-        new_postion = player.move_forward(dice_sum)
+        if player.in_jail:
+            pass
+        else:
+            new_postion = player.move_forward(dice_sum)
 
-        events.append({
-            'type': 'game.action',
-            'action': GameActionType.MOVE_PLAYER,
-            'player': player.pk,
-            'position': player.position,
-        })
+            events.append({
+                'type': 'game.action',
+                'action': GameEventType.MOVE_PLAYER,
+                'player': player.pk,
+                'position': player.position,
+            })
 
-        game.current_player = GameService._calculate_next_player(game, player)
-        game.save()
-        player.save()
+            tile = Tile.objects.get(position=new_postion)
+            if tile.type == Tile.PROPERTY:
+                try:
+                    ownership = Ownership.objects.get(player=player, property=tile.property)
+                except Ownership.DoesNotExist:
+                    effect = GameEffect.objects.create(
+                        game=game,
+                        player=player,
+                        name=GameEffect.ASK_BUY,
+                    )
+                else:
+                    if ownership.player == player:
+                        pass
+                    else:
+                        effect = GameEffect.objects.create(
+                            game=game,
+                            player=player,
+                            name=GameEffect.PAY_RENT,
+                        )
+            else:
+                effect = GameEffect.objects.create(
+                    game=game,
+                    player=player,
+                    name=GameEffect.ROLL_DICE,
+                )
+
+                game.turn += 1
+                game.current_player = GameService._calculate_next_player(game, player)
+
+            game.save()
+            player.save()
+
+        return events
+    
+    @staticmethod
+    def buy_property(game: Game, player: Player) -> list:
+        events = []
+        tile = Tile.objects.get(position=player.position)
+
+        if tile.type == Tile.PROPERTY:
+            try:
+                ownership = Ownership.objects.get(player=player, property=tile.property)
+                if ownership.player == player:
+                    raise Exception("You already own this property")
+                else:
+                    raise Exception("You are not the owner of this property")
+            except Ownership.DoesNotExist:
+                ownership = Ownership.objects.create(
+                    game=game,
+                    player=player,
+                    property=tile.property,
+                    houses=tile.property.house_price,
+                )
+                player.cash -= tile.property.price
+                player.save()
+                
+                tile.property.owner = player
+                tile.property.save()
+
+                effect = GameEffect.objects.filter(player=player, name=GameEffect.ASK_BUY).last()
+                effect.delete()
+
+                # If double add roll dice effect to current player else to the next one
+                # effect = GameEffect.objects.create(
+                #     game=game,
+                #     player=player,
+                #     name=GameEffect.ROLL_DICE,
+                # )
+                game.turn += 1
+                game.current_player = GameService._calculate_next_player(game, player)
+                game.save()
+
+
+                effect = GameEffect.objects.create(
+                    game=game,
+                    player=game.current_player,
+                    name=GameEffect.ROLL_DICE,
+                )
+
+                events.append({
+                    'type': 'game.action',
+                    'action': GameEventType.BUY_PROPERTY,
+                    'player': player.pk,
+                    'tile': tile.pk,
+                })
 
         return events

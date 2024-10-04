@@ -10,7 +10,7 @@ import { GameStatus } from "@/types/api";
 import { useEventStore } from "@/stores/EventStore";
 import { useGameStore } from "@/stores/GameStore";
 import PlayersSection from "./PlayersSection";
-import TurnMenu from "./TurnMenu";
+import TurnMenu from "./TurnMenu/TurnMenu";
 import GameLobby from "./GameLobby";
 
 function Game() {
@@ -34,7 +34,7 @@ function Game() {
   const eventQueue = useEventStore((state) => state.eventQueue);
 
   const [boardLoaded, setBoardLoaded] = useState(false);
-  const { me, myTurn, game, players } = useGameStore((state) => state);
+  const { me, myTurn, game, players, ownerships } = useGameStore((state) => state);
 
   if (isMeError) {
     return <Forbidden />;
@@ -54,9 +54,9 @@ function Game() {
     console.log("GameEventQueue", eventQueue);
   }, [eventQueue]);
 
-  // useEffect(() => {
-
-  // })
+  useEffect(() => {
+    console.log("Ownerships", ownerships);
+  }, [ownerships]);
 
   useEffect(() => {
     if (game) {

@@ -156,6 +156,7 @@ class Ownership(models.Model):
     class Meta:
         unique_together = ('player', 'property')
 
+    game = models.ForeignKey(Game, related_name='ownerships', on_delete=models.CASCADE)
     player = models.ForeignKey(Player, related_name='owned_properties', on_delete=models.CASCADE)
     property = models.ForeignKey(Property, on_delete=models.CASCADE)
     houses = models.IntegerField(default=0)
@@ -201,16 +202,18 @@ class Transaction(models.Model):
 
 class GameEffect(models.Model):
 
-    START_GAME = 'start_game'
     ROLL_DICE = 'roll_dice'
+    ASK_BUY = 'ask_buy'
+    PAY_RENT = 'pay_rent'
 
     EFFECT_TYPES = [
-        (START_GAME, 'Start Game'),
         (ROLL_DICE, 'Roll Dice'),
+        (ASK_BUY, 'Ask Buy'),
+        (PAY_RENT, 'Pay Rent'),
     ]
 
     game = models.ForeignKey(Game, related_name='effects', on_delete=models.CASCADE)
-    user = models.ForeignKey(Player, related_name='effects', on_delete=models.CASCADE)
+    player = models.ForeignKey(Player, related_name='effects', on_delete=models.CASCADE)
     name = models.CharField(max_length=20, choices=EFFECT_TYPES)
     description = models.TextField(null=True, blank=True)
 

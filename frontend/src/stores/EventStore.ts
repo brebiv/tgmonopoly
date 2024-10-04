@@ -1,7 +1,7 @@
-import { Game, GameActionType, GameEvent, Player } from "@/types/api";
+import { Game, GameActionType, GameEvent, Ownership, Player } from "@/types/api";
 import { create } from "zustand";
 
-import { sleep } from "@/lib/utils";
+import { getMeFromPlayers, sleep } from "@/lib/utils";
 import { DICE_ANIMATION_DURATION_SECONDS, PLAYER_CHIP_MOVE_DURATION_MS } from "@/config";
 import { useGameStore } from "./GameStore";
 import { queryClient } from "@/lib/queryClient";
@@ -31,12 +31,23 @@ export const useEventStore = create<EventStore>((set, get) => ({
       set({ isProcessing: false });
       console.log("No more events to process");
 
-      const { setPlayers, setGame, myTurn, setShowTurnMenu } = useGameStore.getState();
+      const { setPlayers, setGame, myTurn, setShowTurnMenu, setMe, setOwnerships } =
+        useGameStore.getState();
       let players = queryClient.getQueriesData<Player[]>(["players"])[0][1];
       let game = queryClient.getQueriesData<Game>(["game"])[0][1];
+      let ownerships = queryClient.getQueriesData<Ownership[]>(["ownerships"])[0][1];
 
+      let me = getMeFromPlayers(players);
+      if (!me) {
+        console.error("No me found");
+        return;
+      }
+
+      setMe(me);
       setPlayers(players);
       setGame(game);
+      setOwnerships(ownerships);
+
       if (myTurn) {
         setShowTurnMenu(true);
       }

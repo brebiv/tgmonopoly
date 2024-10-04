@@ -1,4 +1,4 @@
-import { Game, Player } from "@/types/api";
+import { Game, Ownership, Player } from "@/types/api";
 import { create } from "zustand";
 
 interface GameStore {
@@ -17,6 +17,8 @@ interface GameStore {
   players: Player[] | null;
   setPlayers: (players: Player[] | null) => void;
   movePlayer: (playerId: number, position: number) => void;
+  ownerships: Ownership[] | null;
+  setOwnerships: (ownerships: Ownership[] | null) => void;
 }
 
 // @ts-ignore
@@ -67,5 +69,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
     console.log("newPlayers", newPlayers);
 
     setPlayers(newPlayers);
+  },
+  ownerships: null,
+  setOwnerships: (ownerships: Ownership[] | null) => {
+    set({ ownerships });
   },
 }));

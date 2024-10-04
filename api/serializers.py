@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from game.models import Tile, Property, Utility, Game, Player
+from game.models import Tile, Property, Utility, Game, Player, Ownership
 from collections import OrderedDict
 
 
@@ -40,7 +40,7 @@ class PropertySerializer(serializers.ModelSerializer):
     class Meta:
         model = Property
         fields = (
-            'price', 'mortgage_value', 'house_price', 'rent', 
+            'id', 'price', 'mortgage_value', 'house_price', 'rent', 
             'rent_with_1_house', 'rent_with_2_houses', 'rent_with_3_houses', 
             'rent_with_4_houses', 'rent_with_5_houses', 'group_id', 'group_color', 'icon'
         )
@@ -113,7 +113,16 @@ class GameEventSerializer(serializers.Serializer):
     player = serializers.IntegerField()
     dices = serializers.ListField(child=serializers.IntegerField(), required=False)
     position = serializers.IntegerField(required=False)
+    tile = serializers.IntegerField(required=False)
 
 
 class JoinGameSerializer(serializers.Serializer):
     game_uuid = serializers.UUIDField()
+
+
+class OwnershipSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Ownership
+        fields = (
+            'player', 'property', 'houses', 'mortgaged'
+        )

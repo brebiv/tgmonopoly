@@ -27,11 +27,20 @@ export enum GameActionType {
   START_GAME = "start_game",
   ROLL_DICE = "roll_dice",
   MOVE_PLAYER = "move_player",
+  BUY_PROPERRTY = "buy_property",
+}
+
+export enum GameEffectType {
+  START_GAME = "start_game",
+  ROLL_DICE = "roll_dice",
+  ASK_BUY = "ask_buy",
+  PAY_RENT = "pay_rent",
 }
 
 // Enums end here
 
-type PropertyData = {
+export type PropertyData = {
+  id: number;
   price: number;
   mortgage_value: number;
   house_price: number;
@@ -61,7 +70,7 @@ export type Player = {
   color: string;
   in_jail: boolean;
   jail_turns: number;
-  effects: string[];
+  effects: GameEffectType[];
   name: string;
   avatar: string;
 };
@@ -95,6 +104,7 @@ export type GameFrame = {
   players: Player[] | null;
   events: GameEvent[] | null;
   me: Player | null;
+  ownerships: Ownership[] | null;
 };
 
 export type GameAction = {
@@ -110,4 +120,11 @@ export type JoinGameResponse = {
 export type CreateGameResponse = {
   status: "ok" | "!ok";
   next_url: string;
+};
+
+export type Ownership = {
+  player: number;
+  property: number;
+  houses: number;
+  mortgaged: boolean;
 };

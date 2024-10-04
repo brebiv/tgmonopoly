@@ -138,7 +138,7 @@ export const usePlayers = () => {
 export const useReactQuerySubscription = (gameUUID: string) => {
   const queryClient = useQueryClient();
   const addEvents = useEventStore((state) => state.addEvents);
-  const { setMe, setGame, setPlayers } = useGameStore();
+  const { setMe, setGame, setPlayers, setOwnerships } = useGameStore();
 
   React.useEffect(() => {
     // const websocket = new WebSocket("wss://echo.websocket.org/");
@@ -158,13 +158,16 @@ export const useReactQuerySubscription = (gameUUID: string) => {
         if (gameFrame.type === "game.connected") {
           queryClient.setQueryData(["game"], () => gameFrame.game);
           queryClient.setQueryData(["players"], () => gameFrame.players);
+          queryClient.setQueryData(["ownerships"], () => gameFrame.ownerships);
           // queryClient.setQueryData(["players"], () => [...gameFrame.players, ...players]);
           setPlayers(gameFrame.players!);
           setGame(gameFrame.game!);
           setMe(gameFrame.me!);
+          setOwnerships(gameFrame.ownerships!);
         } else if (gameFrame.type === "game.action") {
           queryClient.setQueryData(["game"], () => gameFrame.game);
           queryClient.setQueryData(["players"], () => gameFrame.players);
+          queryClient.setQueryData(["ownerships"], () => gameFrame.ownerships);
           // queryClient.setQueryData(["players"], () => [...gameFrame.players, ...players]);
         }
         processGameData(gameFrame.game!);

@@ -10,3 +10,4 @@ export const PLAYER_CHIP_COLORS = {
   green: ["#36d119", "#006600"],
   yellow: ["#ebda1e", "#ad9f03"],
 };
+export const CASH_LOSS_ANIMATION_DURATION_SECONDS = 3;

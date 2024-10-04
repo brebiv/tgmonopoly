@@ -183,10 +183,12 @@ export const useReactQuerySubscription = (gameUUID: string) => {
   }, [queryClient]);
 };
 
-export const usePrevious = (value: any) => {
-  const ref = useRef();
+type UsePreviousType<T> = T | undefined;
+
+export const usePrevious = <T>(value: T): UsePreviousType<T> => {
+  const ref = useRef<UsePreviousType<T>>();
   useEffect(() => {
     ref.current = value;
-  });
+  }, [value]);
   return ref.current;
 };

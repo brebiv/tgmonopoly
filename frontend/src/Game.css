@@ -1,0 +1,21 @@
+@keyframes flyAway {
+    0% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+
+    50% {
+        transform: translateY(-50px);
+        opacity: 0.5;
+    }
+
+    100% {
+        transform: translateY(-100px);
+        opacity: 0;
+    }
+}
+
+/* Apply the animation to the text */
+.flying-text {
+    animation: flyAway 3s linear forwards;
+}

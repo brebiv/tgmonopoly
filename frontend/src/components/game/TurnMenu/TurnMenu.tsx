@@ -1,6 +1,6 @@
 import { Sheet } from "react-modal-sheet";
 import { useGameStore } from "@/stores/GameStore";
-import TurnMenuBar from "../TurnMenuBar";
+import TurnMenuBar from "./TurnMenuBar";
 import MenuContent from "./MenuContent";
 
 function TurnMenu() {

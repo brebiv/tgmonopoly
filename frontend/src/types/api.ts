@@ -28,6 +28,7 @@ export enum GameActionType {
   ROLL_DICE = "roll_dice",
   MOVE_PLAYER = "move_player",
   BUY_PROPERRTY = "buy_property",
+  PASSED_START = "passed_start",
 }
 
 export enum GameEffectType {

@@ -11,3 +11,4 @@ class GameEventType:
     ROLL_DICE = 'roll_dice'
     MOVE_PLAYER = 'move_player'
     BUY_PROPERTY = 'buy_property'
+    PASSED_START = 'passed_start'

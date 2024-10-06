@@ -7,6 +7,8 @@ from .types import GameActionType, GameEventType
 
 class GameService:
 
+    ROUND_TRIP_BONUS = 200
+
     @staticmethod
     def _calculate_next_player(game: Game, after_player: Player) -> Player:
         game_players = game.players.all().order_by('created')
@@ -61,6 +63,7 @@ class GameService:
         if player.in_jail:
             pass
         else:
+            passed_start = player.position + dice_sum >= 40
             new_postion = player.move_forward(dice_sum)
 
             events.append({
@@ -69,6 +72,15 @@ class GameService:
                 'player': player.pk,
                 'position': player.position,
             })
+
+            if passed_start:
+                events.append({
+                    'type': 'game.action',
+                    'action': GameEventType.PASSED_START,
+                    'player': player.pk,
+                })
+                player.cash += GameService.ROUND_TRIP_BONUS
+                player.save()
 
             tile = Tile.objects.get(position=new_postion)
             if tile.type == Tile.PROPERTY:

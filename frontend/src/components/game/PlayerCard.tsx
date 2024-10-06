@@ -4,7 +4,7 @@ import { Card, CardContent } from "../ui/card";
 import { useEffect, useState } from "react";
 import { useGame, usePrevious } from "@/hooks";
 import { Dices } from "lucide-react";
-import { CASH_LOSS_ANIMATION_DURATION_SECONDS, PLAYER_CHIP_COLORS } from "@/config";
+import { CASH_GAIN_ANIMATION_DURATION_SECONDS, CASH_LOSS_ANIMATION_DURATION_SECONDS, PLAYER_CHIP_COLORS } from "@/config";
 
 type PlayerCardProps = {
   player: Player;
@@ -15,6 +15,7 @@ function PlayerCard({ player }: PlayerCardProps) {
   const [isCurrentPlayer, setIsCurrentPlayer] = useState(false);
   const [primaryColor, _] = PLAYER_CHIP_COLORS[player.color as keyof typeof PLAYER_CHIP_COLORS];
   const [cashLoss, setCashLoss] = useState(0);
+  const [cashGain, setCashGain] = useState(0);
 
   const previousPlayer = usePrevious(player);
 
@@ -25,8 +26,12 @@ function PlayerCard({ player }: PlayerCardProps) {
       } else {
         setIsCurrentPlayer(false);
       }
-      if (previousPlayer && previousPlayer.cash > player.cash) {
-        setCashLoss(previousPlayer.cash - player.cash);
+      if (previousPlayer) {
+        if (previousPlayer.cash > player.cash) {
+          setCashLoss(previousPlayer.cash - player.cash);
+        } else if (previousPlayer.cash < player.cash) {
+          setCashGain(player.cash - previousPlayer.cash);
+        }
       }
     }
   }, [game]);
@@ -39,6 +44,15 @@ function PlayerCard({ player }: PlayerCardProps) {
       return () => clearTimeout(timer);
     }
   }, [cashLoss]);
+
+  useEffect(() => {
+    if (cashGain > 0) {
+      const timer = setTimeout(() => {
+        setCashGain(0);
+      }, CASH_GAIN_ANIMATION_DURATION_SECONDS * 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [cashGain]);
 
   return (
     <Card className="relative">
@@ -64,6 +78,17 @@ function PlayerCard({ player }: PlayerCardProps) {
               }}
             >
               - {cashLoss}
+            </p>
+          )}
+          {cashGain > 0 && (
+            <p
+              className="flying-text absolute z-20 text-sm font-bold text-[#28a745]"
+              style={{
+                animationDuration: `${CASH_GAIN_ANIMATION_DURATION_SECONDS}s`,
+                animationDirection: "reverse",
+              }}
+            >
+              + {cashGain}
             </p>
           )}
           <p

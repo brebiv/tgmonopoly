@@ -43,6 +43,10 @@ function MenuContent({ effects }: MenuContentProps) {
       setTitle(`Do you want to buy ${currentTile?.name}?`);
       setHint(`It would cost $${currentTile?.propertyData?.price}`);
       setActions(actions);
+    } else if (firstEffect == undefined) {
+      setTitle("It's your turn!, but you have kind of nothing to do");
+      setHint("¯\\_(ツ)_/¯");
+      setActions([]);
     }
   }, [effects, currentTile]);
 

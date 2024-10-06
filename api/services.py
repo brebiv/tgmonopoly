@@ -90,14 +90,14 @@ class GameService:
                             name=GameEffect.PAY_RENT,
                         )
             else:
-                effect = GameEffect.objects.create(
-                    game=game,
-                    player=player,
-                    name=GameEffect.ROLL_DICE,
-                )
-
                 game.turn += 1
                 game.current_player = GameService._calculate_next_player(game, player)
+
+                effect = GameEffect.objects.create(
+                    game=game,
+                    player=game.current_player,
+                    name=GameEffect.ROLL_DICE,
+                )
 
             game.save()
             player.save()

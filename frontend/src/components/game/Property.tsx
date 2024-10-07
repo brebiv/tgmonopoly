@@ -22,9 +22,8 @@ function Property({ tile }: PropertyProps) {
   }
 
   const { ownerships, players } = useGameStore((state) => state);
-  // const [ownership, setOwnership] = useState<Ownership | undefined>(undefined);
-  // const [player, setPlayer] = useState<Player | undefined>(undefined);
   const [color, setColor] = useState<string>("");
+  const [price, setPrice] = useState<number>(0);
 
   useEffect(() => {
     let ownership = ownerships?.find((ownership) => ownership.property === tile.propertyData?.id);
@@ -38,10 +37,14 @@ function Property({ tile }: PropertyProps) {
           let color = PLAYER_CHIP_COLORS[player.color as keyof typeof PLAYER_CHIP_COLORS][0];
           let opacity = 0.6;
           setColor(hexToRGBA(color, opacity));
+          setPrice(tile.propertyData?.rent || 0);
         }
       }
+    } else {
+      setColor("");
+      setPrice(tile.propertyData?.price || 0);
     }
-  }, [ownerships, players]);
+  }, [ownerships, players, tile]);
 
   return (
     <div
@@ -84,10 +87,10 @@ function Property({ tile }: PropertyProps) {
           }}
         >
           {(side == "top" || side == "bottom") && (
-            <p className="text-xs">{tile.propertyData?.price}</p>
+            <p className="text-xs">{price}</p>
           )}
-          {side == "right" && <p className="rotate-90 text-xs">{tile.propertyData?.price}</p>}
-          {side == "left" && <p className="-rotate-90 text-xs">{tile.propertyData?.price}</p>}
+          {side == "right" && <p className="rotate-90 text-xs">{price}</p>}
+          {side == "left" && <p className="-rotate-90 text-xs">{price}</p>}
         </div>
       </div>
     </div>

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from game.models import Tile, Property, Utility, Game, Player, Ownership
+from game.models import Tile, Property, Utility, Game, Player, Ownership, GameEffect
 from collections import OrderedDict
 
 
@@ -81,6 +81,14 @@ class GameSerializer(serializers.ModelSerializer):
         )
 
 
+class GameEffectSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GameEffect
+        fields = (
+            'name', 'effect_data'
+        )
+
+
 class PlayerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Player
@@ -89,14 +97,14 @@ class PlayerSerializer(serializers.ModelSerializer):
             'name'
         )
     
-    effects = serializers.SerializerMethodField()
+    effects = GameEffectSerializer(many=True, read_only=True)
     name = serializers.SerializerMethodField()
     
-    def get_effects(self, obj):
-        if obj.effects.count() > 0:
-            return [effect.name for effect in obj.effects.all()]
-        else:
-            return []
+    # def get_effects(self, obj):
+    #     if obj.effects.count() > 0:
+    #         return [effect.name for effect in obj.effects.all()]
+    #     else:
+    #         return []
     
     def get_name(self, obj):
         return obj.user.first_name

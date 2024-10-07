@@ -29,6 +29,7 @@ export enum GameActionType {
   MOVE_PLAYER = "move_player",
   BUY_PROPERRTY = "buy_property",
   PASSED_START = "passed_start",
+  PAY_RENT = "pay_rent",
 }
 
 export enum GameEffectType {
@@ -64,6 +65,16 @@ export type Tile = {
   propertyData: PropertyData | null;
 };
 
+export type EffectData = {
+  price: number;
+  rent: number;
+}
+
+export type GameEffect = {
+  name: GameEffectType;
+  effect_data: EffectData | null;
+};
+
 export type Player = {
   id: number;
   position: number;
@@ -71,7 +82,7 @@ export type Player = {
   color: string;
   in_jail: boolean;
   jail_turns: number;
-  effects: GameEffectType[];
+  effects: GameEffect[];
   name: string;
   avatar: string;
 };

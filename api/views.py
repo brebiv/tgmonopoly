@@ -183,6 +183,32 @@ def game_action(request: CustomRequest):
                     return JsonResponse({"status": "ok",}, status=200)
                 else:
                     return JsonResponse({"status": "!ok", "error": "Unknown action"}, status=400)
+            elif first_effect.name == GameEffect.PAY_RENT:
+                if action == GameActionType.PAY_RENT:
+                    events = GameService.pay_rent(game, player)
+                    events_serializer = GameEventSerializer(data=events, many=True)
+                    # Maybe store events in the fucking database also
+                    if not events_serializer.is_valid():
+                        return JsonResponse({"status": "!ok", "error": "Invalid events"}, status=400)
+                
+                    ownerships = Ownership.objects.filter(game=game)
+                    ownerships_serializer = OwnershipSerializer(ownerships, many=True)
+                    
+                    game_frame = {
+                        'type': 'game.action',
+                        'game': GameSerializer(game).data,
+                        'players': [PlayerSerializer(player).data for player in game.players.all()],
+                        'events': events_serializer.data,
+                        'ownerships': ownerships_serializer.data
+                    }
+                    async_to_sync(channel_layer.group_send)(
+                        game_group_name, game_frame
+                    )
+                    return JsonResponse({"status": "ok",}, status=200)
+                else:
+                    return JsonResponse({"status": "!ok", "error": "Unknown action"}, status=400)
+            else:
+                return JsonResponse({"status": "!ok", "error": "Unknown action"}, status=400)
         else:
             if action == GameActionType.START_GAME:
                 events = GameService.start_game(game, player)

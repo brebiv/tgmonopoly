@@ -164,6 +164,23 @@ class Ownership(models.Model):
 
     created = models.DateTimeField(auto_now_add=True)
 
+    def calculate_rent(self):
+        print(self.property)
+        print(self.houses)
+        if self.houses == 0:
+            print("Self rent", self.property.rent)
+            return self.property.rent
+        elif self.houses == 1:
+            return self.property.rent_with_1_house
+        elif self.houses == 2:
+            return self.property.rent_with_2_houses
+        elif self.houses == 3:
+            return self.property.rent_with_3_houses
+        elif self.houses == 4:
+            return self.property.rent_with_4_houses
+        elif self.houses == 5:
+            return self.property.rent_with_5_houses
+
     def __str__(self):
         return f"{self.property.board_space.name} owned by {self.player.user.username}"
 
@@ -216,6 +233,7 @@ class GameEffect(models.Model):
     player = models.ForeignKey(Player, related_name='effects', on_delete=models.CASCADE)
     name = models.CharField(max_length=20, choices=EFFECT_TYPES)
     description = models.TextField(null=True, blank=True)
+    effect_data = models.JSONField(null=True, blank=True)
 
     created = models.DateTimeField(auto_now_add=True)
 

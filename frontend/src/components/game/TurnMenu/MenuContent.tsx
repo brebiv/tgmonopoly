@@ -1,13 +1,14 @@
-import { GameEffectType, Tile } from "@/types/api";
+import { GameEffect, GameEffectType, Tile } from "@/types/api";
 import { useEffect, useState } from "react";
 import { useTiles } from "@/hooks";
 import { useGameStore } from "@/stores/GameStore";
 import { getTileFromPosition } from "@/lib/utils";
 import BuyPropertyButton from "./BuyPropertyButton";
 import RollDiceButton from "./RollDiceButton";
+import PayRentButton from "./PayRentButton";
 
 interface MenuContentProps {
-  effects: GameEffectType[];
+  effects: GameEffect[];
 }
 
 function MenuContent({ effects }: MenuContentProps) {
@@ -30,7 +31,14 @@ function MenuContent({ effects }: MenuContentProps) {
     console.log("effects", effects);
     console.log("me", me);
 
-    if (firstEffect === GameEffectType.ROLL_DICE) {
+    if (firstEffect == undefined) {
+      setTitle("It's your turn!, but you have kind of nothing to do");
+      setHint("¯\\_(ツ)_/¯");
+      setActions([]);
+      return;
+    }
+
+    if (firstEffect.name === GameEffectType.ROLL_DICE) {
       let actions = [
         <RollDiceButton key={0} gameUUID={gameUUID} />,
         //<IncreasePositionButton key={1} />
@@ -38,22 +46,23 @@ function MenuContent({ effects }: MenuContentProps) {
       setTitle("It's your turn!");
       setHint("You are likely to land on a property ____");
       setActions(actions);
-    } else if (firstEffect === GameEffectType.ASK_BUY) {
+    } else if (firstEffect.name === GameEffectType.ASK_BUY) {
       let actions = [<BuyPropertyButton key={0} gameUUID={gameUUID} />];
       setTitle(`Do you want to buy ${currentTile?.name}?`);
-      setHint(`It would cost $${currentTile?.propertyData?.price}`);
+      setHint(`It would cost $${firstEffect.effect_data?.price}`);
       setActions(actions);
-    } else if (firstEffect == undefined) {
-      setTitle("It's your turn!, but you have kind of nothing to do");
-      setHint("¯\\_(ツ)_/¯");
-      setActions([]);
-    }
+    } else if (firstEffect.name === GameEffectType.PAY_RENT) {
+      let actions = [<PayRentButton key={0} gameUUID={gameUUID} />];
+      setTitle(`You stepped on other player's property!`);
+      setHint(`You have to pay rent of $${firstEffect.effect_data?.rent}`);
+      setActions(actions);
+    } 
   }, [effects, currentTile]);
 
   return (
     <div className="flex flex-col items-center gap-4 px-2 pb-12">
       <div className="flex flex-col items-center gap-1">
-        <h1 className="text-2xl font-semibold">{title}</h1>
+        <h1 className="text-2xl font-semibold text-center">{title}</h1>
         <p
           style={{
             color:

@@ -21,7 +21,6 @@ interface GameStore {
   setOwnerships: (ownerships: Ownership[] | null) => void;
 }
 
-// @ts-ignore
 export const useGameStore = create<GameStore>((set, get) => ({
   myTurn: false,
   setMyTurn: (myTurn: boolean) => {

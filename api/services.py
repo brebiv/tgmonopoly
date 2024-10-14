@@ -59,11 +59,12 @@ class GameService:
             task_id=task_id
         )
 
-        handle_game_effect_timeout.apply_async(
-            (effect.pk,), 
-            countdown=effect_timeout, 
-            task_id=task_id
-        )
+        if not config.DISABLE_AFK:
+            handle_game_effect_timeout.apply_async(
+                (effect.pk,), 
+                countdown=effect_timeout, 
+                task_id=task_id
+            )
 
         return effect
 
@@ -71,8 +72,9 @@ class GameService:
     def remove_effect(game: Game, player: Player, name: str) -> GameEffect:
         effect = GameEffect.objects.filter(player=player, name=name).last()
         if effect:
-            if effect.task_id:
-                current_app.control.revoke(effect.task_id)
+            if not config.DISABLE_AFK:
+                if effect.task_id:
+                    current_app.control.revoke(effect.task_id)
             effect.delete()
 
         return effect
@@ -117,8 +119,8 @@ class GameService:
     @staticmethod
     def roll_dice(game: Game, player: Player) -> list:
         events = []
-        # dices = [random.randint(1, 6) for _ in range(2)]
-        dices = [1, 2]
+        dices = [random.randint(1, 6) for _ in range(2)]
+        # dices = [1, 2]
         dice_sum = sum(dices)
 
         events.append({

@@ -6,9 +6,11 @@ import { useEffect, useState } from "react";
 
 interface PropertyProps {
   tile: Tile;
+  imSelected: boolean;
+  tileInfo: Tile | null;
 }
 
-function Property({ tile }: PropertyProps) {
+function Property({ tile, imSelected, tileInfo }: PropertyProps) {
   let side: "top" | "right" | "bottom" | "left" | undefined = undefined;
 
   if (tile.position >= 0 && tile.position < 10) {
@@ -78,6 +80,9 @@ function Property({ tile }: PropertyProps) {
           backgroundColor: `var(--group-color-${tile.propertyData?.group_id})`,
         }}
       >
+        {tileInfo && !imSelected && (
+          <div className="absolute z-10 h-full w-full bg-black opacity-50"></div>
+        )}
         <div
           className="flex h-full w-full items-center justify-center"
           style={{
@@ -86,9 +91,7 @@ function Property({ tile }: PropertyProps) {
               window.Telegram.WebApp.themeParams.text_color || "white",
           }}
         >
-          {(side == "top" || side == "bottom") && (
-            <p className="text-xs">{price}</p>
-          )}
+          {(side == "top" || side == "bottom") && <p className="text-xs">{price}</p>}
           {side == "right" && <p className="rotate-90 text-xs">{price}</p>}
           {side == "left" && <p className="-rotate-90 text-xs">{price}</p>}
         </div>

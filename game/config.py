@@ -6,3 +6,5 @@ EFFECTS_TIMEOUTS = {
     GameEffect.ASK_BUY: 10,
     GameEffect.PAY_RENT: 10,
 }
+
+DISABLE_AFK = True

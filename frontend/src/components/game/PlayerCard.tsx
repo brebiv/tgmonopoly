@@ -1,10 +1,14 @@
-import { Player } from "@/types/api";
+import { GameEffect, Player, PlayerStatus } from "@/types/api";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Card, CardContent } from "../ui/card";
 import { useEffect, useState } from "react";
 import { useGame, usePrevious } from "@/hooks";
-import { Dices } from "lucide-react";
-import { CASH_GAIN_ANIMATION_DURATION_SECONDS, CASH_LOSS_ANIMATION_DURATION_SECONDS, PLAYER_CHIP_COLORS } from "@/config";
+import { Dices, Skull } from "lucide-react";
+import {
+  CASH_GAIN_ANIMATION_DURATION_SECONDS,
+  CASH_LOSS_ANIMATION_DURATION_SECONDS,
+  PLAYER_CHIP_COLORS,
+} from "@/config";
 
 type PlayerCardProps = {
   player: Player;
@@ -16,6 +20,9 @@ function PlayerCard({ player }: PlayerCardProps) {
   const [primaryColor, _] = PLAYER_CHIP_COLORS[player.color as keyof typeof PLAYER_CHIP_COLORS];
   const [cashLoss, setCashLoss] = useState(0);
   const [cashGain, setCashGain] = useState(0);
+  const [currentEffect, setCurrentEffect] = useState<GameEffect | null>(null);
+  const [actionTimeout, setActionTimeout] = useState<number | null>(null);
+  const [afkProgress, setAfkProgress] = useState(0);
 
   const previousPlayer = usePrevious(player);
 
@@ -26,15 +33,24 @@ function PlayerCard({ player }: PlayerCardProps) {
       } else {
         setIsCurrentPlayer(false);
       }
+
       if (previousPlayer) {
         if (previousPlayer.cash > player.cash) {
+          console.log("CASH LOSS", previousPlayer.cash - player.cash);
           setCashLoss(previousPlayer.cash - player.cash);
         } else if (previousPlayer.cash < player.cash) {
+          console.log("CASH GAIN", player.cash - previousPlayer.cash);
           setCashGain(player.cash - previousPlayer.cash);
         }
       }
+
+      if (player.effects.length > 0) {
+        setCurrentEffect(player.effects[0]);
+      } else {
+        setCurrentEffect(null);
+      }
     }
-  }, [game]);
+  }, [game, player]);
 
   useEffect(() => {
     if (cashLoss > 0) {
@@ -54,21 +70,109 @@ function PlayerCard({ player }: PlayerCardProps) {
     }
   }, [cashGain]);
 
+  useEffect(() => {
+    if (currentEffect) {
+      let effectTimeout = player.effects[0].effect_data!.timeout;
+      let unixTimestampInSeconds = Date.now();
+      setActionTimeout(Math.floor((effectTimeout - unixTimestampInSeconds) / 1000));
+
+      const interval = setInterval(() => {
+        let unixTimestampInSeconds = Date.now();
+        setActionTimeout(Math.floor((effectTimeout - unixTimestampInSeconds) / 1000));
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [currentEffect]);
+
+  useEffect(() => {
+    if (currentEffect) {
+      let effectTimeout = player.effects[0].effect_data!.timeout;
+      let effectCreated = player.effects[0].effect_data!.created;
+      let timeoutTime = effectTimeout - effectCreated;
+
+      const interval = setInterval(() => {
+        let unixTimestampInSeconds = Date.now();
+        let timePassed = unixTimestampInSeconds - effectCreated;
+        let circleProgress = (360 * timePassed) / timeoutTime;
+
+        setAfkProgress(circleProgress);
+      }, 1000 / 60);
+      return () => clearInterval(interval);
+    }
+  }, [currentEffect]);
+
+  useEffect(() => {
+    if (!isCurrentPlayer) {
+      setActionTimeout(null);
+      setAfkProgress(0);
+    }
+  }, [isCurrentPlayer]);
+
   return (
     <Card className="relative">
+      {player.status === PlayerStatus.TIMEOUT && (
+        <div className="pointer-events-none absolute left-0 top-0 z-20 flex h-full w-full items-center justify-center rounded-xl">
+          <Skull
+            className="z-20"
+            style={{
+              // @ts-ignore
+              color: window.Telegram.WebApp.themeParams.text_color || "white",
+            }}
+          />
+          <div
+            className="absolute h-full w-full rounded-xl bg-black opacity-80"
+            style={{
+              backgroundColor:
+                // @ts-ignore
+                window.Telegram.WebApp.themeParams.secondary_bg_color || "black",
+            }}
+          ></div>
+        </div>
+      )}
       <CardContent className="flex gap-2 p-2">
-        <Avatar
-          className="border-2"
-          style={{
-            borderColor: primaryColor || "black",
-          }}
-        >
-          <AvatarImage src={player.avatar} />
-          <AvatarFallback>o_o</AvatarFallback>
-        </Avatar>
+        <div className="relative">
+          <div
+            className="absolute aspect-square rounded-full"
+            style={{
+              width: "calc(100% + 4px)",
+              // height: "calc(100% + 4px)",
+              top: "-2px",
+              left: "-2px",
+              background:
+                // @ts-ignore
+                `conic-gradient(${window.Telegram.WebApp.themeParams.bg_color || "black"} ${afkProgress < 360 ? afkProgress : 0}deg, ${primaryColor} ${afkProgress < 360 ? afkProgress : 0}deg, ${primaryColor} 360deg)`,
+              transition: "background 0.5s ease",
+            }}
+          ></div>
+          <Avatar
+          // className="border-2"
+          // style={{
+          //   borderColor: primaryColor || "black",
+          // }}
+          >
+            {/* Action timeout counter */}
+            {actionTimeout !== null && (
+              <div className="absolute flex h-full w-full items-center justify-center">
+                <p
+                  className="z-10"
+                  style={{
+                    color:
+                      // @ts-ignore
+                      window.Telegram.WebApp.themeParams.text_color || "white",
+                  }}
+                >
+                  {actionTimeout}
+                </p>
+                <div className="absolute h-full w-full bg-black opacity-50"></div>
+              </div>
+            )}
+            <AvatarImage src={player.avatar} />
+            <AvatarFallback>o_o</AvatarFallback>
+          </Avatar>
+        </div>
         <div className="h-full w-full">
           <p className="text-sm">
-            {player.name} {player.id}
+            {player.name} {player.id} {player.status}
           </p>
           {cashLoss > 0 && (
             <p

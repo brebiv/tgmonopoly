@@ -32,10 +32,6 @@ export function getMeFromPlayers(players: Player[]) {
 }
 
 export function getPlayerById(players: Player[], id: number) {
-  console.log("Players", players);
-  let player = players.find((player) => player.id === id);
-  console.log("OPLAYER", player);
-
   return players.find((player) => player.id === id);
 }
 

@@ -2,12 +2,14 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => (
-    <div
-      ref={ref}
-      className={cn("rounded-xl border bg-card text-card-foreground shadow", className)}
-      style={{
+interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
+  variant?: "primary" | "secondary";
+}
+
+const Card = React.forwardRef<HTMLDivElement, CardProps>(
+  ({ className, variant = "primary", ...props }, ref) => {
+    const variantStyles: Record<string, React.CSSProperties> = {
+      primary: {
         backgroundColor:
           // @ts-ignore
           window.Telegram.WebApp.themeParams.bg_color || "#334155",
@@ -16,11 +18,31 @@ const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElemen
           window.Telegram.WebApp.themeParams.text_color || "white",
         borderColor:
           // @ts-ignore
-          window.Telegram.WebApp.themeParams.section_separator_color || "#334155",
-      }}
-      {...props}
-    />
-  ),
+          window.Telegram.WebApp.themeParams.bg_color || "red",
+      },
+      secondary: {
+        backgroundColor:
+          // @ts-ignore
+          window.Telegram.WebApp.themeParams.section_bg_color || "#6B7280",
+        color:
+          // @ts-ignore
+          window.Telegram.WebApp.themeParams.text_color || "white",
+        borderColor:
+          // @ts-ignore
+          window.Telegram.WebApp.themeParams.section_separator_color || "#4B5563",
+      },
+    };
+
+    return (
+      <div
+        ref={ref}
+        // className={cn("relative rounded-xl border bg-card text-card-foreground shadow", className)}
+        className={cn("relative rounded-xl border bg-card text-card-foreground", className)}
+        style={{ ...variantStyles[variant] }}
+        {...props}
+      />
+    );
+  },
 );
 Card.displayName = "Card";
 

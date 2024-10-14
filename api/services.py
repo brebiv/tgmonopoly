@@ -1,7 +1,13 @@
 import random
+import uuid
+from django.utils import timezone
+from celery import current_app
 
 from game.models import Game, Player, GameEffect, Tile, Ownership
+from game import config
 from .types import GameActionType, GameEventType
+from .tasks import handle_game_effect_timeout
+from .serializers import GameEventSerializer, GameSerializer, PlayerSerializer, OwnershipSerializer
 
 
 class GameService:
@@ -9,28 +15,93 @@ class GameService:
     ROUND_TRIP_BONUS = 200
 
     @staticmethod
-    def _calculate_next_player(game: Game, after_player: Player) -> Player:
-        game_players = game.players.all().order_by('created')
+    def calculate_next_player(game: Game, after_player: Player) -> Player:
+        game_players: list[Player] = game.players.filter(status=Player.PLAYING).order_by('created')
+
+        if game_players.count() == 0:
+            game.status = Game.FINISHED
+            game.save()
+            return None
+        # elif game_players.count() == 1:
+        #     game.status = Game.FINISHED
+        #     game.save()
+        #     game_players[0].status = Player.WON
+        #     game_players[0].save()
+        #     return None
 
         current_index = next((index for index, p in enumerate(game_players) if p == after_player), -1)
         next_index = (current_index + 1) % len(game_players)
 
         next_player = game_players[next_index]
 
-        # if next_player.state == Player.LOSE or next_player.state == Player.TIMEOUT:
-        #     return GameService._calculate_next_player(game, next_player)
+        if next_player.status == Player.LOST or next_player.status == Player.TIMEOUT:
+            return GameService.calculate_next_player(game, next_player)
 
         return game_players[next_index]
+
+    @staticmethod
+    def apply_effect(game: Game, player: Player, name: str, effect_data: dict = None) -> GameEffect:
+        effect_timeout = config.EFFECTS_TIMEOUTS[name]
+
+        effect_timeout_timestamp = (timezone.now() + timezone.timedelta(seconds=effect_timeout)).timestamp() * 1000
+        
+        effect_data = effect_data or {}
+        effect_data['timeout'] = effect_timeout_timestamp
+        effect_data['created'] = timezone.now().timestamp() * 1000
+
+        task_id = str(uuid.uuid4())
+
+        effect = GameEffect.objects.create(
+            game=game,
+            player=player,
+            name=name,
+            effect_data=effect_data,
+            task_id=task_id
+        )
+
+        handle_game_effect_timeout.apply_async(
+            (effect.pk,), 
+            countdown=effect_timeout, 
+            task_id=task_id
+        )
+
+        return effect
+
+    @staticmethod
+    def remove_effect(game: Game, player: Player, name: str) -> GameEffect:
+        effect = GameEffect.objects.filter(player=player, name=name).last()
+        if effect:
+            if effect.task_id:
+                current_app.control.revoke(effect.task_id)
+            effect.delete()
+
+        return effect
+    
+    @staticmethod
+    def assemble_game_frame(game: Game, events: list, type = 'game.action') -> dict:
+        events_serializer = GameEventSerializer(data=events, many=True)
+
+        if not events_serializer.is_valid():
+            raise Exception("Invalid events")
+
+        ownerships = Ownership.objects.filter(game=game)
+        ownerships_serializer = OwnershipSerializer(ownerships, many=True)
+
+        return {
+            'type': type,
+            'game': GameSerializer(game).data,
+            'players': [PlayerSerializer(player).data for player in game.players.all()],
+            'events': events_serializer.data,
+            'ownerships': ownerships_serializer.data
+        }
 
     @staticmethod
     def start_game(game: Game, player: Player) -> list:
         events = []
 
-        effect = GameEffect.objects.create(
-            game=game,
-            player=player,
-            name=GameEffect.ROLL_DICE,
-        )
+        GameService.apply_effect(game, player, GameEffect.ROLL_DICE)
+
+        game.players.update(status=Player.PLAYING)
 
         game.turn += 1
         game.current_player = player
@@ -46,7 +117,8 @@ class GameService:
     @staticmethod
     def roll_dice(game: Game, player: Player) -> list:
         events = []
-        dices = [random.randint(1, 6) for _ in range(2)]
+        # dices = [random.randint(1, 6) for _ in range(2)]
+        dices = [1, 2]
         dice_sum = sum(dices)
 
         events.append({
@@ -56,8 +128,10 @@ class GameService:
             'dices': dices,
         })
 
-        effect = GameEffect.objects.filter(player=player, name=GameEffect.ROLL_DICE).last()
-        effect.delete()
+        # effect = GameEffect.objects.filter(player=player, name=GameEffect.ROLL_DICE).last()
+        # effect.delete()
+
+        GameService.remove_effect(game, player, GameEffect.ROLL_DICE)
 
         if player.in_jail:
             pass
@@ -86,14 +160,18 @@ class GameService:
                 try:
                     ownership = Ownership.objects.get(game=game, property=tile.property)
                 except Ownership.DoesNotExist:
-                    effect = GameEffect.objects.create(
-                        game=game,
-                        player=player,
-                        name=GameEffect.ASK_BUY,
-                        effect_data={
-                            'price': tile.property.price,
-                        },
-                    )
+                    # effect = GameEffect.objects.create(
+                    #     game=game,
+                    #     player=player,
+                    #     name=GameEffect.ASK_BUY,
+                    #     effect_data={
+                    #         'price': tile.property.price,
+                    #     },
+                    # )
+
+                    GameService.apply_effect(game, player, GameEffect.ASK_BUY, {
+                        'price': tile.property.price,
+                    })
                 else:
                     if ownership.player == player:
                         events.append({
@@ -103,31 +181,36 @@ class GameService:
                             'tile': tile.pk,
                         })
                         game.turn += 1
-                        game.current_player = GameService._calculate_next_player(game, player)
+                        game.current_player = GameService.calculate_next_player(game, player)
 
-                        effect = GameEffect.objects.create(
-                            game=game,
-                            player=game.current_player,
-                            name=GameEffect.ROLL_DICE,
-                        )
+                        # effect = GameEffect.objects.create(
+                        #     game=game,
+                        #     player=game.current_player,
+                        #     name=GameEffect.ROLL_DICE,
+                        # )
+                        GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
                     else:
-                        effect = GameEffect.objects.create(
-                            game=game,
-                            player=player,
-                            name=GameEffect.PAY_RENT,
-                            effect_data={
-                                'rent': ownership.calculate_rent(),
-                            },
-                        )
+                        # effect = GameEffect.objects.create(
+                        #     game=game,
+                        #     player=player,
+                        #     name=GameEffect.PAY_RENT,
+                        #     effect_data={
+                        #         'rent': ownership.calculate_rent(),
+                        #     },
+                        # )
+                        GameService.apply_effect(game, player, GameEffect.PAY_RENT, {
+                            'rent': ownership.calculate_rent(),
+                        })
             else:
                 game.turn += 1
-                game.current_player = GameService._calculate_next_player(game, player)
+                game.current_player = GameService.calculate_next_player(game, player)
 
-                effect = GameEffect.objects.create(
-                    game=game,
-                    player=game.current_player,
-                    name=GameEffect.ROLL_DICE,
-                )
+                # effect = GameEffect.objects.create(
+                #     game=game,
+                #     player=game.current_player,
+                #     name=GameEffect.ROLL_DICE,
+                # )
+                GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
 
             game.save()
             player.save()
@@ -158,8 +241,10 @@ class GameService:
                 tile.property.owner = player
                 tile.property.save()
 
-                effect = GameEffect.objects.filter(player=player, name=GameEffect.ASK_BUY).last()
-                effect.delete()
+                # effect = GameEffect.objects.filter(player=player, name=GameEffect.ASK_BUY).last()
+                # effect.delete()
+
+                GameService.remove_effect(game, player, GameEffect.ASK_BUY)
 
                 events.append({
                     'type': 'game.action',
@@ -175,15 +260,16 @@ class GameService:
                 #     name=GameEffect.ROLL_DICE,
                 # )
                 game.turn += 1
-                game.current_player = GameService._calculate_next_player(game, player)
+                game.current_player = GameService.calculate_next_player(game, player)
                 game.save()
 
 
-                effect = GameEffect.objects.create(
-                    game=game,
-                    player=game.current_player,
-                    name=GameEffect.ROLL_DICE,
-                )
+                # effect = GameEffect.objects.create(
+                #     game=game,
+                #     player=game.current_player,
+                #     name=GameEffect.ROLL_DICE,
+                # )
+                GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
         return events
     
     @staticmethod
@@ -205,8 +291,10 @@ class GameService:
         ownership.player.cash += rent_price
         ownership.player.save()
 
-        effect = GameEffect.objects.filter(player=player, name=GameEffect.PAY_RENT).last()
-        effect.delete()
+        # effect = GameEffect.objects.filter(player=player, name=GameEffect.PAY_RENT).last()
+        # effect.delete()
+
+        GameService.remove_effect(game, player, GameEffect.PAY_RENT)
 
         events.append({
             'type': 'game.action',
@@ -222,13 +310,31 @@ class GameService:
         #     name=GameEffect.ROLL_DICE,
         # )
         game.turn += 1
-        game.current_player = GameService._calculate_next_player(game, player)
+        game.current_player = GameService.calculate_next_player(game, player)
         game.save()
 
-        effect = GameEffect.objects.create(
-            game=game,
-            player=game.current_player,
-            name=GameEffect.ROLL_DICE,
-        )
+        # effect = GameEffect.objects.create(
+        #     game=game,
+        #     player=game.current_player,
+        #     name=GameEffect.ROLL_DICE,
+        # )
+
+        GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
+
+        return events
+    
+    @staticmethod
+    def handle_afk(game: Game, player: Player, effect: GameEffect) -> list:
+        events = []
+
+        effect.delete()
+        player.status = Player.TIMEOUT
+        player.save()
+
+        next_player = GameService.calculate_next_player(game, player)
+        if next_player:
+            game.current_player = next_player
+            game.save()
+            GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
 
         return events

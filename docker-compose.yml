@@ -1,0 +1,26 @@
+version: '3'
+
+services:
+  redis:
+    image: redis:7
+    container_name: redis
+    ports:
+      - "6379:6379"
+
+  celery_worker:
+    build: .
+    depends_on:
+      - redis
+    # command: celery -A tgmonopoly worker -l INFO
+    volumes:
+      - .:/app
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+  

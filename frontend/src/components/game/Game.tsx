@@ -12,6 +12,7 @@ import { useGameStore } from "@/stores/GameStore";
 import PlayersSection from "./PlayersSection";
 import TurnMenu from "./TurnMenu/TurnMenu";
 import GameLobby from "./GameLobby";
+import GameOverScreen from "./GameOverScreen";
 
 function Game() {
   useEffect(() => {
@@ -85,6 +86,7 @@ function Game() {
         game == undefined ||
         players == undefined ||
         !boardLoaded) && <LoadingScreen />}
+      {game?.status === GameStatus.FINISHED && <GameOverScreen />}
       <PlayersChipController players={players} boardLoaded={boardLoaded} />
       <DiceController />
       <Board boardLoaded={boardLoaded} setBoardLoaded={setBoardLoaded} />

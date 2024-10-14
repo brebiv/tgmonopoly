@@ -39,6 +39,14 @@ export enum GameEffectType {
   PAY_RENT = "pay_rent",
 }
 
+export enum PlayerStatus {
+  WAITING = "waiting",
+  PLAYING = "playing",
+  WON = "won",
+  LOST = "lost",
+  TIMEOUT = "timeout",
+}
+
 // Enums end here
 
 export type PropertyData = {
@@ -68,7 +76,9 @@ export type Tile = {
 export type EffectData = {
   price: number;
   rent: number;
-}
+  timeout: number;
+  created: number;
+};
 
 export type GameEffect = {
   name: GameEffectType;
@@ -85,6 +95,7 @@ export type Player = {
   effects: GameEffect[];
   name: string;
   avatar: string;
+  status: PlayerStatus;
 };
 
 export type PlayerChip = Player & {

@@ -42,6 +42,20 @@ class Player(models.Model):
         (YELLOW, 'Yellow'),
     ]
 
+    WAITING = 'waiting'
+    PLAYING = 'playing'
+    WON = 'won'
+    LOST = 'lost'
+    TIMEOUT = 'timeout'
+
+    STATUS_CHOICES = [
+        (WAITING, 'Waiting'),
+        (PLAYING, 'Playing'),
+        (WON, 'Won'),
+        (LOST, 'Lost'),
+        (TIMEOUT, 'Timeout'),
+    ]
+
     user = models.ForeignKey(TelegramUser, on_delete=models.CASCADE)
     game = models.ForeignKey(Game, related_name='players', on_delete=models.CASCADE)
 
@@ -50,6 +64,7 @@ class Player(models.Model):
     color = models.CharField(max_length=10, choices=COLOR_CHOICES, null=True, blank=True)
     in_jail = models.BooleanField(default=False)
     jail_turns = models.IntegerField(default=0)
+    status = models.CharField(max_length=16, choices=STATUS_CHOICES, default=WAITING)
 
     created = models.DateTimeField(auto_now_add=True)
 
@@ -64,7 +79,7 @@ class Player(models.Model):
         return self.position
 
     def __str__(self):
-        return f"{self.user.username} in {self.game.uuid}"
+        return f"{self.user.user_id} in {self.game.uuid}"
 
 
 class Tile(models.Model):
@@ -214,7 +229,7 @@ class Transaction(models.Model):
     created = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Transaction in {self.game.name} - {self.description}"
+        return f"Transaction in {self.game.uuid} - {self.description}"
 
 
 class GameEffect(models.Model):
@@ -234,11 +249,12 @@ class GameEffect(models.Model):
     name = models.CharField(max_length=20, choices=EFFECT_TYPES)
     description = models.TextField(null=True, blank=True)
     effect_data = models.JSONField(null=True, blank=True)
+    task_id = models.CharField(max_length=255, null=True, blank=True)
 
     created = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"GameEffect in {self.game.name} - {self.name}"
+        return f"GameEffect in {self.game.uuid} - {self.name}"
 
 
 # class Trade(models.Model):

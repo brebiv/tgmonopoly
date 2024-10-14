@@ -1,16 +1,14 @@
 from urllib.parse import parse_qs
 import json
 
-from typing import List
 from asgiref.sync import async_to_sync
 from channels.generic.websocket import WebsocketConsumer
 from django.conf import settings
-from django.forms import ValidationError
 
 from .utils import parse_user_from_qs, verify_telegram_init_data
-from .serializers import GameSerializer, PlayerSerializer, GameEventSerializer, OwnershipSerializer
-from game.models import Game, Player, Ownership
-from bot.models import TelegramUser
+from .serializers import PlayerSerializer
+from .services import GameService
+from game.models import Game, Player
 
 from pprint import pprint as print
 
@@ -46,20 +44,10 @@ class GameConsumer(WebsocketConsumer):
                 # self.scope['game_data'] = game_data
                 self.accept()
 
-                game_serializer = GameSerializer(game)
+                game_frame = GameService.assemble_game_frame(game, [], 'game.connected')
+                game_frame['me'] = PlayerSerializer(player).data
 
-                # Maybe put this thing in the fucking views
-                ownerships = Ownership.objects.filter(game=game)
-                ownerships_serializer = OwnershipSerializer(ownerships, many=True)
-
-                response_data = {
-                    'type': 'game.connected',
-                    'game': game_serializer.data,
-                    'players': [PlayerSerializer(player).data for player in game.players.all()],
-                    'me': PlayerSerializer(player).data,
-                    'ownerships': ownerships_serializer.data
-                }
-                self.send(text_data=json.dumps(response_data))
+                self.send(text_data=json.dumps(game_frame))
             else:
                 print("Not aue")
         except KeyError:

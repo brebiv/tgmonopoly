@@ -6,6 +6,8 @@ import { getTileFromPosition } from "@/lib/utils";
 import BuyPropertyButton from "./BuyPropertyButton";
 import RollDiceButton from "./RollDiceButton";
 import PayRentButton from "./PayRentButton";
+import PrisonPayButton from "./PrisonPayButton";
+import { MAXIMUM_JAIL_TURNS, PRISON_PAY_AMOUNT } from "@/config";
 
 interface MenuContentProps {
   effects: GameEffect[];
@@ -39,12 +41,40 @@ function MenuContent({ effects }: MenuContentProps) {
     }
 
     if (firstEffect.name === GameEffectType.ROLL_DICE) {
-      let actions = [
-        <RollDiceButton key={0} gameUUID={gameUUID} />,
-        //<IncreasePositionButton key={1} />
-      ];
-      setTitle("It's your turn!");
-      setHint("You are likely to land on a property ____");
+      let actions = [];
+      let title = "";
+      let hint = "";
+
+      if (me?.in_jail) {
+        let usedAllTries = me?.jail_turns == MAXIMUM_JAIL_TURNS;
+        let dontHaveEnoughCash = me?.cash < PRISON_PAY_AMOUNT;
+        title = "You are in jail!";
+
+        if (usedAllTries) {
+          hint = "You used all tries to escape from jail";
+          if (dontHaveEnoughCash) {
+            hint += " and don't have enough cash to pay for prison";
+          } else {
+            hint += ". The only way out of jail is to pay";
+          }
+        } else {
+          hint = `You can roll dices ${MAXIMUM_JAIL_TURNS - me?.jail_turns} times`;
+        }
+
+        actions = [
+          <RollDiceButton key={0} gameUUID={gameUUID} disabled={usedAllTries} />,
+          <PrisonPayButton key={1} gameUUID={gameUUID} disabled={dontHaveEnoughCash} />,
+        ];
+      } else {
+        title = "It's your turn!";
+        hint = "You are likely to land on a property ____";
+        actions = [
+          <RollDiceButton key={0} gameUUID={gameUUID} />,
+          //<IncreasePositionButton key={1} />
+        ];
+      }
+      setTitle(title);
+      setHint(hint);
       setActions(actions);
     } else if (firstEffect.name === GameEffectType.ASK_BUY) {
       let actions = [<BuyPropertyButton key={0} gameUUID={gameUUID} />];
@@ -56,14 +86,15 @@ function MenuContent({ effects }: MenuContentProps) {
       setTitle(`You stepped on other player's property!`);
       setHint(`You have to pay rent of $${firstEffect.effect_data?.rent}`);
       setActions(actions);
-    } 
+    }
   }, [effects, currentTile]);
 
   return (
     <div className="flex flex-col items-center gap-4 px-2 pb-12">
       <div className="flex flex-col items-center gap-1">
-        <h1 className="text-2xl font-semibold text-center">{title}</h1>
+        <h1 className="text-center text-2xl font-semibold">{title}</h1>
         <p
+          className="text-center"
           style={{
             color:
               // @ts-ignore
@@ -73,7 +104,7 @@ function MenuContent({ effects }: MenuContentProps) {
           {hint}
         </p>
       </div>
-      <div className="flex w-full flex-col">{actions}</div>
+      <div className="flex w-full flex-col gap-2">{actions}</div>
     </div>
   );
 }

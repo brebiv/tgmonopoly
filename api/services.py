@@ -120,8 +120,7 @@ class GameService:
     def roll_dice(game: Game, player: Player) -> list:
         events = []
         dices = [random.randint(1, 6) for _ in range(2)]
-        # dices = [1, 2]
-        dice_sum = sum(dices)
+        # dices = [9, 1]
 
         events.append({
             'type': 'game.action',
@@ -130,93 +129,126 @@ class GameService:
             'dices': dices,
         })
 
-        # effect = GameEffect.objects.filter(player=player, name=GameEffect.ROLL_DICE).last()
-        # effect.delete()
-
         GameService.remove_effect(game, player, GameEffect.ROLL_DICE)
 
         if player.in_jail:
-            pass
+            events.extend(GameService._handle_jail_roll(game, player, dices))
         else:
-            passed_start = player.position + dice_sum >= 40
-            new_postion = player.move_forward(dice_sum)
+            events.extend(GameService._handle_normal_roll(game, player, dices))
+
+        return events
+    
+    @staticmethod
+    def _handle_normal_roll(game: Game, player: Player, dice_values: list[int]) -> list[dict]:
+        events = []
+        dice_sum = sum(dice_values)
+        passed_start = player.position + dice_sum >= 40
+        new_postion = player.move_forward(dice_sum)
+
+        events.append({
+            'type': 'game.action',
+            'action': GameEventType.MOVE_PLAYER,
+            'player': player.pk,
+            'position': player.position,
+        })
+
+        if passed_start:
+            events.append({
+                'type': 'game.action',
+                'action': GameEventType.PASSED_START,
+                'player': player.pk,
+            })
+            player.cash += GameService.ROUND_TRIP_BONUS
+            player.save()
+
+        tile = Tile.objects.get(position=new_postion)
+        if tile.type == Tile.PROPERTY:
+            try:
+                ownership = Ownership.objects.get(game=game, property=tile.property)
+            except Ownership.DoesNotExist:
+                GameService.apply_effect(game, player, GameEffect.ASK_BUY, {
+                    'price': tile.property.price,
+                })
+            else:
+                if ownership.player == player:
+                    events.append({
+                        'type': 'game.action',
+                        'action': GameEventType.STEPPED_ON_OWN_PROPERTY,
+                        'player': player.pk,
+                        'tile': tile.pk,
+                    })
+                    game.turn += 1
+                    game.current_player = GameService.calculate_next_player(game, player)
+
+                    GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
+                else:
+                    GameService.apply_effect(game, player, GameEffect.PAY_RENT, {
+                        'rent': ownership.calculate_rent(),
+                    })
+        elif tile.type == Tile.JAIL or tile.type == Tile.POLICE:
+            if tile.type == Tile.POLICE:
+                jail_position = Tile.objects.get(type=Tile.JAIL).position
+                player.position = jail_position
+                events.append({
+                    'type': 'game.action',
+                    'action': GameEventType.MOVE_PLAYER,
+                    'player': player.pk,
+                    'position': player.position,
+                })
+            player.in_jail = True
+            player.save()
 
             events.append({
                 'type': 'game.action',
-                'action': GameEventType.MOVE_PLAYER,
+                'action': GameEventType.GO_TO_PRISON,
                 'player': player.pk,
-                'position': player.position,
             })
 
-            if passed_start:
-                events.append({
-                    'type': 'game.action',
-                    'action': GameEventType.PASSED_START,
-                    'player': player.pk,
-                })
-                player.cash += GameService.ROUND_TRIP_BONUS
-                player.save()
-
-            tile = Tile.objects.get(position=new_postion)
-            if tile.type == Tile.PROPERTY:
-                try:
-                    ownership = Ownership.objects.get(game=game, property=tile.property)
-                except Ownership.DoesNotExist:
-                    # effect = GameEffect.objects.create(
-                    #     game=game,
-                    #     player=player,
-                    #     name=GameEffect.ASK_BUY,
-                    #     effect_data={
-                    #         'price': tile.property.price,
-                    #     },
-                    # )
-
-                    GameService.apply_effect(game, player, GameEffect.ASK_BUY, {
-                        'price': tile.property.price,
-                    })
-                else:
-                    if ownership.player == player:
-                        events.append({
-                            'type': 'game.action',
-                            'action': GameEventType.STEPPED_ON_OWN_PROPERTY,
-                            'player': player.pk,
-                            'tile': tile.pk,
-                        })
-                        game.turn += 1
-                        game.current_player = GameService.calculate_next_player(game, player)
-
-                        # effect = GameEffect.objects.create(
-                        #     game=game,
-                        #     player=game.current_player,
-                        #     name=GameEffect.ROLL_DICE,
-                        # )
-                        GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
-                    else:
-                        # effect = GameEffect.objects.create(
-                        #     game=game,
-                        #     player=player,
-                        #     name=GameEffect.PAY_RENT,
-                        #     effect_data={
-                        #         'rent': ownership.calculate_rent(),
-                        #     },
-                        # )
-                        GameService.apply_effect(game, player, GameEffect.PAY_RENT, {
-                            'rent': ownership.calculate_rent(),
-                        })
-            else:
-                game.turn += 1
-                game.current_player = GameService.calculate_next_player(game, player)
-
-                # effect = GameEffect.objects.create(
-                #     game=game,
-                #     player=game.current_player,
-                #     name=GameEffect.ROLL_DICE,
-                # )
+            next_player = GameService.calculate_next_player(game, player)
+            if next_player:
+                game.current_player = next_player
+                game.save()
                 GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
+        else:
+            game.turn += 1
+            game.current_player = GameService.calculate_next_player(game, player)
 
-            game.save()
+            GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
+
+        game.save()
+        player.save()
+
+        return events
+
+    @staticmethod
+    def _handle_jail_roll(game: Game, player: Player, dice_values: list[int]) -> list[dict]:
+        events = []
+        
+        if dice_values[0] == dice_values[1]:
+            player.in_jail = False
+            player.jail_turns = 0
             player.save()
 
+            events.append({
+                'type': 'game.action',
+                'action': GameEventType.RELEASE_FROM_PRISON,
+                'player': player.pk,
+            })
+            GameService.apply_effect(game, player, GameEffect.ROLL_DICE)
+        else:
+            player.jail_turns += 1
+            player.save()
+            events.append({
+                'type': 'game.action',
+                'action': GameEventType.PRISON_RELEASE_FAIL,
+                'player': player.pk,
+            })
+            next_player = GameService.calculate_next_player(game, player)
+            if next_player:
+                game.current_player = next_player
+                game.save()
+                GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
+        
         return events
     
     @staticmethod
@@ -243,9 +275,6 @@ class GameService:
                 tile.property.owner = player
                 tile.property.save()
 
-                # effect = GameEffect.objects.filter(player=player, name=GameEffect.ASK_BUY).last()
-                # effect.delete()
-
                 GameService.remove_effect(game, player, GameEffect.ASK_BUY)
 
                 events.append({
@@ -265,12 +294,6 @@ class GameService:
                 game.current_player = GameService.calculate_next_player(game, player)
                 game.save()
 
-
-                # effect = GameEffect.objects.create(
-                #     game=game,
-                #     player=game.current_player,
-                #     name=GameEffect.ROLL_DICE,
-                # )
                 GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
         return events
     
@@ -293,9 +316,6 @@ class GameService:
         ownership.player.cash += rent_price
         ownership.player.save()
 
-        # effect = GameEffect.objects.filter(player=player, name=GameEffect.PAY_RENT).last()
-        # effect.delete()
-
         GameService.remove_effect(game, player, GameEffect.PAY_RENT)
 
         events.append({
@@ -315,12 +335,6 @@ class GameService:
         game.current_player = GameService.calculate_next_player(game, player)
         game.save()
 
-        # effect = GameEffect.objects.create(
-        #     game=game,
-        #     player=game.current_player,
-        #     name=GameEffect.ROLL_DICE,
-        # )
-
         GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
 
         return events
@@ -338,5 +352,29 @@ class GameService:
             game.current_player = next_player
             game.save()
             GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
+
+        return events
+    
+    @staticmethod
+    def pay_for_prison(game: Game, player: Player) -> list[dict]:
+        events = []
+
+        if player.cash < config.PRISON_PAY_AMOUNT:
+            raise Exception("You don't have enough cash to pay for prison")
+        
+        GameService.remove_effect(game, player, GameEffect.ROLL_DICE)
+
+        player.in_jail = False
+        player.jail_turns = 0
+        player.cash -= config.PRISON_PAY_AMOUNT
+        player.save()
+
+        events.append({
+            'type': 'game.action',
+            'action': GameEventType.PAY_FOR_PRISON,
+            'player': player.pk,
+        })
+
+        GameService.apply_effect(game, player, GameEffect.ROLL_DICE)
 
         return events

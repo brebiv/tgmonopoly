@@ -12,6 +12,7 @@ from .serializers import (
 from .utils import telegram_auth_required, CustomRequest
 from .types import GameActionType
 from game.models import Player, Game, GameEffect, Ownership
+from game import config
 from .services import GameService
 
 
@@ -134,17 +135,40 @@ def game_action(request: CustomRequest):
 
         if first_effect:
             if first_effect.name == GameEffect.ROLL_DICE:
-                if action == GameActionType.ROLL_DICE:
-                    events = GameService.roll_dice(game, player)
-                    game_frame = GameService.assemble_game_frame(game, events)
+                if player.in_jail:
+                    if action == GameActionType.ROLL_DICE:
+                        if player.jail_turns < config.MAXIMUM_JAIL_TURNS:
+                            events = GameService.roll_dice(game, player)
+                        else:
+                            return JsonResponse({"status": "!ok", "error": "You can't roll dice anymore"}, status=400)
+                        
+                        game_frame = GameService.assemble_game_frame(game, events)
 
-                    async_to_sync(channel_layer.group_send)(
-                        game_group_name, game_frame
-                    )
+                        async_to_sync(channel_layer.group_send)(
+                            game_group_name, game_frame
+                        )
+                        return JsonResponse({"status": "ok",}, status=201)
+                    elif action == GameActionType.PAY_FOR_PRISON:
+                        events = GameService.pay_for_prison(game, player)
+                        game_frame = GameService.assemble_game_frame(game, events)
 
-                    return JsonResponse({"status": "ok",}, status=201)
+                        async_to_sync(channel_layer.group_send)(
+                            game_group_name, game_frame
+                        )
+                        return JsonResponse({"status": "ok",}, status=201)
+                    else:
+                        return JsonResponse({"status": "!ok", "error": "Unknown action"}, status=400)
                 else:
-                    return JsonResponse({"status": "!ok", "error": "Unknown action"}, status=400)
+                    if action == GameActionType.ROLL_DICE:
+                        events = GameService.roll_dice(game, player)
+                        game_frame = GameService.assemble_game_frame(game, events)
+
+                        async_to_sync(channel_layer.group_send)(
+                            game_group_name, game_frame
+                        )
+                        return JsonResponse({"status": "ok",}, status=201)
+                    else:
+                        return JsonResponse({"status": "!ok", "error": "Unknown action"}, status=400)
             elif first_effect.name == GameEffect.ASK_BUY:
                 if action == GameActionType.BUY_PROPERTY:
                     events = GameService.buy_property(game, player)

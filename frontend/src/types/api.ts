@@ -30,6 +30,7 @@ export enum GameActionType {
   BUY_PROPERRTY = "buy_property",
   PASSED_START = "passed_start",
   PAY_RENT = "pay_rent",
+  PAY_FOR_PRISON = "pay_for_prison",
 }
 
 export enum GameEffectType {

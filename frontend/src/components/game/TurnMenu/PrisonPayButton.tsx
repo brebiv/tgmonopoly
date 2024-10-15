@@ -1,9 +1,10 @@
 import { sendGameAction } from "@/api";
 import { Button } from "@/components/ui/button";
+import { PRISON_PAY_AMOUNT } from "@/config";
 import { GameActionType } from "@/types/api";
-import { Dices } from "lucide-react";
+import { HandCoins } from "lucide-react";
 
-function RollDiceButton({ gameUUID, disabled }: { gameUUID: string; disabled?: boolean }) {
+function PrisonPayButton({ gameUUID, disabled }: { gameUUID: string; disabled?: boolean }) {
   return (
     <Button
       style={{
@@ -15,15 +16,17 @@ function RollDiceButton({ gameUUID, disabled }: { gameUUID: string; disabled?: b
           window.Telegram.WebApp.themeParams.button_text_color || "white",
       }}
       onClick={() => {
-        sendGameAction({ action: GameActionType.ROLL_DICE, game_uuid: gameUUID });
+        sendGameAction({ action: GameActionType.PAY_FOR_PRISON, game_uuid: gameUUID });
       }}
-      disabled={disabled}
       className="w-full gap-2 py-6 text-lg font-semibold"
+      disabled={disabled}
     >
-      <Dices />
-      Roll dice
+      <HandCoins />
+      <p>
+        Pay <span className="font-thin">${PRISON_PAY_AMOUNT}</span>
+      </p>
     </Button>
   );
 }
 
-export default RollDiceButton;
+export default PrisonPayButton;

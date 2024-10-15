@@ -12,3 +12,5 @@ export const PLAYER_CHIP_COLORS = {
 };
 export const CASH_LOSS_ANIMATION_DURATION_SECONDS = 3;
 export const CASH_GAIN_ANIMATION_DURATION_SECONDS = 2;
+export const MAXIMUM_JAIL_TURNS = 3;
+export const PRISON_PAY_AMOUNT = 50;

@@ -85,7 +85,11 @@ function BoardTile({ tile }: TileProps) {
           window.Telegram.WebApp.themeParams.text_color || "white",
       }}
       onClick={() => {
-        setTileInfo(tile, tileRef);
+        if (tileInfo && tileInfo.position === position) {
+          setTileInfo(null, null);
+        } else {
+          setTileInfo(tile, tileRef);
+        }
       }}
     >
       {tileInfo && !imSelected && (

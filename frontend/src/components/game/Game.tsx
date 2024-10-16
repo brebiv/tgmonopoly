@@ -7,7 +7,6 @@ import Forbidden from "../Forbidden";
 import LoadingScreen from "../LoadingScreen";
 import DiceController from "./DiceController";
 import { GameStatus } from "@/types/api";
-import { useEventStore } from "@/stores/EventStore";
 import { useGameStore } from "@/stores/GameStore";
 import PlayersSection from "./PlayersSection";
 import TurnMenu from "./TurnMenu/TurnMenu";
@@ -33,43 +32,15 @@ function Game() {
 
   const gameUUID = window.location.pathname.split("/")[2];
   const { data: auth, isLoading: isMeLoading, isError: isMeError } = useAuth(true);
-  // const { data: game } = useGame();
-  // const { data: players = [] } = usePlayers();
-  const eventQueue = useEventStore((state) => state.eventQueue);
 
   const [boardLoaded, setBoardLoaded] = useState(false);
-  const { me, myTurn, game, players, ownerships } = useGameStore((state) => state);
+  const { game, players } = useGameStore((state) => state);
 
   if (isMeError) {
     return <Forbidden />;
   }
 
   useReactQuerySubscription(gameUUID);
-
-  useEffect(() => {
-    console.log("Me", me);
-  }, [me]);
-
-  useEffect(() => {
-    console.log("MyTurn", myTurn);
-  }, [myTurn]);
-
-  useEffect(() => {
-    console.log("GameEventQueue", eventQueue);
-  }, [eventQueue]);
-
-  useEffect(() => {
-    console.log("Ownerships", ownerships);
-  }, [ownerships]);
-
-  useEffect(() => {
-    if (game) {
-      console.log("Game", game);
-    }
-    if (players) {
-      console.log("Players", players);
-    }
-  }, [game, players]);
 
   if (game?.status === GameStatus.WAITING) {
     return <GameLobby />;

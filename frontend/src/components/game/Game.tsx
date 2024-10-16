@@ -14,6 +14,8 @@ import TurnMenu from "./TurnMenu/TurnMenu";
 import GameLobby from "./GameLobby";
 import GameOverScreen from "./GameOverScreen";
 import TileInfo from "./TileInfo";
+import BoardCenter from "./BoardCenter";
+import DebugPanel from "./DebugPanel";
 
 function Game() {
   useEffect(() => {
@@ -90,7 +92,10 @@ function Game() {
       {game?.status === GameStatus.FINISHED && <GameOverScreen />}
       <PlayersChipController players={players} boardLoaded={boardLoaded} />
       <DiceController />
-      <TileInfo />
+      <BoardCenter>
+        <DebugPanel />
+        <TileInfo />
+      </BoardCenter>
       <Board boardLoaded={boardLoaded} setBoardLoaded={setBoardLoaded} />
       <PlayersSection />
       <TurnMenu />

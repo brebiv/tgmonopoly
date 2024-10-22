@@ -120,7 +120,7 @@ class GameService:
     def roll_dice(game: Game, player: Player) -> list:
         events = []
         dices = [random.randint(1, 6) for _ in range(2)]
-        # dices = [9, 1]
+        # dices = [1,1]
 
         events.append({
             'type': 'game.action',
@@ -179,6 +179,7 @@ class GameService:
                     })
                     game.turn += 1
                     game.current_player = GameService.calculate_next_player(game, player)
+                    GameService.calculate_mortages(game, player)
 
                     GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
                 else:
@@ -207,11 +208,14 @@ class GameService:
             next_player = GameService.calculate_next_player(game, player)
             if next_player:
                 game.current_player = next_player
+                game.turn += 1
                 game.save()
+                GameService.calculate_mortages(game, player)
                 GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
         else:
             game.turn += 1
             game.current_player = GameService.calculate_next_player(game, player)
+            GameService.calculate_mortages(game, player)
 
             GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
 
@@ -246,7 +250,9 @@ class GameService:
             next_player = GameService.calculate_next_player(game, player)
             if next_player:
                 game.current_player = next_player
+                game.turn += 1
                 game.save()
+                GameService.calculate_mortages(game, player)
                 GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
         
         return events
@@ -293,6 +299,7 @@ class GameService:
                 game.turn += 1
                 game.current_player = GameService.calculate_next_player(game, player)
                 game.save()
+                GameService.calculate_mortages(game, player)
 
                 GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
         return events
@@ -334,6 +341,7 @@ class GameService:
         game.turn += 1
         game.current_player = GameService.calculate_next_player(game, player)
         game.save()
+        GameService.calculate_mortages(game, player)
 
         GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
 
@@ -350,7 +358,10 @@ class GameService:
         next_player = GameService.calculate_next_player(game, player)
         if next_player:
             game.current_player = next_player
+            game.turn += 1
             game.save()
+            GameService.calculate_mortages(game, player)
+            
             GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
 
         return events
@@ -376,5 +387,73 @@ class GameService:
         })
 
         GameService.apply_effect(game, player, GameEffect.ROLL_DICE)
+
+        return events
+    
+    @staticmethod
+    def calculate_mortages(game: Game, player: Player) -> list[dict]:
+        events = []
+
+        for ownership in Ownership.objects.filter(player=player, mortgaged=True):
+            if ownership.mortage_last_turn:
+                if game.turn >= ownership.mortage_last_turn:
+                    ownership.delete()
+                    # ownership.mortgaged = False
+                    # ownership.mortage_last_turn = None
+                    # ownership.save()
+                    events.append({
+                        'type': 'game.action',
+                        'action': 'MORTAGE_EXPIRED',
+                        'player': player.pk,
+                        'property_id': ownership.property.pk,
+                    })
+
+        return events
+    
+    @staticmethod
+    def mortage_property(game: Game, player: Player, property_id: int) -> list[dict]:
+        events = []
+
+        try:
+            ownership = Ownership.objects.get(player=player, property_id=property_id)
+        except Ownership.DoesNotExist:
+            raise Exception("You don't own this property")
+
+        ownership.mortgaged = True
+        ownership.mortage_last_turn = game.turn + config.MORTAGE_MAX_TURNS
+        ownership.save()
+
+        player.cash += ownership.property.mortgage_value
+        player.save()
+
+        events.append({
+            'type': 'game.action',
+            'action': GameEventType.MORTAGE_PROPERTY,
+            'player': player.pk
+        })
+
+        return events
+
+    @staticmethod
+    def buyouy_property(game: Game, player: Player, property_id: int) -> list[dict]:
+        events = []
+
+        try:
+            ownership = Ownership.objects.get(player=player, property_id=property_id)
+        except Ownership.DoesNotExist:
+            raise Exception("You don't own this property")
+
+        ownership.mortgaged = False
+        ownership.mortage_last_turn = 0
+        ownership.save()
+
+        player.cash -= ownership.property.buyout_price
+        player.save()
+
+        events.append({
+            'type': 'game.action',
+            'action': GameEventType.BUYOUT_PROPERTY,
+            'player': player.pk
+        })
 
         return events

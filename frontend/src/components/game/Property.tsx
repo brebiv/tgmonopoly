@@ -1,7 +1,10 @@
 import { PLAYER_CHIP_COLORS } from "@/config";
-import { getPlayerById, hexToRGBA } from "@/lib/utils";
+import { useGame } from "@/hooks";
+import { cn, getPlayerById, hexToRGBA } from "@/lib/utils";
 import { useGameStore } from "@/stores/GameStore";
 import { Tile } from "@/types/api";
+import clsx from "clsx";
+import { Lock } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface PropertyProps {
@@ -24,8 +27,12 @@ function Property({ tile, imSelected, tileInfo }: PropertyProps) {
   }
 
   const { ownerships, players } = useGameStore((state) => state);
+  const { data: game } = useGame();
+
   const [color, setColor] = useState<string>("");
   const [price, setPrice] = useState<number>(0);
+  const [mortgaged, setMortgaged] = useState<boolean>(false);
+  const [mortageTurnsLeft, setMortageTurnsLeft] = useState<number | undefined>(15);
 
   useEffect(() => {
     let ownership = ownerships?.find((ownership) => ownership.property === tile.propertyData?.id);
@@ -40,22 +47,45 @@ function Property({ tile, imSelected, tileInfo }: PropertyProps) {
           let opacity = 0.6;
           setColor(hexToRGBA(color, opacity));
           setPrice(tile.propertyData?.rent || 0);
+          setMortgaged(ownership.mortgaged);
+          if (ownership.mortage_last_turn) {
+            setMortageTurnsLeft(ownership.mortage_last_turn - game!.turn);
+          }
         }
       }
     } else {
       setColor("");
       setPrice(tile.propertyData?.price || 0);
+      setMortgaged(false);
+      setMortageTurnsLeft(undefined);
     }
   }, [ownerships, players, tile]);
+
+  // @ts-ignore
+  const rotationClass = clsx({
+    "": side === "top" || side === "bottom",
+    "rotate-90": side === "right",
+    "-rotate-90": side === "left",
+  });
+
+  const rotationFlexClass = clsx({
+    "flex-col": side === "right",
+    "flex-col-reverse": side === "left",
+  });
 
   return (
     <div
       className="relative flex h-full w-full flex-col items-center justify-center p-1"
       style={{
-        backgroundColor: color || "unset",
-        boxShadow: color ? `inset 0px 0px 4px 1px rgb(0, 0, 0, 0.5)` : "unset",
+        backgroundColor: color || "",
+        boxShadow: color ? `inset 0px 0px 4px 1px rgb(0, 0, 0, 0.5)` : "",
       }}
     >
+      {mortgaged && (
+        <div className="absolute z-10 flex h-full w-full items-center justify-center">
+          <div className="absolute h-full w-full bg-black opacity-50"></div>
+        </div>
+      )}
       {/* Body */}
       {(side == "top" || side == "bottom") && (
         <img src={tile.propertyData?.icon} className="-rotate-90" />
@@ -91,11 +121,60 @@ function Property({ tile, imSelected, tileInfo }: PropertyProps) {
               window.Telegram.WebApp.themeParams.text_color || "white",
           }}
         >
-          {(side == "top" || side == "bottom") && <p className="text-xs">{price}</p>}
-          {side == "right" && <p className="rotate-90 text-xs">{price}</p>}
-          {side == "left" && <p className="-rotate-90 text-xs">{price}</p>}
+          {mortgaged ? (
+            <Lock
+              className={cn(
+                `z-10 h-3 w-3 ${side === "right" ? "rotate-90" : ""} ${side === "left" ? "-rotate-90" : ""} ${side === "left" ? "-rotate-90" : ""}`,
+              )}
+              style={{
+                // @ts-ignore
+                color: window.Telegram.WebApp.themeParams.text_color || "white",
+              }}
+            />
+          ) : (
+            <>
+              {(side == "top" || side == "bottom") && <p className="text-xs">{price}</p>}
+              {side == "right" && <p className="rotate-90 text-xs">{price}</p>}
+              {side == "left" && <p className="-rotate-90 text-xs">{price}</p>}
+            </>
+          )}
         </div>
       </div>
+
+      {/* Mortage marker */}
+      {mortgaged && (
+        <div
+          className={
+            side === "top"
+              ? "absolute -bottom-4 z-20 h-5 w-full rounded-b-lg"
+              : side === "right"
+                ? "absolute -left-4 z-20 h-full w-4 rounded-l-lg"
+                : side === "bottom"
+                  ? "absolute -top-4 z-20 h-4 w-full rounded-t-lg"
+                  : side === "left"
+                    ? "absolute -right-4 z-20 h-full w-4 rounded-r-lg"
+                    : ""
+          }
+          style={{
+            // @ts-ignore
+            backgroundColor: window.Telegram.WebApp.themeParams.destructive_text_color || "red",
+          }}
+        >
+          {tileInfo && !imSelected && (
+            <div className="absolute z-10 h-full w-full bg-black opacity-50"></div>
+          )}
+          <div
+            className={cn("flex h-full w-full items-center justify-center", rotationFlexClass)}
+            style={{
+              color:
+                // @ts-ignore
+                window.Telegram.WebApp.themeParams.text_color || "white",
+            }}
+          >
+            <p className={cn("text-xs", rotationClass)}>{mortageTurnsLeft}</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

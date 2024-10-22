@@ -31,6 +31,8 @@ export enum GameActionType {
   PASSED_START = "passed_start",
   PAY_RENT = "pay_rent",
   PAY_FOR_PRISON = "pay_for_prison",
+  MORTAGE_PROPERTY = "mortage_property",
+  BUYOUT_PROPERTY = "buyout_property",
 }
 
 export enum GameEffectType {
@@ -64,6 +66,7 @@ export type PropertyData = {
   group_id: number;
   group_color: string;
   icon: string;
+  buyout_price: number;
 };
 
 export type Tile = {
@@ -134,6 +137,7 @@ export type GameFrame = {
 export type GameAction = {
   action: GameActionType;
   game_uuid: string;
+  extra_data?: any;
 };
 
 export type JoinGameResponse = {
@@ -151,4 +155,5 @@ export type Ownership = {
   property: number;
   houses: number;
   mortgaged: boolean;
+  mortage_last_turn: number | null;
 };

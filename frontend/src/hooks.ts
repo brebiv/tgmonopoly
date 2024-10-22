@@ -1,8 +1,8 @@
-import { useMutation, useQuery, useQueryClient } from "react-query";
+import { useMutation, useQuery, useQueryClient, UseQueryResult } from "react-query";
 import { createGame, getAuth, getTiles } from "./api";
 import React, { useEffect, useRef } from "react";
 import { buildGameWebsocketUrl } from "./lib/utils";
-import { Game, GameFrame, GameEventScope } from "./types/api";
+import { Game, GameFrame, GameEventScope, Ownership } from "./types/api";
 import { useEventStore } from "./stores/EventStore";
 import { useGameStore } from "./stores/GameStore";
 import { processGameData } from "./lib/game";
@@ -130,6 +130,14 @@ export const useGame = () => {
 export const usePlayers = () => {
   return useQuery({
     queryKey: ["players"],
+    enabled: false,
+    retry: false,
+  });
+};
+
+export const useOwnerships = (): UseQueryResult<Ownership[] | null> => {
+  return useQuery({
+    queryKey: ["ownerships"],
     enabled: false,
     retry: false,
   });

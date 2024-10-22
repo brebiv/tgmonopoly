@@ -42,7 +42,8 @@ class PropertySerializer(serializers.ModelSerializer):
         fields = (
             'id', 'price', 'mortgage_value', 'house_price', 'rent', 
             'rent_with_1_house', 'rent_with_2_houses', 'rent_with_3_houses', 
-            'rent_with_4_houses', 'rent_with_5_houses', 'group_id', 'group_color', 'icon'
+            'rent_with_4_houses', 'rent_with_5_houses', 'group_id', 'group_color', 'icon',
+            'buyout_price'
         )
     
     group_color = serializers.SerializerMethodField()
@@ -113,6 +114,11 @@ class PlayerSerializer(serializers.ModelSerializer):
 class GameActionSerializer(serializers.Serializer):
     action = serializers.CharField()
     game_uuid = serializers.UUIDField()
+    extra_data = serializers.JSONField(required=False)
+
+
+class MortagePropertySerializer(serializers.Serializer):
+    property_id = serializers.IntegerField()
 
 
 class GameEventSerializer(serializers.Serializer):
@@ -132,5 +138,5 @@ class OwnershipSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ownership
         fields = (
-            'player', 'property', 'houses', 'mortgaged'
+            'player', 'property', 'houses', 'mortgaged', 'mortage_last_turn'
         )

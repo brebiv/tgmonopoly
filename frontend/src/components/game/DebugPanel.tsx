@@ -43,7 +43,7 @@ function DebugPanel() {
 
   return (
     <ThemedDiv className="absolute flex h-full w-full flex-col items-center p-1">
-      <h1>⚙️ My little debug panel</h1>
+      <h1>⚙️ My simple debug panel</h1>
       <p>Game turn: {game?.turn}</p>
     </ThemedDiv>
   );

@@ -140,6 +140,11 @@ class Property(models.Model):
 
     icon = models.ImageField(upload_to='properties', null=True, blank=True)
 
+    @property
+    def buyout_price(self) -> int:
+        from game import config
+        return int(self.mortgage_value * config.MORTAGE_INTEREST_RATE)
+
     def __str__(self):
         return self.board_space.name
     
@@ -176,6 +181,7 @@ class Ownership(models.Model):
     property = models.ForeignKey(Property, on_delete=models.CASCADE)
     houses = models.IntegerField(default=0)
     mortgaged = models.BooleanField(default=False)
+    mortage_last_turn = models.IntegerField(null=True, blank=True)
 
     created = models.DateTimeField(auto_now_add=True)
 

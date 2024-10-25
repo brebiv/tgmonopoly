@@ -8,6 +8,7 @@ import RollDiceButton from "./RollDiceButton";
 import PayRentButton from "./PayRentButton";
 import PrisonPayButton from "./PrisonPayButton";
 import { MAXIMUM_JAIL_TURNS, PRISON_PAY_AMOUNT } from "@/config";
+import { useTheme } from "@/stores/ThemeContext";
 
 interface MenuContentProps {
   effects: GameEffect[];
@@ -22,6 +23,8 @@ function MenuContent({ effects }: MenuContentProps) {
   const [title, setTitle] = useState<string>("");
   const [hint, setHint] = useState<string>("");
   const [actions, setActions] = useState<React.ReactNode[]>([]);
+
+  const { textColor } = useTheme();
 
   useEffect(() => {
     if (tiles && me) {
@@ -96,9 +99,7 @@ function MenuContent({ effects }: MenuContentProps) {
         <p
           className="text-center"
           style={{
-            color:
-              // @ts-ignore
-              window.Telegram.WebApp.themeParams.hint_color || "white",
+            color: textColor,
           }}
         >
           {hint}

@@ -8,11 +8,14 @@ import "../Game.css";
 
 import Game from "../components/game/Game";
 import { queryClient } from "@/lib/queryClient";
+import { ThemeProvider } from "@/stores/ThemeContext";
 
 createRoot(document.getElementById("game")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <Game />
+      <ThemeProvider>
+        <Game />
+      </ThemeProvider>
     </QueryClientProvider>
   </StrictMode>,
 );

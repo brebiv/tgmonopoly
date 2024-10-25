@@ -117,7 +117,11 @@ function Property({ tile, imSelected, tileInfo }: PropertyProps) {
             }}
           >
             {ownership.houses == 5 ? (
-              <ApartmentIcon className={cn("h-full w-full", rotationClass)} outline="#FFD700" />
+              <ApartmentIcon
+                className={cn("h-full w-full", rotationClass)}
+                outline="#FFD700"
+                fill="#403703"
+              />
             ) : (
               <>
                 {Array.from({ length: ownership.houses }, (_, i) => (

@@ -15,7 +15,7 @@ import GameOverScreen from "./GameOverScreen";
 import TileInfo from "./TileInfo";
 import BoardCenter from "./BoardCenter";
 import DebugPanel from "./DebugPanel";
-import { ThemeProvider } from "@/stores/ThemeContext";
+import { useTheme } from "@/stores/ThemeContext";
 
 function Game() {
   useEffect(() => {
@@ -37,6 +37,8 @@ function Game() {
   const [boardLoaded, setBoardLoaded] = useState(false);
   const { game, players } = useGameStore((state) => state);
 
+  const { secondaryBGColor } = useTheme();
+
   if (isMeError) {
     return <Forbidden />;
   }
@@ -48,32 +50,28 @@ function Game() {
   }
 
   return (
-    <ThemeProvider>
-      <div
-        className="flex min-h-screen flex-col gap-4"
-        style={{
-          backgroundColor:
-            // @ts-ignore
-            window.Telegram.WebApp.themeParams.secondary_bg_color || "#334155",
-        }}
-      >
-        {(auth == undefined ||
-          isMeLoading ||
-          game == undefined ||
-          players == undefined ||
-          !boardLoaded) && <LoadingScreen />}
-        {game?.status === GameStatus.FINISHED && <GameOverScreen />}
-        <PlayersChipController players={players} boardLoaded={boardLoaded} />
-        <DiceController />
-        <BoardCenter>
-          <DebugPanel />
-          <TileInfo />
-        </BoardCenter>
-        <Board boardLoaded={boardLoaded} setBoardLoaded={setBoardLoaded} />
-        <PlayersSection />
-        <TurnMenu />
-      </div>
-    </ThemeProvider>
+    <div
+      className="flex min-h-screen flex-col gap-4"
+      style={{
+        backgroundColor: secondaryBGColor,
+      }}
+    >
+      {(auth == undefined ||
+        isMeLoading ||
+        game == undefined ||
+        players == undefined ||
+        !boardLoaded) && <LoadingScreen />}
+      {game?.status === GameStatus.FINISHED && <GameOverScreen />}
+      <PlayersChipController players={players} boardLoaded={boardLoaded} />
+      <DiceController />
+      <BoardCenter>
+        <DebugPanel />
+        <TileInfo />
+      </BoardCenter>
+      <Board boardLoaded={boardLoaded} setBoardLoaded={setBoardLoaded} />
+      <PlayersSection />
+      <TurnMenu />
+    </div>
   );
 }
 

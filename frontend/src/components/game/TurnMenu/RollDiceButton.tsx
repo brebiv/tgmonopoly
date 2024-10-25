@@ -6,14 +6,7 @@ import { Dices } from "lucide-react";
 function RollDiceButton({ gameUUID, disabled }: { gameUUID: string; disabled?: boolean }) {
   return (
     <Button
-      style={{
-        backgroundColor:
-          // @ts-ignore
-          window.Telegram.WebApp.themeParams.button_color || "black",
-        color:
-          // @ts-ignore
-          window.Telegram.WebApp.themeParams.button_text_color || "white",
-      }}
+      variant={"default"}
       onClick={() => {
         sendGameAction({ action: GameActionType.ROLL_DICE, game_uuid: gameUUID });
       }}

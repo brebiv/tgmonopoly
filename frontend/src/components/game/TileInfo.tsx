@@ -38,7 +38,7 @@ function TileInfo() {
 
   const gameUUID = window.location.pathname.split("/")[2];
 
-  const { textColor } = useTheme();
+  const { textColor, secondaryBGColor } = useTheme();
 
   useEffect(() => {
     if (!me || !tile || !ownerships) {
@@ -68,8 +68,7 @@ function TileInfo() {
     return null;
   }
 
-  // @ts-ignore
-  const secondary_bg_color = window.Telegram.WebApp.themeParams.secondary_bg_color;
+  const secondary_bg_color = secondaryBGColor;
   const fallback_bg_color = "rgb(18, 17, 19)";
   const fallback_bg_color_transparent = "rgb(18, 17, 19, 0)";
 

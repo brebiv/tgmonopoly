@@ -2,6 +2,7 @@ import { Sheet } from "react-modal-sheet";
 import { useGameStore } from "@/stores/GameStore";
 import TurnMenuBar from "./TurnMenuBar";
 import MenuContent from "./MenuContent";
+import { useTheme } from "@/stores/ThemeContext";
 
 function TurnMenu() {
   const showTurnMenu = useGameStore((state) => state.showTurnMenu);
@@ -10,6 +11,8 @@ function TurnMenu() {
   const { me } = useGameStore((state) => state);
   //   const ref = useRef<SheetRef>();
   //   const snapTo = (i: number) => ref.current?.snapTo(i);
+
+  const { textColor, bgColor } = useTheme();
 
   return (
     <div>
@@ -22,12 +25,8 @@ function TurnMenu() {
       >
         <Sheet.Container
           style={{
-            backgroundColor:
-              // @ts-ignore
-              window.Telegram.WebApp.themeParams.bg_color || "#334155",
-            color:
-              // @ts-ignore
-              window.Telegram.WebApp.themeParams.text_color || "white",
+            backgroundColor: bgColor,
+            color: textColor,
           }}
         >
           <Sheet.Header />

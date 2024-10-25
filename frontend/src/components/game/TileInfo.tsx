@@ -10,6 +10,7 @@ import { Button } from "../ui/button";
 import { sendGameAction } from "@/api";
 import { GameActionType } from "@/types/api";
 import { hexToRGBA } from "@/lib/utils";
+import { useTheme } from "@/stores/ThemeContext";
 
 function TileInfoRow({ children }: { children: React.ReactNode }) {
   return <div className="flex items-center text-sm">{children}</div>;
@@ -35,6 +36,8 @@ function TileInfo() {
   const [mortgaged, setMortgaged] = useState<boolean>(false);
 
   const gameUUID = window.location.pathname.split("/")[2];
+
+  const { textColor } = useTheme();
 
   useEffect(() => {
     if (!me || !tile || !ownerships) {
@@ -84,9 +87,7 @@ function TileInfo() {
             className="flex-row items-center rounded-t-lg px-3 py-2 text-lg"
             style={{
               backgroundColor: tile.propertyData?.group_color,
-              color:
-                // @ts-ignore
-                window.Telegram.WebApp.themeParams.text_color || "white",
+              color: textColor,
             }}
           >
             {tile.name}

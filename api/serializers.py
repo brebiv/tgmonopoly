@@ -135,8 +135,24 @@ class JoinGameSerializer(serializers.Serializer):
 
 
 class OwnershipSerializer(serializers.ModelSerializer):
+    can_build_house = serializers.SerializerMethodField()
+    can_sell_house = serializers.SerializerMethodField()
+
     class Meta:
         model = Ownership
         fields = (
-            'player', 'property', 'houses', 'mortgaged', 'mortage_last_turn'
+            'player', 'property', 'houses', 'mortgaged', 'mortage_last_turn', 
+            'can_build_house', 'can_sell_house'
         )
+
+    def get_can_build_house(self, obj):
+        can_build, reason = obj.can_build_house()
+        return can_build
+        # return {
+        #     'can_build': can_build,
+        #     'reason': reason
+        # }
+
+    def get_can_sell_house(self, obj):
+        can_sell, reason = obj.can_sell_house()
+        return can_sell

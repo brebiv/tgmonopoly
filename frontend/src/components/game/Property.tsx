@@ -2,10 +2,13 @@ import { PLAYER_CHIP_COLORS } from "@/config";
 import { useGame } from "@/hooks";
 import { cn, getPlayerById, hexToRGBA } from "@/lib/utils";
 import { useGameStore } from "@/stores/GameStore";
-import { Tile } from "@/types/api";
+import { Ownership, Tile } from "@/types/api";
 import clsx from "clsx";
 import { Lock } from "lucide-react";
 import { useEffect, useState } from "react";
+import HouseIcon from "../ui/icons/HouseIcon";
+import ApartmentIcon from "../ui/icons/ApartmentIcon";
+import { useTheme } from "@/stores/ThemeContext";
 
 interface PropertyProps {
   tile: Tile;
@@ -33,21 +36,22 @@ function Property({ tile, imSelected, tileInfo }: PropertyProps) {
   const [price, setPrice] = useState<number>(0);
   const [mortgaged, setMortgaged] = useState<boolean>(false);
   const [mortageTurnsLeft, setMortageTurnsLeft] = useState<number | undefined>(15);
+  const [ownership, setOwnership] = useState<Ownership | null>(null);
+
+  const { textColor, destructiveColor } = useTheme();
 
   useEffect(() => {
     let ownership = ownerships?.find((ownership) => ownership.property === tile.propertyData?.id);
-    // setOwnership(ownership);
     if (ownership) {
       if (players) {
-        // const player = useGameStore.getState().players?.find((player) => player.id === ownership.player);
         let player = getPlayerById(players, ownership.player);
         if (player) {
-          // setPlayer(player);
           let color = PLAYER_CHIP_COLORS[player.color as keyof typeof PLAYER_CHIP_COLORS][0];
           let opacity = 0.6;
           setColor(hexToRGBA(color, opacity));
           setPrice(tile.propertyData?.rent || 0);
           setMortgaged(ownership.mortgaged);
+          setOwnership(ownership);
           if (ownership.mortage_last_turn) {
             setMortageTurnsLeft(ownership.mortage_last_turn - game!.turn);
           }
@@ -58,10 +62,10 @@ function Property({ tile, imSelected, tileInfo }: PropertyProps) {
       setPrice(tile.propertyData?.price || 0);
       setMortgaged(false);
       setMortageTurnsLeft(undefined);
+      setOwnership(null);
     }
   }, [ownerships, players, tile]);
 
-  // @ts-ignore
   const rotationClass = clsx({
     "": side === "top" || side === "bottom",
     "rotate-90": side === "right",
@@ -86,6 +90,45 @@ function Property({ tile, imSelected, tileInfo }: PropertyProps) {
           <div className="absolute h-full w-full bg-black opacity-50"></div>
         </div>
       )}
+
+      {/* Houses */}
+      {ownership && ownership.houses > 0 && (
+        <div
+          className={
+            side === "top"
+              ? "absolute -bottom-0 z-20 h-2/4 w-full rounded-b-lg"
+              : side === "right"
+                ? "absolute -left-0 z-20 h-full w-2/4 rounded-l-lg"
+                : side === "bottom"
+                  ? "absolute -top-0 z-20 h-2/4 w-full rounded-t-lg"
+                  : side === "left"
+                    ? "absolute right-0 z-20 h-full w-2/4 rounded-r-lg"
+                    : ""
+          }
+        >
+          <div
+            className={cn(
+              "flex h-full w-full flex-wrap justify-center",
+              `${side === "right" || side === "bottom" ? "items-start" : "items-end"}`,
+              rotationFlexClass,
+            )}
+            style={{
+              color: textColor,
+            }}
+          >
+            {ownership.houses == 5 ? (
+              <ApartmentIcon className={cn("h-full w-full", rotationClass)} outline="#FFD700" />
+            ) : (
+              <>
+                {Array.from({ length: ownership.houses }, (_, i) => (
+                  <HouseIcon key={`${tile.id}-${i}`} className={cn("h-3 w-3", rotationClass)} />
+                ))}
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Body */}
       {(side == "top" || side == "bottom") && (
         <img src={tile.propertyData?.icon} className="-rotate-90" />
@@ -116,9 +159,7 @@ function Property({ tile, imSelected, tileInfo }: PropertyProps) {
         <div
           className="flex h-full w-full items-center justify-center"
           style={{
-            color:
-              // @ts-ignore
-              window.Telegram.WebApp.themeParams.text_color || "white",
+            color: textColor,
           }}
         >
           {mortgaged ? (
@@ -127,8 +168,7 @@ function Property({ tile, imSelected, tileInfo }: PropertyProps) {
                 `z-10 h-3 w-3 ${side === "right" ? "rotate-90" : ""} ${side === "left" ? "-rotate-90" : ""} ${side === "left" ? "-rotate-90" : ""}`,
               )}
               style={{
-                // @ts-ignore
-                color: window.Telegram.WebApp.themeParams.text_color || "white",
+                color: textColor,
               }}
             />
           ) : (
@@ -156,19 +196,16 @@ function Property({ tile, imSelected, tileInfo }: PropertyProps) {
                     : ""
           }
           style={{
-            // @ts-ignore
-            backgroundColor: window.Telegram.WebApp.themeParams.destructive_text_color || "red",
+            backgroundColor: destructiveColor,
           }}
         >
           {tileInfo && !imSelected && (
-            <div className="absolute z-10 h-full w-full bg-black opacity-50"></div>
+            <div className="absolute z-10 h-full w-full rounded-b-lg bg-black opacity-50"></div>
           )}
           <div
             className={cn("flex h-full w-full items-center justify-center", rotationFlexClass)}
             style={{
-              color:
-                // @ts-ignore
-                window.Telegram.WebApp.themeParams.text_color || "white",
+              color: textColor,
             }}
           >
             <p className={cn("text-xs", rotationClass)}>{mortageTurnsLeft}</p>

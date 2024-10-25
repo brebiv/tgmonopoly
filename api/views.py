@@ -184,6 +184,35 @@ def game_action(request: CustomRequest):
                         async_to_sync(channel_layer.group_send)(
                             game_group_name, game_frame
                         )
+                        return JsonResponse({"status": "ok",}, status=200)
+                    elif action == GameActionType.BUY_HOUSE:
+                        extra_data_serializer = MortagePropertySerializer(data=extra_data)
+                        if not extra_data_serializer.is_valid():
+                            return JsonResponse({"status": "!ok", "error": "Invalid extra data"}, status=400)
+
+                        property_id = extra_data_serializer.data['property_id']
+
+                        events = GameService.buy_house(game, player, property_id)
+                        game_frame = GameService.assemble_game_frame(game, events)
+
+                        async_to_sync(channel_layer.group_send)(
+                            game_group_name, game_frame
+                        )
+                        return JsonResponse({"status": "ok",}, status=200)
+                    elif action == GameActionType.SELL_HOUSE:
+                        extra_data_serializer = MortagePropertySerializer(data=extra_data)
+                        if not extra_data_serializer.is_valid():
+                            return JsonResponse({"status": "!ok", "error": "Invalid extra data"}, status=400)
+
+                        property_id = extra_data_serializer.data['property_id']
+
+                        events = GameService.sell_house(game, player, property_id)
+                        game_frame = GameService.assemble_game_frame(game, events)
+
+                        async_to_sync(channel_layer.group_send)(
+                            game_group_name, game_frame
+                        )
+                        return JsonResponse({"status": "ok",}, status=200)
                     else:
                         return JsonResponse({"status": "!ok", "error": "Unknown action"}, status=400)
                 else:
@@ -222,6 +251,35 @@ def game_action(request: CustomRequest):
                         async_to_sync(channel_layer.group_send)(
                             game_group_name, game_frame
                         )
+                        return JsonResponse({"status": "ok",}, status=200)
+                    elif action == GameActionType.BUY_HOUSE:
+                        extra_data_serializer = MortagePropertySerializer(data=extra_data)
+                        if not extra_data_serializer.is_valid():
+                            return JsonResponse({"status": "!ok", "error": "Invalid extra data"}, status=400)
+
+                        property_id = extra_data_serializer.data['property_id']
+
+                        events = GameService.buy_house(game, player, property_id)
+                        game_frame = GameService.assemble_game_frame(game, events)
+
+                        async_to_sync(channel_layer.group_send)(
+                            game_group_name, game_frame
+                        )
+                        return JsonResponse({"status": "ok",}, status=200)
+                    elif action == GameActionType.SELL_HOUSE:
+                        extra_data_serializer = MortagePropertySerializer(data=extra_data)
+                        if not extra_data_serializer.is_valid():
+                            return JsonResponse({"status": "!ok", "error": "Invalid extra data"}, status=400)
+
+                        property_id = extra_data_serializer.data['property_id']
+
+                        events = GameService.sell_house(game, player, property_id)
+                        game_frame = GameService.assemble_game_frame(game, events)
+
+                        async_to_sync(channel_layer.group_send)(
+                            game_group_name, game_frame
+                        )
+                        return JsonResponse({"status": "ok",}, status=200)
                     else:
                         return JsonResponse({"status": "!ok", "error": "Unknown action"}, status=400)
             elif first_effect.name == GameEffect.ASK_BUY:
@@ -260,6 +318,20 @@ def game_action(request: CustomRequest):
                     async_to_sync(channel_layer.group_send)(
                         game_group_name, game_frame
                     )
+                elif action == GameActionType.SELL_HOUSE:
+                    extra_data_serializer = MortagePropertySerializer(data=extra_data)
+                    if not extra_data_serializer.is_valid():
+                        return JsonResponse({"status": "!ok", "error": "Invalid extra data"}, status=400)
+
+                    property_id = extra_data_serializer.data['property_id']
+
+                    events = GameService.sell_house(game, player, property_id)
+                    game_frame = GameService.assemble_game_frame(game, events)
+
+                    async_to_sync(channel_layer.group_send)(
+                        game_group_name, game_frame
+                    )
+                    return JsonResponse({"status": "ok",}, status=200)
                 else:
                     return JsonResponse({"status": "!ok", "error": "Unknown action"}, status=400)
             elif first_effect.name == GameEffect.PAY_RENT:
@@ -298,6 +370,20 @@ def game_action(request: CustomRequest):
                     async_to_sync(channel_layer.group_send)(
                         game_group_name, game_frame
                     )
+                elif action == GameActionType.SELL_HOUSE:
+                    extra_data_serializer = MortagePropertySerializer(data=extra_data)
+                    if not extra_data_serializer.is_valid():
+                        return JsonResponse({"status": "!ok", "error": "Invalid extra data"}, status=400)
+
+                    property_id = extra_data_serializer.data['property_id']
+
+                    events = GameService.sell_house(game, player, property_id)
+                    game_frame = GameService.assemble_game_frame(game, events)
+
+                    async_to_sync(channel_layer.group_send)(
+                        game_group_name, game_frame
+                    )
+                    return JsonResponse({"status": "ok",}, status=200)
                 else:
                     return JsonResponse({"status": "!ok", "error": "Unknown action"}, status=400)
             else:

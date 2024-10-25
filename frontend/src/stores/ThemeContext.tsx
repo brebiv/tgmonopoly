@@ -3,6 +3,7 @@ import React, { createContext, useState, useContext, ReactNode, useEffect } from
 interface ThemeContextType {
   usingTGTheme: boolean;
   textColor: string;
+  destructiveColor: string;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -14,6 +15,7 @@ interface ThemeProviderProps {
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const [usingTGTheme, setUsingTGTheme] = useState(false);
   const [textColor, setTextColor] = useState("#fff");
+  const [destructiveColor, setDestructiveColor] = useState("red");
 
   // const toggleTheme = () => {
   //   setTheme((prevTheme) => (prevTheme === 'light' ? 'dark' : 'light'));
@@ -25,12 +27,13 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     if (theme) {
       setUsingTGTheme(true);
       setTextColor(theme.text_color);
+      setDestructiveColor(theme.destructive_text_color);
     } else {
       setUsingTGTheme(false);
     }
   }, []);
 
-  const value: ThemeContextType = { usingTGTheme, textColor };
+  const value: ThemeContextType = { usingTGTheme, textColor, destructiveColor };
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 };

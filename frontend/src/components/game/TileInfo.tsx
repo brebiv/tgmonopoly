@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { useGameStore } from "@/stores/GameStore";
 import { Button } from "../ui/button";
 import { sendGameAction } from "@/api";
-import { GameActionType } from "@/types/api";
+import { GameActionType, Ownership } from "@/types/api";
 import { hexToRGBA } from "@/lib/utils";
 import { useTheme } from "@/stores/ThemeContext";
 
@@ -34,6 +34,7 @@ function TileInfo() {
 
   const [imOwner, setImOwner] = useState(false);
   const [mortgaged, setMortgaged] = useState<boolean>(false);
+  const [ownership, setOwnership] = useState<Ownership | null>(null);
 
   const gameUUID = window.location.pathname.split("/")[2];
 
@@ -52,9 +53,11 @@ function TileInfo() {
       );
 
       if (ownership) {
+        setOwnership(ownership);
         setImOwner(true);
         setMortgaged(ownership.mortgaged);
       } else {
+        setOwnership(null);
         setImOwner(false);
         setMortgaged(false);
       }
@@ -69,6 +72,53 @@ function TileInfo() {
   const secondary_bg_color = window.Telegram.WebApp.themeParams.secondary_bg_color;
   const fallback_bg_color = "rgb(18, 17, 19)";
   const fallback_bg_color_transparent = "rgb(18, 17, 19, 0)";
+
+  const housesButtons: React.ReactNode[] = [];
+
+  if (ownership) {
+    if (ownership.can_build_house) {
+      housesButtons.push(
+        <Button
+          className="relative flex-grow gap-2 bg-green-500"
+          disabled={!myTurn}
+          onClick={() => {
+            sendGameAction({
+              action: GameActionType.BUY_HOUSE,
+              game_uuid: gameUUID,
+              extra_data: {
+                property_id: tile.propertyData?.id,
+              },
+            });
+            setTileInfo(null, null);
+          }}
+        >
+          {"Buy house"}
+        </Button>,
+      );
+    }
+
+    if (ownership.can_sell_house) {
+      housesButtons.push(
+        <Button
+          variant={"destructive"}
+          className="relative flex-grow gap-2"
+          disabled={!myTurn}
+          onClick={() => {
+            sendGameAction({
+              action: GameActionType.SELL_HOUSE,
+              game_uuid: gameUUID,
+              extra_data: {
+                property_id: tile.propertyData?.id,
+              },
+            });
+            setTileInfo(null, null);
+          }}
+        >
+          {"Sell house"}
+        </Button>,
+      );
+    }
+  }
 
   return (
     <>
@@ -101,7 +151,8 @@ function TileInfo() {
               <CircleX />
             </div>
           </CardHeader>
-          <CardContent className="px-3 pt-4">
+          <CardContent className="px-3 pt-3">
+            {housesButtons.length > 0 && <div className="mb-2 flex gap-3">{housesButtons}</div>}
             <div className="flex flex-col gap-1">
               {tile.propertyData != null && (
                 <>

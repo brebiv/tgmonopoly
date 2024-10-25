@@ -33,6 +33,8 @@ export enum GameActionType {
   PAY_FOR_PRISON = "pay_for_prison",
   MORTAGE_PROPERTY = "mortage_property",
   BUYOUT_PROPERTY = "buyout_property",
+  BUY_HOUSE = "buy_house",
+  SELL_HOUSE = "sell_house",
 }
 
 export enum GameEffectType {
@@ -156,4 +158,6 @@ export type Ownership = {
   houses: number;
   mortgaged: boolean;
   mortage_last_turn: number | null;
+  can_build_house: boolean;
+  can_sell_house: boolean;
 };

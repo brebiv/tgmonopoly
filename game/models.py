@@ -26,60 +26,12 @@ class Game(models.Model):
         return str(self.uuid)
 
 
-class Player(models.Model):
-    class Meta:
-        unique_together = ('user', 'game')
-
-    BLUE = 'blue'
-    RED = 'red'
-    GREEN = 'green'
-    YELLOW = 'yellow'
-    
-    COLOR_CHOICES = [
-        (BLUE, 'Blue'),
-        (RED, 'Red'),
-        (GREEN, 'Green'),
-        (YELLOW, 'Yellow'),
-    ]
-
-    WAITING = 'waiting'
-    PLAYING = 'playing'
-    WON = 'won'
-    LOST = 'lost'
-    TIMEOUT = 'timeout'
-
-    STATUS_CHOICES = [
-        (WAITING, 'Waiting'),
-        (PLAYING, 'Playing'),
-        (WON, 'Won'),
-        (LOST, 'Lost'),
-        (TIMEOUT, 'Timeout'),
-    ]
-
-    user = models.ForeignKey(TelegramUser, on_delete=models.CASCADE)
-    game = models.ForeignKey(Game, related_name='players', on_delete=models.CASCADE)
-
-    position = models.IntegerField(default=0)
-    cash = models.IntegerField(default=1500)
-    color = models.CharField(max_length=10, choices=COLOR_CHOICES, null=True, blank=True)
-    in_jail = models.BooleanField(default=False)
-    jail_turns = models.IntegerField(default=0)
-    status = models.CharField(max_length=16, choices=STATUS_CHOICES, default=WAITING)
-
-    created = models.DateTimeField(auto_now_add=True)
-
-    def move_forward(self, amount: int) -> int:
-        """Moves player forward by amount of tiles and returns new position"""
-        self.position = (self.position + amount) % 40
-        return self.position
-    
-    def move_backward(self, amount: int) -> int:
-        """Moves player backward by amount of tiles and returns new position"""
-        self.position = (self.position - amount) % 40
-        return self.position
+class PropertyGroup(models.Model):
+    name = models.CharField(max_length=50)
+    color = models.CharField(max_length=10)
 
     def __str__(self):
-        return f"{self.user.user_id} in {self.game.uuid}"
+        return self.name
 
 
 class Tile(models.Model):
@@ -112,14 +64,6 @@ class Tile(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.position})"
-
-
-class PropertyGroup(models.Model):
-    name = models.CharField(max_length=50)
-    color = models.CharField(max_length=10)
-
-    def __str__(self):
-        return self.name
 
 
 class Property(models.Model):
@@ -172,6 +116,128 @@ class Utility(models.Model):
         return self.board_space.name
 
 
+class Player(models.Model):
+    class Meta:
+        unique_together = ('user', 'game')
+
+    BLUE = 'blue'
+    RED = 'red'
+    GREEN = 'green'
+    YELLOW = 'yellow'
+    
+    COLOR_CHOICES = [
+        (BLUE, 'Blue'),
+        (RED, 'Red'),
+        (GREEN, 'Green'),
+        (YELLOW, 'Yellow'),
+    ]
+
+    WAITING = 'waiting'
+    PLAYING = 'playing'
+    WON = 'won'
+    LOST = 'lost'
+    TIMEOUT = 'timeout'
+
+    STATUS_CHOICES = [
+        (WAITING, 'Waiting'),
+        (PLAYING, 'Playing'),
+        (WON, 'Won'),
+        (LOST, 'Lost'),
+        (TIMEOUT, 'Timeout'),
+    ]
+
+    user = models.ForeignKey(TelegramUser, on_delete=models.CASCADE)
+    game = models.ForeignKey(Game, related_name='players', on_delete=models.CASCADE)
+
+    position = models.IntegerField(default=0)
+    cash = models.IntegerField(default=1500)
+    color = models.CharField(max_length=10, choices=COLOR_CHOICES, null=True, blank=True)
+    in_jail = models.BooleanField(default=False)
+    jail_turns = models.IntegerField(default=0)
+    status = models.CharField(max_length=16, choices=STATUS_CHOICES, default=WAITING)
+
+    created = models.DateTimeField(auto_now_add=True)
+
+    def move_forward(self, amount: int) -> int:
+        """
+        Moves player forward by amount of tiles and returns new position
+        """
+        self.position = (self.position + amount) % 40
+        return self.position
+    
+    def move_backward(self, amount: int) -> int:
+        """
+        Moves player backward by amount of tiles and returns new position
+        """
+        self.position = (self.position - amount) % 40
+        return self.position
+    
+    def owns_entire_group(self, group: PropertyGroup) -> bool:
+        """
+        Checks if the player owns every property in the given property group
+        """
+        total_properties_in_group = Property.objects.filter(group=group).count()
+
+        player_owned_properties_in_group = Ownership.objects.filter(
+            player=self,
+            game=self.game,
+            property__group=group
+        ).count()
+
+        return total_properties_in_group == player_owned_properties_in_group
+
+    # def can_build_house(self, property: Property) -> list[bool, str]:
+    #     """
+    #     Checks if the player can build a house on the given property.
+    #     Houses must be built evenly across all properties in the group.
+    #     Returns a list (can_build: bool, reason: str).
+    #     """
+    #     group = property.group
+
+    #     properties_in_group = Property.objects.filter(group=group)
+
+    #     ownerships = Ownership.objects.filter(
+    #         player=self,
+    #         game=self.game,
+    #         property__in=properties_in_group
+    #     )
+
+    #     if ownerships.count() != properties_in_group.count():
+    #         return False, "You must own all properties in this group to build houses."
+
+    #     if any(ownership.mortgaged for ownership in ownerships):
+    #         return False, "You cannot build houses while properties in the group are mortgaged."
+        
+    #     if self.cash < property.house_price:
+    #         return False, "You do not have enough cash to buy a house on this property."
+
+    #     houses_on_properties = {
+    #         ownership.property.id: ownership.houses
+    #         for ownership in ownerships
+    #     }
+
+    #     try:
+    #         property_ownership = ownerships.get(property=property)
+    #     except Ownership.DoesNotExist:
+    #         return False, "You do not own this property."
+        
+
+    #     from game import config
+    #     if property_ownership.houses >= config.MAX_HOUSES:
+    #         return False, "This property already has the maximum number of houses."
+
+    #     min_houses = min(houses_on_properties.values())
+
+    #     if property_ownership.houses > min_houses:
+    #         return False, "You must build houses evenly across the group. Build on properties with fewer houses first."
+
+    #     return True, "You can build a house on this property."
+
+
+    def __str__(self):
+        return f"{self.user.user_id} in {self.game.uuid}"
+
+
 class Ownership(models.Model):
     class Meta:
         unique_together = ('player', 'property')
@@ -201,6 +267,93 @@ class Ownership(models.Model):
             return self.property.rent_with_4_houses
         elif self.houses == 5:
             return self.property.rent_with_5_houses
+        
+    def can_build_house(self) -> list[bool, str]:
+        """
+        Checks if the player can build a house on this property.
+        Houses must be built evenly across all properties in the group.
+        Returns a list (can_build: bool, reason: str).
+        """
+        group = self.property.group
+
+        properties_in_group = Property.objects.filter(group=group)
+
+        ownerships = Ownership.objects.filter(
+            player=self.player,
+            game=self.game,
+            property__in=properties_in_group
+        )
+
+        last_effect = GameEffect.objects.filter(player=self.player).last()
+
+        if last_effect:
+            if last_effect.name == GameEffect.ASK_BUY:
+                return False, "You can't buy a house during the ask buy effect"
+            if last_effect.name == GameEffect.PAY_RENT:
+                return False, "You can't buy a house during the pay rent effect"
+
+        if last_effect.effect_data:
+            if last_effect.effect_data.get('bought_house', False):
+                return False, "You can't buy a house twice per turn"
+
+        if ownerships.count() != properties_in_group.count():
+            return False, "You must own all properties in this group to build houses."
+
+        if any(ownership.mortgaged for ownership in ownerships):
+            return False, "You cannot build houses while properties in the group are mortgaged."
+
+        if self.player.cash < self.property.house_price:
+            return False, "You do not have enough cash to buy a house on this property."
+
+        houses_on_properties = {
+            ownership.property.id: ownership.houses
+            for ownership in ownerships
+        }
+
+        from game import config
+        if self.houses >= config.MAX_HOUSES:
+            return False, "This property already has the maximum number of houses."
+
+        min_houses = min(houses_on_properties.values())
+
+        if self.houses > min_houses:
+            return False, "You must build houses evenly across the group. Build on properties with fewer houses first."
+
+        return True, "You can build a house on this property."
+    
+    def can_sell_house(self) -> list[bool, str]:
+        """
+        Checks if the player can sell a house on this property.
+        Houses must be sold evenly across all properties in the group.
+        Returns a list (can_sell: bool, reason: str).
+        """
+        group = self.property.group
+
+        properties_in_group = Property.objects.filter(group=group)
+
+        ownerships = Ownership.objects.filter(
+            player=self.player,
+            game=self.game,
+            property__in=properties_in_group
+        )
+
+        if ownerships.count() != properties_in_group.count():
+            return False, "You must own all properties in this group to sell houses."
+
+        houses_on_properties = {
+            ownership.property.id: ownership.houses
+            for ownership in ownerships
+        }
+
+        if self.houses == 0:
+            return False, "There are no houses on this property to sell."
+
+        max_houses = max(houses_on_properties.values())
+
+        if self.houses < max_houses:
+            return False, "You must sell houses evenly across the group. Sell houses from properties with more houses first."
+
+        return True, "You can sell a house on this property."
 
     def __str__(self):
         return f"{self.property.board_space.name} owned by {self.player.user.username}"

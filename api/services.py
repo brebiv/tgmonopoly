@@ -84,7 +84,7 @@ class GameService:
         events_serializer = GameEventSerializer(data=events, many=True)
 
         if not events_serializer.is_valid():
-            raise Exception("Invalid events")
+            raise Exception("Invalid events", events_serializer.errors)
 
         ownerships = Ownership.objects.filter(game=game)
         ownerships_serializer = OwnershipSerializer(ownerships, many=True)
@@ -120,7 +120,7 @@ class GameService:
     def roll_dice(game: Game, player: Player) -> list:
         events = []
         dices = [random.randint(1, 6) for _ in range(2)]
-        # dices = [1,1]
+        # dices = [0,1]
 
         events.append({
             'type': 'game.action',
@@ -429,7 +429,8 @@ class GameService:
         events.append({
             'type': 'game.action',
             'action': GameEventType.MORTAGE_PROPERTY,
-            'player': player.pk
+            'player': player.pk,
+            'tile': ownership.property.board_space.position,
         })
 
         return events
@@ -453,7 +454,69 @@ class GameService:
         events.append({
             'type': 'game.action',
             'action': GameEventType.BUYOUT_PROPERTY,
-            'player': player.pk
+            'player': player.pk,
+            'tile': ownership.property.board_space.position,
+        })
+
+        return events
+    
+    @staticmethod
+    def buy_house(game: Game, player: Player, property_id: int):
+        events = []
+
+        try:
+            ownership = Ownership.objects.get(player=player, property_id=property_id)
+            property = ownership.property
+        except Ownership.DoesNotExist:
+            raise Exception("You don't own this property")
+        
+        can_build, message = ownership.can_build_house()
+        if not can_build:
+            raise Exception(message)
+        
+
+        ownership.houses += 1
+        ownership.save()
+        player.cash -= property.house_price
+        player.save()
+
+        last_effect = GameEffect.objects.filter(player=player).last()
+        last_effect.effect_data['bought_house'] = True
+        last_effect.save()
+
+        events.append({
+            'type': 'game.action',
+            'action': GameEventType.BUY_HOUSE,
+            'player': player.pk,
+            'tile': property.board_space.position,
+        })
+
+        return events
+    
+    @staticmethod
+    def sell_house(game: Game, player: Player, property_id: int):
+        events = []
+
+        try:
+            ownership = Ownership.objects.get(player=player, property_id=property_id)
+            property = ownership.property
+        except Ownership.DoesNotExist:
+            raise Exception("You don't own this property")
+        
+        can_build, message = ownership.can_sell_house()
+        if not can_build:
+            raise Exception(message)
+
+        ownership.houses -= 1
+        ownership.save()
+        player.cash += property.house_price
+        player.save()
+
+        events.append({
+            'type': 'game.action',
+            'action': GameEventType.SELL_HOUSE,
+            'player': player.pk,
+            'tile': property.board_space.position,
         })
 
         return events

@@ -8,6 +8,8 @@ class GameActionType:
     PAY_FOR_PRISON = 'pay_for_prison'
     MORTAGE_PROPERTY = 'mortage_property'
     BUYOUT_PROPERTY = 'buyout_property'
+    BUY_HOUSE = 'buy_house'
+    SELL_HOUSE = 'sell_house'
 
 class GameEventType:
     START_GAME = 'start_game'
@@ -23,3 +25,5 @@ class GameEventType:
     PAY_FOR_PRISON = 'pay_for_prison'
     MORTAGE_PROPERTY = 'mortage_property'
     BUYOUT_PROPERTY = 'buyout_property'
+    BUY_HOUSE = 'buy_house'
+    SELL_HOUSE = 'sell_house'

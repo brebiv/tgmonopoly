@@ -4,6 +4,7 @@ import { TileType, Tile } from "@/types/api";
 import { Clover, Coins, Columns4, Goal, PiggyBank, Siren } from "lucide-react";
 import Property from "./Property";
 import { useTileInfoStore } from "@/stores/TileInfoStore";
+import { useTheme } from "@/stores/ThemeContext";
 
 interface TileProps {
   tile: Tile;
@@ -16,6 +17,8 @@ function BoardTile({ tile }: TileProps) {
 
   const { setTileInfo, tile: tileInfo } = useTileInfoStore();
   const [imSelected, setImSelected] = useState(true);
+
+  const { textColor } = useTheme();
 
   let left: string | number = -1;
   let right: string | number = -1;
@@ -80,9 +83,7 @@ function BoardTile({ tile }: TileProps) {
         bottom: bottom !== -1 ? bottom : "unset",
         top: top !== -1 ? top : "unset",
         // boxShadow: "inset 0px 0px 8px -4px rgba(0,0,0,0.75)",
-        backgroundColor:
-          // @ts-ignore
-          window.Telegram.WebApp.themeParams.text_color || "white",
+        backgroundColor: textColor,
       }}
       onClick={() => {
         if (tileInfo && tileInfo.position === position) {
@@ -93,7 +94,7 @@ function BoardTile({ tile }: TileProps) {
       }}
     >
       {tileInfo && !imSelected && (
-        <div className="absolute z-10 h-full w-full bg-black opacity-50"></div>
+        <div className="absolute z-50 h-full w-full bg-black opacity-50"></div>
       )}
       {type === TileType.START && (
         <div>

@@ -35,6 +35,7 @@ export enum GameActionType {
   BUYOUT_PROPERTY = "buyout_property",
   BUY_HOUSE = "buy_house",
   SELL_HOUSE = "sell_house",
+  PAY = "pay",
 }
 
 export enum GameEffectType {
@@ -42,6 +43,7 @@ export enum GameEffectType {
   ROLL_DICE = "roll_dice",
   ASK_BUY = "ask_buy",
   PAY_RENT = "pay_rent",
+  PAY_REPAIRS = "pay_repairs",
 }
 
 export enum PlayerStatus {
@@ -82,6 +84,9 @@ export type Tile = {
 export type EffectData = {
   price: number;
   rent: number;
+  repair_cost: number;
+  number_of_houses: number;
+  house_repair_cost: number;
   timeout: number;
   created: number;
 };
@@ -102,6 +107,7 @@ export type Player = {
   name: string;
   avatar: string;
   status: PlayerStatus;
+  move_backwards: boolean;
 };
 
 export type PlayerChip = Player & {

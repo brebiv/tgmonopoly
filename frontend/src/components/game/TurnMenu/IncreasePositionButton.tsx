@@ -4,12 +4,7 @@ import { useGameStore } from "@/stores/GameStore";
 function IncreasePositionButton() {
   return (
     <Button
-      style={{
-        // @ts-ignore
-        backgroundColor: window.Telegram.WebApp.themeParams.button_color || "black",
-        // @ts-ignore
-        color: window.Telegram.WebApp.themeParams.button_text_color || "white",
-      }}
+      variant={"default"}
       onClick={() => {
         const { players, setPlayers } = useGameStore.getState();
         if (players && players.length > 0) {

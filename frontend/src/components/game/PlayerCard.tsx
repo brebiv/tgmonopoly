@@ -9,6 +9,7 @@ import {
   CASH_LOSS_ANIMATION_DURATION_SECONDS,
   PLAYER_CHIP_COLORS,
 } from "@/config";
+import { useTheme } from "@/stores/ThemeContext";
 
 type PlayerCardProps = {
   player: Player;
@@ -23,6 +24,8 @@ function PlayerCard({ player }: PlayerCardProps) {
   const [currentEffect, setCurrentEffect] = useState<GameEffect | null>(null);
   const [actionTimeout, setActionTimeout] = useState<number | null>(null);
   const [afkProgress, setAfkProgress] = useState(0);
+
+  const { textColor, secondaryBGColor, bgColor, hintColor } = useTheme();
 
   const previousPlayer = usePrevious(player);
 
@@ -115,16 +118,13 @@ function PlayerCard({ player }: PlayerCardProps) {
           <Skull
             className="z-20"
             style={{
-              // @ts-ignore
-              color: window.Telegram.WebApp.themeParams.text_color || "white",
+              color: textColor,
             }}
           />
           <div
             className="absolute h-full w-full rounded-xl bg-black opacity-80"
             style={{
-              backgroundColor:
-                // @ts-ignore
-                window.Telegram.WebApp.themeParams.secondary_bg_color || "black",
+              backgroundColor: secondaryBGColor,
             }}
           ></div>
         </div>
@@ -138,9 +138,7 @@ function PlayerCard({ player }: PlayerCardProps) {
               // height: "calc(100% + 4px)",
               top: "-2px",
               left: "-2px",
-              background:
-                // @ts-ignore
-                `conic-gradient(${window.Telegram.WebApp.themeParams.bg_color || "black"} ${afkProgress < 360 ? afkProgress : 0}deg, ${primaryColor} ${afkProgress < 360 ? afkProgress : 0}deg, ${primaryColor} 360deg)`,
+              background: `conic-gradient(${bgColor} ${afkProgress < 360 ? afkProgress : 0}deg, ${primaryColor} ${afkProgress < 360 ? afkProgress : 0}deg, ${primaryColor} 360deg)`,
               transition: "background 0.5s ease",
             }}
           ></div>
@@ -156,9 +154,7 @@ function PlayerCard({ player }: PlayerCardProps) {
                 <p
                   className="z-10"
                   style={{
-                    color:
-                      // @ts-ignore
-                      window.Telegram.WebApp.themeParams.text_color || "white",
+                    color: textColor,
                   }}
                 >
                   {actionTimeout}
@@ -198,9 +194,7 @@ function PlayerCard({ player }: PlayerCardProps) {
           <p
             className="text-sm font-thin"
             style={{
-              color:
-                // @ts-ignore
-                window.Telegram.WebApp.themeParams.hint_color || "white",
+              color: hintColor,
             }}
           >
             $ {player.cash}

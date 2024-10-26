@@ -1,5 +1,8 @@
 from django.contrib import admin
-from .models import Game, Player, Tile, PropertyGroup, Property, Utility, Ownership, Card, Transaction
+from .models import (
+    Game, Player, Tile, PropertyGroup, Property, Utility,
+    Ownership, Card, Transaction, ChanceCard
+)
 
 # Register your models here.
 @admin.register(Game)
@@ -66,6 +69,12 @@ class TransactionAdmin(admin.ModelAdmin):
     date_hierarchy = 'created'
     raw_id_fields = ('from_player', 'to_player', 'game')
     ordering = ('-created',)
+
+
+@admin.register(ChanceCard)
+class ChanceCardAdmin(admin.ModelAdmin):
+    list_display = ('title', 'card_type', 'details')
+    search_fields = ('title', 'details')
 
 # @admin.register(Trade)
 # class TradeAdmin(admin.ModelAdmin):

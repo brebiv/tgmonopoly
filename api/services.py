@@ -3,7 +3,7 @@ import uuid
 from django.utils import timezone
 from celery import current_app
 
-from game.models import Game, Player, GameEffect, Tile, Ownership
+from game.models import Game, Player, GameEffect, Tile, Ownership, ChanceCard
 from game import config
 from .types import GameActionType, GameEventType
 from .tasks import handle_game_effect_timeout
@@ -119,8 +119,8 @@ class GameService:
     @staticmethod
     def roll_dice(game: Game, player: Player) -> list:
         events = []
-        dices = [random.randint(1, 6) for _ in range(2)]
-        # dices = [0,1]
+        # dices = [random.randint(1, 6) for _ in range(2)]
+        dices = [1,1]
 
         events.append({
             'type': 'game.action',
@@ -143,7 +143,13 @@ class GameService:
         events = []
         dice_sum = sum(dice_values)
         passed_start = player.position + dice_sum >= 40
-        new_postion = player.move_forward(dice_sum)
+
+        if player.move_backwards:
+            new_postion = player.move_backward(dice_sum)
+            player.move_backwards = False
+            player.save()
+        else:
+            new_postion = player.move_forward(dice_sum)
 
         events.append({
             'type': 'game.action',
@@ -177,6 +183,7 @@ class GameService:
                         'player': player.pk,
                         'tile': tile.pk,
                     })
+                    # Should be placed in next_turn or something
                     game.turn += 1
                     game.current_player = GameService.calculate_next_player(game, player)
                     GameService.calculate_mortages(game, player)
@@ -205,6 +212,7 @@ class GameService:
                 'player': player.pk,
             })
 
+            # Should be placed in next_turn or something
             next_player = GameService.calculate_next_player(game, player)
             if next_player:
                 game.current_player = next_player
@@ -212,7 +220,91 @@ class GameService:
                 game.save()
                 GameService.calculate_mortages(game, player)
                 GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
+        elif tile.type == Tile.CHANCE:
+            # card = ChanceCard.get_random_card()
+            card = ChanceCard.objects.filter(card_type=ChanceCard.MOVE_BACKWARDS).first()
+
+            events.append({
+                'type': 'game.action',
+                'action': GameEventType.CHANCE_CARD,
+                'player': player.pk,
+                'chance_card_data': {
+                    'title': card.title,
+                    'description': card.description,
+                    'card_type': card.card_type,
+                    'details': card.details,
+                }
+            })
+
+            if card.card_type == ChanceCard.MOVE_BACKWARDS:
+                player.move_backwards = True
+                player.save()
+
+                next_player = GameService.calculate_next_player(game, player)
+                if next_player:
+                    game.current_player = next_player
+                    game.turn += 1
+                    game.save()
+                    GameService.calculate_mortages(game, player)
+                    GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
+            elif card.card_type == ChanceCard.GO_TO_JAIL:
+                player.position = Tile.objects.get(type=Tile.JAIL).position
+                player.in_jail = True
+                player.jail_turns = 0
+                player.save()
+
+                next_player = GameService.calculate_next_player(game, player)
+                if next_player:
+                    game.current_player = next_player
+                    game.turn += 1
+                    game.save()
+                    GameService.calculate_mortages(game, player)
+                    GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
+            elif card.card_type == ChanceCard.MONEY_TO_PLAYER:
+                from_player = card.details.get('from')
+                amount = card.details.get('amount')
+                if from_player == 'all':
+                    from_players = game.players.exclude(id=player.id)
+                    total_recieved = 0
+                    for sender in from_players:
+                        payment = min(sender.cash, amount)
+                        print(payment)
+                        sender.cash -= payment
+                        sender.save()
+                        total_recieved += payment
+                    player.cash += total_recieved
+                    player.save()
+                
+                next_player = GameService.calculate_next_player(game, player)
+                if next_player:
+                    game.current_player = next_player
+                    game.turn += 1
+                    game.save()
+                    GameService.calculate_mortages(game, player)
+                    GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
+            elif card.card_type == ChanceCard.MONEY:
+                player.cash += card.details.get('amount')
+                player.save()
+
+                next_player = GameService.calculate_next_player(game, player)
+                if next_player:
+                    game.current_player = next_player
+                    game.turn += 1
+                    game.save()
+                    GameService.calculate_mortages(game, player)
+                    GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
+            elif card.card_type == ChanceCard.REPAIRS:
+                house_repair_cost = card.details.get('house_repair_cost')
+                houses_owned = player.houses_owned()
+                repair_cost = house_repair_cost * houses_owned
+
+                GameService.apply_effect(game, player, GameEffect.PAY_REPAIRS, {
+                    'repair_cost': repair_cost,
+                    'number_of_houses': houses_owned,
+                    'house_repair_cost': house_repair_cost,
+                })
         else:
+            # Should be placed in next_turn or something
             game.turn += 1
             game.current_player = GameService.calculate_next_player(game, player)
             GameService.calculate_mortages(game, player)
@@ -518,5 +610,34 @@ class GameService:
             'player': player.pk,
             'tile': property.board_space.position,
         })
+
+        return events
+    
+    @staticmethod
+    def pay_to_bank(game: Game, player: Player, amount: int) -> list[dict]:
+        events = []
+
+        if player.cash < amount:
+            raise Exception("You don't have enough cash to pay")
+
+        GameService.remove_effect(game, player, GameEffect.PAY_REPAIRS)
+
+        player.cash -= amount
+        player.save()
+
+        events.append({
+            'type': 'game.action',
+            'action': GameEventType.PAY_TO_BANK,
+            'player': player.pk,
+            'amount': amount,
+        })
+
+        next_player = GameService.calculate_next_player(game, player)
+        if next_player:
+            game.current_player = next_player
+            game.turn += 1
+            game.save()
+            GameService.calculate_mortages(game, player)
+            GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
 
         return events

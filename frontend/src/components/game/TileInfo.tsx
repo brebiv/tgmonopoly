@@ -131,7 +131,7 @@ function TileInfo() {
         }}
       ></div>
       <div className="h-full w-full overflow-y-scroll p-1">
-        <Card className="overflow-scroll">
+        <Card>
           <CardHeader
             className="flex-row items-center rounded-t-lg px-3 py-2 text-lg"
             style={{

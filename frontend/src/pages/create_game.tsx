@@ -6,11 +6,14 @@ import "../index.css";
 
 import CreateGame from "../components/create_game/CreateGame";
 import { QueryClient, QueryClientProvider } from "react-query";
+import { ThemeProvider } from "@/stores/ThemeContext";
 
 createRoot(document.getElementById("create-game")!).render(
   <StrictMode>
     <QueryClientProvider client={new QueryClient()}>
-      <CreateGame />
+      <ThemeProvider>
+        <CreateGame />
+      </ThemeProvider>
     </QueryClientProvider>
   </StrictMode>,
 );

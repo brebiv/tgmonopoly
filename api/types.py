@@ -10,6 +10,7 @@ class GameActionType:
     BUYOUT_PROPERTY = 'buyout_property'
     BUY_HOUSE = 'buy_house'
     SELL_HOUSE = 'sell_house'
+    PAY = "pay"
 
 class GameEventType:
     START_GAME = 'start_game'
@@ -27,3 +28,5 @@ class GameEventType:
     BUYOUT_PROPERTY = 'buyout_property'
     BUY_HOUSE = 'buy_house'
     SELL_HOUSE = 'sell_house'
+    CHANCE_CARD = 'chance_card'
+    PAY_TO_BANK = 'pay_to_bank'

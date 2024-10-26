@@ -1,14 +1,17 @@
+// @ts-nocheck
 import { useEffect } from "react";
 import ThemedDiv from "../ui/ThemedDiv";
 import { useAuth, useGame, useOwnerships, usePlayers } from "@/hooks";
 import { useGameStore } from "@/stores/GameStore";
 import { useEventStore } from "@/stores/EventStore";
+import { useLayoutStore } from "@/stores/LayoutStore";
 
 function DebugPanel() {
   const { me, myTurn } = useGameStore((state) => state);
   const { data: game } = useGame();
   const { data: players = [] } = usePlayers();
   const { data: ownerships } = useOwnerships();
+  const { boardCenterPaddingX, boardCenterPaddingY } = useLayoutStore();
 
   const eventQueue = useEventStore((state) => state.eventQueue);
   // @ts-ignore
@@ -42,7 +45,7 @@ function DebugPanel() {
   }, [eventQueue]);
 
   return (
-    <ThemedDiv className="absolute flex h-full w-full flex-col items-center p-1">
+    <ThemedDiv className="debug-panel absolute flex h-full w-full flex-col items-center p-1">
       <h1>⚙️ My simple debug panel</h1>
       <p>Game turn: {game?.turn}</p>
     </ThemedDiv>

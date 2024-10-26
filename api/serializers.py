@@ -95,7 +95,7 @@ class PlayerSerializer(serializers.ModelSerializer):
         model = Player
         fields = (
             'id', 'position', 'cash', 'color', 'in_jail', 'jail_turns', 'effects',
-            'name', 'status'
+            'name', 'status', 'move_backwards'
         )
     
     effects = GameEffectSerializer(many=True, read_only=True)
@@ -128,6 +128,7 @@ class GameEventSerializer(serializers.Serializer):
     dices = serializers.ListField(child=serializers.IntegerField(), required=False)
     position = serializers.IntegerField(required=False)
     tile = serializers.IntegerField(required=False)
+    chance_card_data = serializers.DictField(required=False)
 
 
 class JoinGameSerializer(serializers.Serializer):

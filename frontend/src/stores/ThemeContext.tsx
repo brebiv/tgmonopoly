@@ -3,9 +3,12 @@ import React, { createContext, useState, useContext, ReactNode, useEffect } from
 interface ThemeContextType {
   usingTGTheme: boolean;
   textColor: string;
-  destructiveColor: string;
+  destructiveTextColor: string;
   bgColor: string;
   secondaryBGColor: string;
+  hintColor: string;
+  buttonColor: string;
+  buttonTextColor: string;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -17,9 +20,12 @@ interface ThemeProviderProps {
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const [usingTGTheme, setUsingTGTheme] = useState(false);
   const [textColor, setTextColor] = useState("#fff");
-  const [destructiveColor, setDestructiveColor] = useState("red");
+  const [destructiveTextColor, setDestructiveTextColor] = useState("red");
   const [bgColor, setBgColor] = useState("#334155");
   const [secondaryBGColor, setsecondaryBGColor] = useState("#334155");
+  const [hintColor, setHintColor] = useState("#fff");
+  const [buttonColor, setButtonColor] = useState("");
+  const [buttonTextColor, setButtonTextColor] = useState("#fff");
 
   // const toggleTheme = () => {
   //   setTheme((prevTheme) => (prevTheme === 'light' ? 'dark' : 'light'));
@@ -31,9 +37,12 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     if (theme) {
       setUsingTGTheme(true);
       setTextColor(theme.text_color);
-      setDestructiveColor(theme.destructive_text_color);
+      setDestructiveTextColor(theme.destructive_text_color);
       setBgColor(theme.bg_color);
       setsecondaryBGColor(theme.secondary_bg_color);
+      setHintColor(theme.hint_color);
+      setButtonColor(theme.button_color);
+      setButtonTextColor(theme.button_text_color);
     } else {
       setUsingTGTheme(false);
     }
@@ -42,9 +51,12 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const value: ThemeContextType = {
     usingTGTheme,
     textColor,
-    destructiveColor,
+    destructiveTextColor,
     bgColor,
     secondaryBGColor,
+    hintColor,
+    buttonColor,
+    buttonTextColor,
   };
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

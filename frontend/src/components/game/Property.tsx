@@ -38,7 +38,7 @@ function Property({ tile, imSelected, tileInfo }: PropertyProps) {
   const [mortageTurnsLeft, setMortageTurnsLeft] = useState<number | undefined>(15);
   const [ownership, setOwnership] = useState<Ownership | null>(null);
 
-  const { textColor, destructiveColor } = useTheme();
+  const { textColor, destructiveTextColor: destructiveColor } = useTheme();
 
   useEffect(() => {
     let ownership = ownerships?.find((ownership) => ownership.property === tile.propertyData?.id);

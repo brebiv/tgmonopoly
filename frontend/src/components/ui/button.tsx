@@ -3,6 +3,7 @@ import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/stores/ThemeContext";
 
 const buttonVariants = cva(
   "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
@@ -43,21 +44,17 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const Comp = asChild ? Slot : "button";
     let style = {};
 
+    const { buttonColor, buttonTextColor, destructiveTextColor, textColor } = useTheme();
+
     if (variant === "default") {
       style = {
-        // @ts-ignore
-        backgroundColor: window.Telegram.WebApp.themeParams.button_color || "",
-        color:
-          // @ts-ignore
-          window.Telegram.WebApp.themeParams.button_text_color || "",
+        backgroundColor: buttonColor,
+        color: buttonTextColor,
       };
     } else if (variant === "destructive") {
       style = {
-        // @ts-ignore
-        backgroundColor: window.Telegram.WebApp.themeParams.destructive_text_color || "",
-        color:
-          // @ts-ignore
-          window.Telegram.WebApp.themeParams.text_color || "",
+        backgroundColor: destructiveTextColor,
+        color: textColor,
       };
     }
 

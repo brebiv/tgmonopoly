@@ -5,6 +5,7 @@ EFFECTS_TIMEOUTS = {
     GameEffect.ROLL_DICE: 10,
     GameEffect.ASK_BUY: 10,
     GameEffect.PAY_RENT: 10,
+    GameEffect.PAY_REPAIRS: 10,
 }
 
 DISABLE_AFK = True

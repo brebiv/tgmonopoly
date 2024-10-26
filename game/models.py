@@ -1,5 +1,6 @@
 from django.db import models
 from bot.models import TelegramUser
+import random
 import uuid
 
 # Create your models here.
@@ -154,6 +155,7 @@ class Player(models.Model):
     color = models.CharField(max_length=10, choices=COLOR_CHOICES, null=True, blank=True)
     in_jail = models.BooleanField(default=False)
     jail_turns = models.IntegerField(default=0)
+    move_backwards = models.BooleanField(default=False)
     status = models.CharField(max_length=16, choices=STATUS_CHOICES, default=WAITING)
 
     created = models.DateTimeField(auto_now_add=True)
@@ -185,6 +187,18 @@ class Player(models.Model):
         ).count()
 
         return total_properties_in_group == player_owned_properties_in_group
+    
+    def houses_owned(self) -> int:
+        """
+        Returns the number of houses owned by the player.
+        """
+        ownerships = Ownership.objects.filter(player=self, mortgaged=False)
+        amount_of_houses = 0
+
+        for ownership in ownerships:
+            amount_of_houses += ownership.houses
+
+        return amount_of_houses
 
     # def can_build_house(self, property: Property) -> list[bool, str]:
     #     """
@@ -396,11 +410,13 @@ class GameEffect(models.Model):
     ROLL_DICE = 'roll_dice'
     ASK_BUY = 'ask_buy'
     PAY_RENT = 'pay_rent'
+    PAY_REPAIRS = 'pay_repairs'
 
     EFFECT_TYPES = [
         (ROLL_DICE, 'Roll Dice'),
         (ASK_BUY, 'Ask Buy'),
         (PAY_RENT, 'Pay Rent'),
+        (PAY_REPAIRS, 'Pay Repairs'),
     ]
 
     game = models.ForeignKey(Game, related_name='effects', on_delete=models.CASCADE)
@@ -414,6 +430,42 @@ class GameEffect(models.Model):
 
     def __str__(self):
         return f"GameEffect in {self.game.uuid} - {self.name}"
+
+
+class ChanceCard(models.Model):
+
+    MOVE = 'MOVE'
+    MOVE_BACKWARDS = 'MOVE_BACKWARDS'
+    MONEY = 'MONEY'
+    MONEY_TO_PLAYER = 'MONEY_TO_PLAYER'
+    GO_TO_JAIL = 'GO_TO_JAIL'
+    FREE_JAIL = 'FREE_JAIL'
+    REPAIRS = 'REPAIRS'
+    MISC = 'MISC'
+
+    CARD_TYPE_CHOICES = [
+        (MOVE, 'Move'),
+        (MOVE_BACKWARDS, 'Move Backwards'),
+        (MONEY, 'Money'),
+        (MONEY_TO_PLAYER, 'Money to Player'),
+        (GO_TO_JAIL, 'Go to Jail'),
+        (FREE_JAIL, 'Get Out of Jail Free'),
+        (REPAIRS, 'Repairs'),
+        (MISC, 'Miscellaneous'),
+    ]
+
+    title = models.CharField(max_length=100)
+    description = models.TextField()
+    card_type = models.CharField(max_length=16, choices=CARD_TYPE_CHOICES)
+    details = models.JSONField(default=dict, blank=True)
+
+    @staticmethod
+    def get_random_card() -> 'ChanceCard':
+        cards = ChanceCard.objects.all()
+        return random.choice(cards)
+
+    def __str__(self):
+        return f"{self.title}"
 
 
 # class Trade(models.Model):

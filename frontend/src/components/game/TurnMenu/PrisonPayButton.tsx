@@ -7,14 +7,7 @@ import { HandCoins } from "lucide-react";
 function PrisonPayButton({ gameUUID, disabled }: { gameUUID: string; disabled?: boolean }) {
   return (
     <Button
-      style={{
-        backgroundColor:
-          // @ts-ignore
-          window.Telegram.WebApp.themeParams.button_color || "black",
-        color:
-          // @ts-ignore
-          window.Telegram.WebApp.themeParams.button_text_color || "white",
-      }}
+      variant={"default"}
       onClick={() => {
         sendGameAction({ action: GameActionType.PAY_FOR_PRISON, game_uuid: gameUUID });
       }}

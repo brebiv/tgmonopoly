@@ -7,10 +7,10 @@ function BoardCenter({ children }: { children: React.ReactNode }) {
 
   return (
     <div
-      className="absolute z-10 aspect-square w-full"
+      className="board-center absolute z-10 h-full w-full"
       style={{
         padding: `${boardCenterPaddingY}px ${boardCenterPaddingX}px`,
-        paddingBottom: `${boardCenterPaddingY + 4}px`,
+        paddingBottom: `${boardCenterPaddingY}px`,
       }}
     >
       <div className="relative h-full w-full">

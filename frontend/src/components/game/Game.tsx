@@ -13,7 +13,6 @@ import TurnMenu from "./TurnMenu/TurnMenu";
 import GameLobby from "./GameLobby";
 import GameOverScreen from "./GameOverScreen";
 import TileInfo from "./TileInfo";
-import BoardCenter from "./BoardCenter";
 import DebugPanel from "./DebugPanel";
 import { useTheme } from "@/stores/ThemeContext";
 
@@ -64,11 +63,14 @@ function Game() {
       {game?.status === GameStatus.FINISHED && <GameOverScreen />}
       <PlayersChipController players={players} boardLoaded={boardLoaded} />
       <DiceController />
-      <BoardCenter>
+      {/* <BoardCenter>
         <DebugPanel />
         <TileInfo />
-      </BoardCenter>
-      <Board boardLoaded={boardLoaded} setBoardLoaded={setBoardLoaded} />
+      </BoardCenter> */}
+      <Board boardLoaded={boardLoaded} setBoardLoaded={setBoardLoaded}>
+        <DebugPanel />
+        <TileInfo />
+      </Board>
       <PlayersSection />
       <TurnMenu />
     </div>

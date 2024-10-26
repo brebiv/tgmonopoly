@@ -2,6 +2,7 @@ import { useEffect, useState, createContext } from "react";
 import BoardTile from "./BoardTile";
 import { useTiles } from "@/hooks";
 import { useLayoutStore } from "@/stores/LayoutStore";
+import BoardCenter from "./BoardCenter";
 
 const boardContext = {
   gridCellWidth: 0,
@@ -11,7 +12,15 @@ const boardContext = {
 
 const BoardContext = createContext(boardContext);
 
-function Board({ boardLoaded, setBoardLoaded }: { boardLoaded: boolean; setBoardLoaded: any }) {
+function Board({
+  boardLoaded,
+  setBoardLoaded,
+  children,
+}: {
+  boardLoaded: boolean;
+  setBoardLoaded: any;
+  children: React.ReactNode;
+}) {
   const [gridCellWidth, setGridCellWidth] = useState<number>(0);
   const [gridCellHeight, setGridCellHeight] = useState<number>(0);
   const [cornerSizeInPercent] = useState<number>(13);
@@ -33,14 +42,17 @@ function Board({ boardLoaded, setBoardLoaded }: { boardLoaded: boolean; setBoard
     setGridCellWidth(gridCellWidth);
     setGridCellHeight(gridCellHeight);
     setBoardLoaded(true);
+  }, [boardLoaded]);
 
+  useEffect(() => {
     setBoardCenterPaddingX(gridCellWidth + 12 + 12 + 6);
     setBoardCenterPaddingY(gridCellHeight + 12 + 12 + 6);
-  }, [boardLoaded]);
+  }, [gridCellHeight, gridCellWidth, boardLoaded]);
 
   return (
     <BoardContext.Provider value={{ gridCellWidth, gridCellHeight, cornerSizeInPercent }}>
-      <div className="aspect-square w-full">
+      <div className="board relative aspect-square w-full">
+        <BoardCenter>{children}</BoardCenter>
         <div
           id="board"
           className="board relative h-full w-full p-3"

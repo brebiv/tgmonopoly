@@ -3,6 +3,8 @@ from bot.models import TelegramUser
 import random
 import uuid
 
+from . import config
+
 # Create your models here.
 class Game(models.Model):
 
@@ -28,7 +30,32 @@ class Game(models.Model):
 
 
 class PropertyGroup(models.Model):
-    name = models.CharField(max_length=50)
+
+    UTILITIES_1 = 'UTILITIES_1'
+    UTILITIES_2 = 'UTILITIES_2'
+    TECH = 'TECH'
+    FINANCE = 'FINANCE'
+    MEDECINE = 'MEDECINE'
+    OIL = 'OIL'
+    AUTOMOBILE = 'AUTOMOBILE'
+    COMMUNICATION = 'COMMUNICATION'
+    FOOD = 'FOOD'
+    CLOTH = 'CLOTH'
+
+    PROPERTY_GROUP_CHOICES = [
+        (UTILITIES_1, 'Utilities 1'),
+        (UTILITIES_2, 'Utilities 2'),
+        (TECH, 'Tech'),
+        (FINANCE, 'Finance'),
+        (MEDECINE, 'Medecine'),
+        (OIL, 'Oil'),
+        (AUTOMOBILE, 'Automobile'),
+        (COMMUNICATION, 'Communication'),
+        (FOOD, 'Food'),
+        (CLOTH, 'Cloth'),
+    ]
+
+    name = models.CharField(max_length=50, choices=PROPERTY_GROUP_CHOICES)
     color = models.CharField(max_length=10)
 
     def __str__(self):
@@ -76,18 +103,18 @@ class Property(models.Model):
     mortgage_value = models.IntegerField()
     house_price = models.IntegerField(null=True, blank=True)
     rent = models.IntegerField()
-    rent_with_1_house = models.IntegerField()
-    rent_with_2_houses = models.IntegerField()
-    rent_with_3_houses = models.IntegerField()
-    rent_with_4_houses = models.IntegerField()
-    rent_with_5_houses = models.IntegerField()
+    rent_with_1_house = models.IntegerField(null=True, blank=True)
+    rent_with_2_houses = models.IntegerField(null=True, blank=True)
+    rent_with_3_houses = models.IntegerField(null=True, blank=True)
+    rent_with_4_houses = models.IntegerField(null=True, blank=True)
+    rent_with_5_houses = models.IntegerField(null=True, blank=True)
     group = models.ForeignKey(PropertyGroup, on_delete=models.CASCADE, null=True, blank=True)
 
     icon = models.ImageField(upload_to='properties', null=True, blank=True)
+    svg_icon = models.CharField(max_length=50, choices=config.AvailableSVGIcons, null=True, blank=True)
 
     @property
     def buyout_price(self) -> int:
-        from game import config
         return int(self.mortgage_value * config.MORTAGE_INTEREST_RATE)
 
     def __str__(self):
@@ -183,7 +210,8 @@ class Player(models.Model):
         player_owned_properties_in_group = Ownership.objects.filter(
             player=self,
             game=self.game,
-            property__group=group
+            property__group=group,
+            mortgaged=False
         ).count()
 
         return total_properties_in_group == player_owned_properties_in_group
@@ -236,7 +264,6 @@ class Player(models.Model):
     #         return False, "You do not own this property."
         
 
-    #     from game import config
     #     if property_ownership.houses >= config.MAX_HOUSES:
     #         return False, "This property already has the maximum number of houses."
 
@@ -265,22 +292,36 @@ class Ownership(models.Model):
 
     created = models.DateTimeField(auto_now_add=True)
 
-    def calculate_rent(self):
-        print(self.property)
-        print(self.houses)
-        if self.houses == 0:
-            print("Self rent", self.property.rent)
-            return self.property.rent
-        elif self.houses == 1:
-            return self.property.rent_with_1_house
-        elif self.houses == 2:
-            return self.property.rent_with_2_houses
-        elif self.houses == 3:
-            return self.property.rent_with_3_houses
-        elif self.houses == 4:
-            return self.property.rent_with_4_houses
-        elif self.houses == 5:
-            return self.property.rent_with_5_houses
+    def calculate_rent(self, dice_sum=1) -> int:
+        if self.property.group.name == PropertyGroup.UTILITIES_1:
+            ownerships = Ownership.objects.filter(
+                player=self.player,
+                game=self.game,
+                property__group=self.property.group
+            )
+
+            number_of_utilities_owned = ownerships.count()
+
+            return self.property.rent * number_of_utilities_owned
+        elif self.property.group.name == PropertyGroup.UTILITIES_2:
+            if self.owns_entire_group():
+                return self.property.rent * 2 * dice_sum
+            else:
+                return self.property.rent * dice_sum
+        else:
+            if self.houses == 0:
+                print("Self rent", self.property.rent)
+                return self.property.rent
+            elif self.houses == 1:
+                return self.property.rent_with_1_house
+            elif self.houses == 2:
+                return self.property.rent_with_2_houses
+            elif self.houses == 3:
+                return self.property.rent_with_3_houses
+            elif self.houses == 4:
+                return self.property.rent_with_4_houses
+            elif self.houses == 5:
+                return self.property.rent_with_5_houses
         
     def can_build_house(self) -> list[bool, str]:
         """
@@ -288,6 +329,10 @@ class Ownership(models.Model):
         Houses must be built evenly across all properties in the group.
         Returns a list (can_build: bool, reason: str).
         """
+        if self.property.group.name == PropertyGroup.UTILITIES_1 \
+            or self.property.group.name == PropertyGroup.UTILITIES_2:
+            return False, "You can't build houses on Utilities"
+
         group = self.property.group
 
         properties_in_group = Property.objects.filter(group=group)
@@ -324,7 +369,6 @@ class Ownership(models.Model):
             for ownership in ownerships
         }
 
-        from game import config
         if self.houses >= config.MAX_HOUSES:
             return False, "This property already has the maximum number of houses."
 
@@ -341,6 +385,10 @@ class Ownership(models.Model):
         Houses must be sold evenly across all properties in the group.
         Returns a list (can_sell: bool, reason: str).
         """
+        if self.property.group.name == PropertyGroup.UTILITIES_1 \
+            or self.property.group.name == PropertyGroup.UTILITIES_2:
+            return False, "You can't build houses on Utilities"
+
         group = self.property.group
 
         properties_in_group = Property.objects.filter(group=group)
@@ -368,6 +416,20 @@ class Ownership(models.Model):
             return False, "You must sell houses evenly across the group. Sell houses from properties with more houses first."
 
         return True, "You can sell a house on this property."
+
+    def owns_entire_group(self) -> bool:
+        """
+        Checks if the player owns every property in the group.
+        """
+        properties_in_group = Property.objects.filter(group=self.property.group)
+        ownerships = Ownership.objects.filter(
+            player=self.player,
+            game=self.game,
+            property__in=properties_in_group,
+            mortgaged=False
+        )
+
+        return ownerships.count() == properties_in_group.count()
 
     def __str__(self):
         return f"{self.property.board_space.name} owned by {self.player.user.username}"
@@ -412,16 +474,9 @@ class GameEffect(models.Model):
     PAY_RENT = 'pay_rent'
     PAY_REPAIRS = 'pay_repairs'
 
-    EFFECT_TYPES = [
-        (ROLL_DICE, 'Roll Dice'),
-        (ASK_BUY, 'Ask Buy'),
-        (PAY_RENT, 'Pay Rent'),
-        (PAY_REPAIRS, 'Pay Repairs'),
-    ]
-
     game = models.ForeignKey(Game, related_name='effects', on_delete=models.CASCADE)
     player = models.ForeignKey(Player, related_name='effects', on_delete=models.CASCADE)
-    name = models.CharField(max_length=20, choices=EFFECT_TYPES)
+    name = models.CharField(max_length=20, choices=config.GameEffectTypes)
     description = models.TextField(null=True, blank=True)
     effect_data = models.JSONField(null=True, blank=True)
     task_id = models.CharField(max_length=255, null=True, blank=True)

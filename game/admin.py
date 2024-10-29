@@ -36,6 +36,7 @@ class PropertyGroupAdmin(admin.ModelAdmin):
 @admin.register(Property)
 class PropertyAdmin(admin.ModelAdmin):
     list_display = ('board_space', 'price', 'mortgage_value', 'house_price',)
+    list_filter = ('group',)
     search_fields = ('board_space__name',)
     ordering = ('board_space__position',)
     raw_id_fields = ('board_space',)

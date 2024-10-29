@@ -3,7 +3,7 @@ import uuid
 from django.utils import timezone
 from celery import current_app
 
-from game.models import Game, Player, GameEffect, Tile, Ownership, ChanceCard
+from game.models import Game, Player, GameEffect, Tile, Ownership, ChanceCard, PropertyGroup
 from game import config
 from .types import GameActionType, GameEventType
 from .tasks import handle_game_effect_timeout
@@ -120,7 +120,7 @@ class GameService:
     def roll_dice(game: Game, player: Player) -> list:
         events = []
         # dices = [random.randint(1, 6) for _ in range(2)]
-        dices = [1,1]
+        dices = [5, 5]
 
         events.append({
             'type': 'game.action',
@@ -190,8 +190,15 @@ class GameService:
 
                     GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
                 else:
+                    rent = 0
+                    if ownership.property.group.name == PropertyGroup.UTILITIES_1:
+                        rent = ownership.calculate_rent()
+                    else:
+                        # rent = ownership.calculate_rent(dice_sum=Dice.objects.filter(game=game).count())
+                        rent = ownership.calculate_rent(dice_sum=dice_sum)
+
                     GameService.apply_effect(game, player, GameEffect.PAY_RENT, {
-                        'rent': ownership.calculate_rent(),
+                        'rent': rent,
                     })
         elif tile.type == Tile.JAIL or tile.type == Tile.POLICE:
             if tile.type == Tile.POLICE:
@@ -403,12 +410,16 @@ class GameService:
 
         if tile.type != Tile.PROPERTY:
             raise Exception("You can't pay rent on a non-property tile")
+
         
+        pay_rent_effect = GameEffect.objects.filter(player=player, name=GameEffect.PAY_RENT).last()
         ownership = Ownership.objects.get(game=game, property=tile.property)
-        rent_price = ownership.calculate_rent()
+
+        rent_price = pay_rent_effect.effect_data['rent']
 
         if rent_price > player.cash:
             raise Exception("You don't have enough cash to pay rent")
+            
 
         player.cash -= rent_price
         player.save()

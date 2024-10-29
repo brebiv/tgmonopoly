@@ -54,6 +54,26 @@ export enum PlayerStatus {
   TIMEOUT = "timeout",
 }
 
+export enum SVGIcons {
+  WIND_POWER = "WIND_POWER",
+  DAM = "DAM",
+  SOLAR_POWER = "SOLAR_POWER",
+  NUKE = "NUKE",
+}
+
+export enum PropertyGroup {
+  UTILITIES_1 = "UTILITIES_1",
+  UTILITIES_2 = "UTILITIES_2",
+  TECH = "TECH",
+  FINANCE = "FINANCE",
+  MEDECINE = "MEDECINE",
+  OIL = "OIL",
+  AUTOMOBILE = "AUTOMOBILE",
+  COMMUNICATION = "COMMUNICATION",
+  FOOD = "FOOD",
+  CLOTH = "CLOTH",
+}
+
 // Enums end here
 
 export type PropertyData = {
@@ -69,8 +89,10 @@ export type PropertyData = {
   rent_with_5_houses: number;
   group_id: number;
   group_color: string;
+  group_name: PropertyGroup;
   icon: string;
   buyout_price: number;
+  svg_icon: SVGIcons | string;
 };
 
 export type Tile = {
@@ -166,4 +188,6 @@ export type Ownership = {
   mortage_last_turn: number | null;
   can_build_house: boolean;
   can_sell_house: boolean;
+  calculate_rent: number;
+  owns_entire_group: boolean;
 };

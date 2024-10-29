@@ -43,14 +43,21 @@ class PropertySerializer(serializers.ModelSerializer):
             'id', 'price', 'mortgage_value', 'house_price', 'rent', 
             'rent_with_1_house', 'rent_with_2_houses', 'rent_with_3_houses', 
             'rent_with_4_houses', 'rent_with_5_houses', 'group_id', 'group_color', 'icon',
-            'buyout_price'
+            'buyout_price', 'svg_icon', 'group_name'
         )
     
     group_color = serializers.SerializerMethodField()
+    group_name = serializers.SerializerMethodField()
     
     def get_group_color(self, obj):
         if obj.group:
             return obj.group.color
+        else:
+            return None
+        
+    def get_group_name(self, obj):
+        if obj.group:
+            return obj.group.name
         else:
             return None
 
@@ -143,7 +150,7 @@ class OwnershipSerializer(serializers.ModelSerializer):
         model = Ownership
         fields = (
             'player', 'property', 'houses', 'mortgaged', 'mortage_last_turn', 
-            'can_build_house', 'can_sell_house'
+            'can_build_house', 'can_sell_house', 'calculate_rent', 'owns_entire_group'
         )
 
     def get_can_build_house(self, obj):

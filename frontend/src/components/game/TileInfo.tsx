@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { useGameStore } from "@/stores/GameStore";
 import { Button } from "../ui/button";
 import { sendGameAction } from "@/api";
-import { GameActionType, Ownership } from "@/types/api";
+import { GameActionType, Ownership, PropertyGroup } from "@/types/api";
 import { hexToRGBA } from "@/lib/utils";
 import { useTheme } from "@/stores/ThemeContext";
 
@@ -155,80 +155,140 @@ function TileInfo() {
             <div className="flex flex-col gap-1">
               {tile.propertyData != null && (
                 <>
-                  <TileInfoRow>
-                    <p className="font-extralight">{"Base rent"}</p>
-                    <p className="ml-auto">
-                      {tile.propertyData.rent}
-                      <span className="font-thin"> $</span>
-                    </p>
-                  </TileInfoRow>
-                  <TileInfoRow>
-                    <HousesRow amount={1} />
-                    <p className="ml-auto">
-                      {tile.propertyData.rent_with_1_house}
-                      <span className="font-thin"> $</span>
-                    </p>
-                  </TileInfoRow>
-                  <TileInfoRow>
-                    <HousesRow amount={2} />
-                    <p className="ml-auto">
-                      {tile.propertyData.rent_with_2_houses}
-                      <span className="font-thin"> $</span>
-                    </p>
-                  </TileInfoRow>
-                  <TileInfoRow>
-                    <HousesRow amount={3} />
-                    <p className="ml-auto">
-                      {tile.propertyData.rent_with_3_houses}
-                      <span className="font-thin"> $</span>
-                    </p>
-                  </TileInfoRow>
-                  <TileInfoRow>
-                    <HousesRow amount={4} />
-                    <p className="ml-auto">
-                      {tile.propertyData.rent_with_4_houses}
-                      <span className="font-thin"> $</span>
-                    </p>
-                  </TileInfoRow>
-                  <TileInfoRow>
-                    <p className="flex font-thin text-red-500">
-                      <HouseIcon />
-                    </p>
-                    <p className="ml-auto">
-                      {tile.propertyData.rent_with_5_houses}
-                      <span className="font-thin"> $</span>
-                    </p>
-                  </TileInfoRow>
-                  <div className="pt-2">
-                    <TileInfoRow>
-                      <p className="flex font-extralight">{"Property price"}</p>
-                      <p className="ml-auto">
-                        {tile.propertyData.price}
-                        <span className="font-thin"> $</span>
-                      </p>
-                    </TileInfoRow>
-                    <TileInfoRow>
-                      <p className="flex font-extralight">{"Mortage value"}</p>
-                      <p className="ml-auto">
-                        {tile.propertyData.mortgage_value}
-                        <span className="font-thin"> $</span>
-                      </p>
-                    </TileInfoRow>
-                    <TileInfoRow>
-                      <p className="flex font-extralight">{"Buyout price"}</p>
-                      <p className="ml-auto">
-                        {tile.propertyData.buyout_price}
-                        <span className="font-thin"> $</span>
-                      </p>
-                    </TileInfoRow>
-                    <TileInfoRow>
-                      <p className="flex font-extralight">{"House price"}</p>
-                      <p className="ml-auto">
-                        {tile.propertyData.house_price}
-                        <span className="font-thin"> $</span>
-                      </p>
-                    </TileInfoRow>
-                  </div>
+                  {tile.propertyData.group_name !== PropertyGroup.UTILITIES_1 &&
+                    tile.propertyData.group_name !== PropertyGroup.UTILITIES_2 && (
+                      <>
+                        <TileInfoRow>
+                          <p className="font-extralight">{"Base rent"}</p>
+                          <p className="ml-auto">
+                            {tile.propertyData.rent}
+                            <span className="font-thin"> $</span>
+                          </p>
+                        </TileInfoRow>
+                        <TileInfoRow>
+                          <HousesRow amount={1} />
+                          <p className="ml-auto">
+                            {tile.propertyData.rent_with_1_house}
+                            <span className="font-thin"> $</span>
+                          </p>
+                        </TileInfoRow>
+                        <TileInfoRow>
+                          <HousesRow amount={2} />
+                          <p className="ml-auto">
+                            {tile.propertyData.rent_with_2_houses}
+                            <span className="font-thin"> $</span>
+                          </p>
+                        </TileInfoRow>
+                        <TileInfoRow>
+                          <HousesRow amount={3} />
+                          <p className="ml-auto">
+                            {tile.propertyData.rent_with_3_houses}
+                            <span className="font-thin"> $</span>
+                          </p>
+                        </TileInfoRow>
+                        <TileInfoRow>
+                          <HousesRow amount={4} />
+                          <p className="ml-auto">
+                            {tile.propertyData.rent_with_4_houses}
+                            <span className="font-thin"> $</span>
+                          </p>
+                        </TileInfoRow>
+                        <TileInfoRow>
+                          <p className="flex font-thin text-red-500">
+                            <HouseIcon />
+                          </p>
+                          <p className="ml-auto">
+                            {tile.propertyData.rent_with_5_houses}
+                            <span className="font-thin"> $</span>
+                          </p>
+                        </TileInfoRow>
+                        <div className="pt-2">
+                          <TileInfoRow>
+                            <p className="flex font-extralight">{"Property price"}</p>
+                            <p className="ml-auto">
+                              {tile.propertyData.price}
+                              <span className="font-thin"> $</span>
+                            </p>
+                          </TileInfoRow>
+                          <TileInfoRow>
+                            <p className="flex font-extralight">{"Mortage value"}</p>
+                            <p className="ml-auto">
+                              {tile.propertyData.mortgage_value}
+                              <span className="font-thin"> $</span>
+                            </p>
+                          </TileInfoRow>
+                          <TileInfoRow>
+                            <p className="flex font-extralight">{"Buyout price"}</p>
+                            <p className="ml-auto">
+                              {tile.propertyData.buyout_price}
+                              <span className="font-thin"> $</span>
+                            </p>
+                          </TileInfoRow>
+                          <TileInfoRow>
+                            <p className="flex font-extralight">{"House price"}</p>
+                            <p className="ml-auto">
+                              {tile.propertyData.house_price}
+                              <span className="font-thin"> $</span>
+                            </p>
+                          </TileInfoRow>
+                        </div>
+                      </>
+                    )}
+                  {tile.propertyData.group_name === PropertyGroup.UTILITIES_1 && (
+                    <>
+                      <TileInfoRow>
+                        <p className="font-extralight">{"Base rent"}</p>
+                        <p className="ml-auto">
+                          {tile.propertyData.rent}
+                          <span className="font-thin"> $</span>
+                        </p>
+                      </TileInfoRow>
+                      <TileInfoRow>
+                        <p className="font-extralight">{"Two utilities owned"}</p>
+                        <p className="ml-auto">
+                          {tile.propertyData.rent * 2}
+                          <span className="font-thin"> $</span>
+                        </p>
+                      </TileInfoRow>
+                      <TileInfoRow>
+                        <p className="font-extralight">{"Three utilities owned"}</p>
+                        <p className="ml-auto">
+                          {tile.propertyData.rent * 3}
+                          <span className="font-thin"> $</span>
+                        </p>
+                      </TileInfoRow>
+                      <TileInfoRow>
+                        <p className="font-extralight">{"Four utilities owned"}</p>
+                        <p className="ml-auto">
+                          {tile.propertyData.rent * 4}
+                          <span className="font-thin"> $</span>
+                        </p>
+                      </TileInfoRow>
+                      <div className="pt-2">
+                        <TileInfoRow>
+                          <p className="flex font-extralight">{"Property price"}</p>
+                          <p className="ml-auto">
+                            {tile.propertyData.price}
+                            <span className="font-thin"> $</span>
+                          </p>
+                        </TileInfoRow>
+                        <TileInfoRow>
+                          <p className="flex font-extralight">{"Mortage value"}</p>
+                          <p className="ml-auto">
+                            {tile.propertyData.mortgage_value}
+                            <span className="font-thin"> $</span>
+                          </p>
+                        </TileInfoRow>
+                        <TileInfoRow>
+                          <p className="flex font-extralight">{"Buyout price"}</p>
+                          <p className="ml-auto">
+                            {tile.propertyData.buyout_price}
+                            <span className="font-thin"> $</span>
+                          </p>
+                        </TileInfoRow>
+                      </div>
+                    </>
+                  )}
                 </>
               )}
               {imOwner && (

@@ -2,13 +2,15 @@ import { PLAYER_CHIP_COLORS } from "@/config";
 import { useGame } from "@/hooks";
 import { cn, getPlayerById, hexToRGBA } from "@/lib/utils";
 import { useGameStore } from "@/stores/GameStore";
-import { Ownership, Tile } from "@/types/api";
+import { Ownership, PropertyGroup, SVGIcons, Tile } from "@/types/api";
 import clsx from "clsx";
-import { Lock } from "lucide-react";
+import { AtomIcon, DamIcon, Lock } from "lucide-react";
 import { useEffect, useState } from "react";
 import HouseIcon from "../ui/icons/HouseIcon";
 import ApartmentIcon from "../ui/icons/ApartmentIcon";
 import { useTheme } from "@/stores/ThemeContext";
+import WindPowerIcon from "../ui/icons/WindPowerIcon";
+import SolarPowerIcon from "../ui/icons/SolorPowerIcon";
 
 interface PropertyProps {
   tile: Tile;
@@ -33,7 +35,7 @@ function Property({ tile, imSelected, tileInfo }: PropertyProps) {
   const { data: game } = useGame();
 
   const [color, setColor] = useState<string>("");
-  const [price, setPrice] = useState<number>(0);
+  const [price, setPrice] = useState<number | string>(0);
   const [mortgaged, setMortgaged] = useState<boolean>(false);
   const [mortageTurnsLeft, setMortageTurnsLeft] = useState<number | undefined>(15);
   const [ownership, setOwnership] = useState<Ownership | null>(null);
@@ -49,7 +51,15 @@ function Property({ tile, imSelected, tileInfo }: PropertyProps) {
           let color = PLAYER_CHIP_COLORS[player.color as keyof typeof PLAYER_CHIP_COLORS][0];
           let opacity = 0.6;
           setColor(hexToRGBA(color, opacity));
-          setPrice(tile.propertyData?.rent || 0);
+          if (tile.propertyData?.group_name === PropertyGroup.UTILITIES_2) {
+            if (!ownership.owns_entire_group) {
+              setPrice(ownership.calculate_rent + "x");
+            } else {
+              setPrice(ownership.calculate_rent * 2 + "x");
+            }
+          } else {
+            setPrice(ownership.calculate_rent || 0);
+          }
           setMortgaged(ownership.mortgaged);
           setOwnership(ownership);
           if (ownership.mortage_last_turn) {
@@ -76,6 +86,21 @@ function Property({ tile, imSelected, tileInfo }: PropertyProps) {
     "flex-col": side === "right",
     "flex-col-reverse": side === "left",
   });
+
+  const renderIcon = (svgIcon: SVGIcons | string) => {
+    switch (svgIcon) {
+      case SVGIcons.WIND_POWER:
+        return <WindPowerIcon fill="black" outline="" />;
+      case SVGIcons.DAM:
+        return <DamIcon />;
+      case SVGIcons.SOLAR_POWER:
+        return <SolarPowerIcon fill="black" outline="" />;
+      case SVGIcons.NUKE:
+        return <AtomIcon />;
+      default:
+        return null;
+    }
+  };
 
   return (
     <div
@@ -135,10 +160,22 @@ function Property({ tile, imSelected, tileInfo }: PropertyProps) {
 
       {/* Body */}
       {(side == "top" || side == "bottom") && (
-        <img src={tile.propertyData?.icon} className="-rotate-90" />
+        <>
+          {tile.propertyData?.svg_icon ? (
+            renderIcon(tile.propertyData.svg_icon)
+          ) : (
+            <img src={tile.propertyData?.icon} className="-rotate-90" />
+          )}
+        </>
       )}
       {(side == "right" || side == "left") && (
-        <img src={tile.propertyData?.icon} className="h-full" />
+        <>
+          {tile.propertyData?.svg_icon ? (
+            renderIcon(tile.propertyData.svg_icon)
+          ) : (
+            <img src={tile.propertyData?.icon} className="h-full" />
+          )}
+        </>
       )}
       {/* Group color marker */}
       <div

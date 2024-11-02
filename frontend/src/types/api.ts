@@ -36,6 +36,10 @@ export enum GameActionType {
   BUY_HOUSE = "buy_house",
   SELL_HOUSE = "sell_house",
   PAY = "pay",
+  REJECT = "reject",
+  ACCEPT = "accept",
+  WON_CASINO = "won_casino",
+  LOST_CASINO = "lost_casino",
 }
 
 export enum GameEffectType {
@@ -44,6 +48,7 @@ export enum GameEffectType {
   ASK_BUY = "ask_buy",
   PAY_RENT = "pay_rent",
   PAY_REPAIRS = "pay_repairs",
+  IN_CASINO = "in_casino",
 }
 
 export enum PlayerStatus {
@@ -111,6 +116,7 @@ export type EffectData = {
   house_repair_cost: number;
   timeout: number;
   created: number;
+  available_bets: string[];
 };
 
 export type GameEffect = {

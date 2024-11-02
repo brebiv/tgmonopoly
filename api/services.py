@@ -120,7 +120,7 @@ class GameService:
     def roll_dice(game: Game, player: Player) -> list:
         events = []
         # dices = [random.randint(1, 6) for _ in range(2)]
-        dices = [5, 5]
+        dices = [10, 10]
 
         events.append({
             'type': 'game.action',
@@ -310,6 +310,27 @@ class GameService:
                     'number_of_houses': houses_owned,
                     'house_repair_cost': house_repair_cost,
                 })
+        elif tile.type == Tile.CASINO:
+            events.append({
+                'type': 'game.action',
+                'action': GameEventType.GO_TO_CASINO,
+                'player': player.pk,
+            })
+
+            available_bets = [10, 20, 30, 40, 50]
+
+            GameService.apply_effect(game, player, GameEffect.IN_CASINO, {
+                'available_bets': available_bets,
+            })
+
+            # # Should be placed in next_turn or something
+            # next_player = GameService.calculate_next_player(game, player)
+            # if next_player:
+            #     game.current_player = next_player
+            #     game.turn += 1
+            #     game.save()
+            #     GameService.calculate_mortages(game, player)
+            #     GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
         else:
             # Should be placed in next_turn or something
             game.turn += 1
@@ -643,6 +664,65 @@ class GameService:
             'amount': amount,
         })
 
+        next_player = GameService.calculate_next_player(game, player)
+        if next_player:
+            game.current_player = next_player
+            game.turn += 1
+            game.save()
+            GameService.calculate_mortages(game, player)
+            GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
+
+        return events
+    
+    @staticmethod
+    def reject_casino(game: Game, player: Player) -> list[dict]:
+        events = []
+
+        GameService.remove_effect(game, player, GameEffect.IN_CASINO)
+
+        next_player = GameService.calculate_next_player(game, player)
+        if next_player:
+            game.current_player = next_player
+            game.turn += 1
+            game.save()
+            GameService.calculate_mortages(game, player)
+            GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
+
+        return events
+    
+    @staticmethod
+    def play_casino(game: Game, player: Player, bet: int) -> list[dict]:
+        events = []
+
+        effect = GameEffect.objects.filter(player=player, name=GameEffect.IN_CASINO).last()
+
+        if bet not in effect.effect_data['available_bets']:
+            raise Exception("You can't bet that much")
+
+        GameService.remove_effect(game, player, GameEffect.IN_CASINO)
+
+        flip_result = random.choice([True, False])
+
+        if flip_result:
+            events.append({
+                'type': 'game.action',
+                'action': GameEventType.WON_CASINO,
+                'player': player.pk,
+                'amount': bet,
+            })
+            player.cash += bet
+        else:
+            events.append({
+                'type': 'game.action',
+                'action': GameEventType.LOST_CASINO,
+                'player': player.pk,
+                'amount': -bet,
+            })
+            player.cash -= bet
+
+        player.save()
+
+        # Check if not double
         next_player = GameService.calculate_next_player(game, player)
         if next_player:
             game.current_player = next_player

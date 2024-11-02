@@ -122,7 +122,7 @@ function TileInfo() {
   return (
     <>
       <div
-        className="absolute z-10 h-2 w-full"
+        className="absolute z-30 h-2 w-full"
         style={{
           backgroundImage: `linear-gradient(
           180deg,
@@ -130,7 +130,7 @@ function TileInfo() {
           ${hexToRGBA(secondary_bg_color, 0) || fallback_bg_color_transparent} 100%)`,
         }}
       ></div>
-      <div className="h-full w-full overflow-y-scroll p-1">
+      <div className="absolute z-20 h-full w-full overflow-y-scroll p-1">
         <Card>
           <CardHeader
             className="flex-row items-center rounded-t-lg px-3 py-2 text-lg"
@@ -326,7 +326,7 @@ function TileInfo() {
         </Card>
       </div>
       <div
-        className="absolute bottom-0 z-10 h-2 w-full"
+        className="absolute bottom-0 z-30 h-2 w-full"
         style={{
           backgroundImage: `linear-gradient(
           0deg,

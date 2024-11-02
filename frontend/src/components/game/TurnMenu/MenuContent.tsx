@@ -1,4 +1,4 @@
-import { GameEffect, GameEffectType, Tile } from "@/types/api";
+import { GameActionType, GameEffect, GameEffectType, Tile } from "@/types/api";
 import { useEffect, useState } from "react";
 import { useTiles } from "@/hooks";
 import { useGameStore } from "@/stores/GameStore";
@@ -10,6 +10,9 @@ import PrisonPayButton from "./PrisonPayButton";
 import { MAXIMUM_JAIL_TURNS, PRISON_PAY_AMOUNT } from "@/config";
 import { useTheme } from "@/stores/ThemeContext";
 import PayButton from "./PayButton";
+import CasinoMenuContent from "./CasinoMenuContent";
+import { Button } from "@/components/ui/button";
+import { sendGameAction } from "@/api";
 
 interface MenuContentProps {
   effects: GameEffect[];
@@ -18,12 +21,14 @@ interface MenuContentProps {
 function MenuContent({ effects }: MenuContentProps) {
   const gameUUID = window.location.pathname.split("/")[2];
   const [currentTile, setCurrentTile] = useState<Tile | undefined>(undefined);
-  const { me } = useGameStore((state) => state);
+  const { me, wonCasino } = useGameStore((state) => state);
   const { data: tiles } = useTiles();
   const firstEffect = effects[0];
   const [title, setTitle] = useState<string>("");
-  const [hint, setHint] = useState<string>("");
+  const [hint, setHint] = useState<string | React.ReactNode>("");
   const [actions, setActions] = useState<React.ReactNode[]>([]);
+
+  const [acceptedCasino, setAcceptedCasino] = useState(false);
 
   const { hintColor } = useTheme();
 
@@ -32,6 +37,17 @@ function MenuContent({ effects }: MenuContentProps) {
       setCurrentTile(getTileFromPosition(tiles, me.position));
     }
   }, [tiles, me]);
+
+  useEffect(() => {
+    if (wonCasino) {
+      // @ts-ignore
+      window.confetti({ ticks: 400 });
+    }
+    return () => {
+      // @ts-ignore
+      window.confetti.reset();
+    };
+  }, [wonCasino]);
 
   useEffect(() => {
     if (!me) {
@@ -45,6 +61,10 @@ function MenuContent({ effects }: MenuContentProps) {
       setHint("¯\\_(ツ)_/¯");
       setActions([]);
       return;
+    }
+
+    if (firstEffect.name !== GameEffectType.IN_CASINO) {
+      setAcceptedCasino(false);
     }
 
     if (firstEffect.name === GameEffectType.ROLL_DICE) {
@@ -105,6 +125,29 @@ function MenuContent({ effects }: MenuContentProps) {
         `You have ${firstEffect.effect_data?.number_of_houses} houses\nHouse repair cost is: $${firstEffect.effect_data?.house_repair_cost}\nYou have to pay: $${firstEffect.effect_data?.repair_cost}`,
       );
       setActions(actions);
+    } else if (firstEffect.name === GameEffectType.IN_CASINO) {
+      let actions = [
+        <Button
+          key={0}
+          variant={"default"}
+          className="w-full gap-2 py-6 text-lg font-semibold"
+          onClick={() => setAcceptedCasino(true)}
+        >
+          {"Yes"}
+        </Button>,
+        <Button
+          key={0}
+          variant={"destructive"}
+          onClick={() => {
+            sendGameAction({ action: GameActionType.REJECT, game_uuid: gameUUID });
+          }}
+          className="w-full gap-2 py-6 text-lg font-semibold"
+        >
+          {"No"}
+        </Button>,
+      ];
+      setTitle(`Do you want to flip a coin?`);
+      setActions(actions);
     } else {
       setTitle("Unknown effect");
     }
@@ -123,7 +166,11 @@ function MenuContent({ effects }: MenuContentProps) {
           {hint}
         </p>
       </div>
-      <div className="flex w-full flex-col gap-2">{actions}</div>
+      {acceptedCasino ? (
+        <CasinoMenuContent effect={firstEffect} gameUUID={gameUUID} />
+      ) : (
+        <div className="flex w-full flex-col gap-2">{actions}</div>
+      )}
     </div>
   );
 }

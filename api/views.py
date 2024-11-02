@@ -7,7 +7,7 @@ from asgiref.sync import async_to_sync
 from .serializers import (
     CreateGameSerializer, GameSerializer, PlayerSerializer, 
     GameActionSerializer, GameEventSerializer, JoinGameSerializer,
-    OwnershipSerializer, MortagePropertySerializer
+    OwnershipSerializer, MortagePropertySerializer, ExtraDataSerializer
 )
 from .utils import telegram_auth_required, CustomRequest
 from .types import GameActionType
@@ -405,6 +405,31 @@ def game_action(request: CustomRequest):
                 elif action == GameActionType.PAY:
                     amount = first_effect.effect_data.get('repair_cost')
                     events = GameService.pay_to_bank(game, player, amount)
+                    game_frame = GameService.assemble_game_frame(game, events)
+
+                    async_to_sync(channel_layer.group_send)(
+                        game_group_name, game_frame
+                    )
+                    return JsonResponse({"status": "ok",}, status=200)
+                else:
+                    return JsonResponse({"status": "!ok", "error": "Unknown action"}, status=400)
+            elif first_effect.name == GameEffect.IN_CASINO:
+                if action == GameActionType.REJECT:
+                    events = GameService.reject_casino(game, player)
+                    game_frame = GameService.assemble_game_frame(game, events)
+
+                    async_to_sync(channel_layer.group_send)(
+                        game_group_name, game_frame
+                    )
+                    return JsonResponse({"status": "ok",}, status=200)
+                elif action == GameActionType.ACCEPT:
+                    extra_data_serializer = ExtraDataSerializer(data=extra_data)
+                    if not extra_data_serializer.is_valid():
+                        return JsonResponse({"status": "!ok", "error": "Invalid extra data"}, status=400)
+                    
+                    bet = extra_data_serializer.data['bet_amount']
+    
+                    events = GameService.play_casino(game, player, bet)
                     game_frame = GameService.assemble_game_frame(game, events)
 
                     async_to_sync(channel_layer.group_send)(

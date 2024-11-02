@@ -19,3 +19,29 @@
 .flying-text {
     animation: flyAway 3s linear forwards;
 }
+
+@keyframes custom-ping {
+    0% {
+        transform: scale(1);
+    }
+
+    20% {
+        transform: scale(0.95);
+    }
+
+    40% {
+        transform: scale(1);
+    }
+
+    60% {
+        transform: scale(0.95);
+    }
+
+    80% {
+        transform: scale(1);
+    }
+}
+
+.custom-ping {
+    animation: custom-ping 0.7s ease-in-out;
+}

@@ -19,6 +19,10 @@ interface GameStore {
   movePlayer: (playerId: number, position: number) => void;
   ownerships: Ownership[] | null;
   setOwnerships: (ownerships: Ownership[] | null) => void;
+  coinRotation: number;
+  setCoinRotation: (coinRotation: number) => void;
+  wonCasino: boolean;
+  setWonCasino: (wonCasino: boolean) => void;
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -72,5 +76,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
   ownerships: null,
   setOwnerships: (ownerships: Ownership[] | null) => {
     set({ ownerships });
+  },
+  coinRotation: 0,
+  setCoinRotation: (coinRotation: number) => {
+    set({ coinRotation });
+  },
+  wonCasino: false,
+  setWonCasino: (wonCasino: boolean) => {
+    set({ wonCasino });
   },
 }));

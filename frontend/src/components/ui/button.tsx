@@ -44,7 +44,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const Comp = asChild ? Slot : "button";
     let style = {};
 
-    const { buttonColor, buttonTextColor, destructiveTextColor, textColor } = useTheme();
+    const { buttonColor, buttonTextColor, destructiveTextColor, textColor, hintColor } = useTheme();
 
     if (variant === "default") {
       style = {
@@ -55,6 +55,12 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       style = {
         backgroundColor: destructiveTextColor,
         color: textColor,
+      };
+    } else if (variant === "outline") {
+      style = {
+        backgroundColor: "transparent",
+        borderColor: hintColor,
+        color: buttonTextColor,
       };
     }
 

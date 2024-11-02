@@ -6,6 +6,7 @@ class GameEffectTypes(models.TextChoices):
     ASK_BUY = 'ask_buy', 'Ask Buy'
     PAY_RENT = 'pay_rent', 'Pay Rent'
     PAY_REPAIRS = 'pay_repairs', 'Pay Repairs'
+    IN_CASINO = 'in_casino', 'In Casino'
 
 
 
@@ -21,6 +22,7 @@ EFFECTS_TIMEOUTS = {
     GameEffectTypes.ASK_BUY: 10,
     GameEffectTypes.PAY_RENT: 10,
     GameEffectTypes.PAY_REPAIRS: 10,
+    GameEffectTypes.IN_CASINO: 10,
 }
 
 DISABLE_AFK = True

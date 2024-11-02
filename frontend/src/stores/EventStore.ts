@@ -2,7 +2,12 @@ import { Game, GameActionType, GameEvent, Ownership, Player } from "@/types/api"
 import { create } from "zustand";
 
 import { getMeFromPlayers, sleep } from "@/lib/utils";
-import { DICE_ANIMATION_DURATION_SECONDS, PLAYER_CHIP_MOVE_DURATION_MS } from "@/config";
+import {
+  COIN_FLIP_ANIMATION_DURATION_MS,
+  COIN_FLIP_RESULT_DURATION_MS,
+  DICE_ANIMATION_DURATION_SECONDS,
+  PLAYER_CHIP_MOVE_DURATION_MS,
+} from "@/config";
 import { useGameStore } from "./GameStore";
 import { queryClient } from "@/lib/queryClient";
 
@@ -70,13 +75,11 @@ export const useEventStore = create<EventStore>((set, get) => ({
 }));
 
 const processEvent = async (event: GameEvent) => {
-  const { setDices, setShowDices, setShowTurnMenu, movePlayer } = useGameStore.getState();
+  const { setDices, setShowDices, setShowTurnMenu, movePlayer, setCoinRotation, setWonCasino } =
+    useGameStore.getState();
 
   if (event.action === GameActionType.START_GAME) {
-    console.log("Processing start game");
   } else if (event.action === GameActionType.ROLL_DICE) {
-    console.log("Processing roll dice");
-
     setShowTurnMenu(false);
     setShowDices(true);
     setDices(event.dices);
@@ -86,5 +89,13 @@ const processEvent = async (event: GameEvent) => {
     movePlayer(event.player!, event.position!);
     await sleep(PLAYER_CHIP_MOVE_DURATION_MS);
     setShowDices(false);
+  } else if (event.action === GameActionType.WON_CASINO) {
+    setCoinRotation(360 * 6);
+    await sleep(COIN_FLIP_ANIMATION_DURATION_MS + COIN_FLIP_RESULT_DURATION_MS);
+    setWonCasino(true);
+  } else if (event.action === GameActionType.LOST_CASINO) {
+    setCoinRotation(360 * 7);
+    await sleep(COIN_FLIP_ANIMATION_DURATION_MS + COIN_FLIP_RESULT_DURATION_MS);
+    setWonCasino(false);
   }
 };

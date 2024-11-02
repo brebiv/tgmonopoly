@@ -68,8 +68,8 @@ function Game() {
         <TileInfo />
       </BoardCenter> */}
       <Board boardLoaded={boardLoaded} setBoardLoaded={setBoardLoaded}>
-        <DebugPanel />
         <TileInfo />
+        <DebugPanel />
       </Board>
       <PlayersSection />
       <TurnMenu />

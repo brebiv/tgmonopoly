@@ -11,6 +11,8 @@ class GameActionType:
     BUY_HOUSE = 'buy_house'
     SELL_HOUSE = 'sell_house'
     PAY = "pay"
+    REJECT = "reject"
+    ACCEPT = "accept"
 
 class GameEventType:
     START_GAME = 'start_game'
@@ -30,3 +32,6 @@ class GameEventType:
     SELL_HOUSE = 'sell_house'
     CHANCE_CARD = 'chance_card'
     PAY_TO_BANK = 'pay_to_bank'
+    GO_TO_CASINO = 'go_to_casino'
+    WON_CASINO = 'won_casino'
+    LOST_CASINO = 'lost_casino'

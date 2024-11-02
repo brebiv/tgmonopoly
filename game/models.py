@@ -473,6 +473,7 @@ class GameEffect(models.Model):
     ASK_BUY = 'ask_buy'
     PAY_RENT = 'pay_rent'
     PAY_REPAIRS = 'pay_repairs'
+    IN_CASINO = 'in_casino'
 
     game = models.ForeignKey(Game, related_name='effects', on_delete=models.CASCADE)
     player = models.ForeignKey(Player, related_name='effects', on_delete=models.CASCADE)

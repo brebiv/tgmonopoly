@@ -128,6 +128,10 @@ class MortagePropertySerializer(serializers.Serializer):
     property_id = serializers.IntegerField()
 
 
+class ExtraDataSerializer(serializers.Serializer):
+    bet_amount = serializers.IntegerField()
+
+
 class GameEventSerializer(serializers.Serializer):
     type = serializers.CharField()
     action = serializers.CharField()

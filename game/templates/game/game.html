@@ -6,7 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Game home</title>
 
+    {% load static %}
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="{% static 'game/confetti.browser.min.js' %}"></script>
 
     <script>
         window.tiles = {{ tiles|safe }}

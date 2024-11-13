@@ -13,15 +13,20 @@ import { queryClient } from "@/lib/queryClient";
 
 interface EventStore {
   eventQueue: GameEvent[] | [];
+  eventLog: GameEvent[] | [];
   isProcessing: boolean;
   addEvents: (event: GameEvent[]) => void;
+  addEventLog: (event: GameEvent[]) => void;
   processNextEvent: () => void;
 }
 
 export const useEventStore = create<EventStore>((set, get) => ({
   eventQueue: [],
+  eventLog: [],
   isProcessing: false,
-
+  addEventLog: (events: GameEvent[]) => {
+    set((state) => ({ eventLog: [...state.eventLog, ...events] }));
+  },
   addEvents: (events: GameEvent[]) => {
     set((state) => ({ eventQueue: [...state.eventQueue, ...events] }));
     // Start processing if not already
@@ -66,6 +71,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
       await processEvent(eventToProcess);
     } finally {
       set((state) => ({
+        eventLog: [...state.eventLog, eventToProcess],
         eventQueue: state.eventQueue.slice(1),
       }));
       // Continue processing next event

@@ -33,5 +33,6 @@ class GameEventType:
     CHANCE_CARD = 'chance_card'
     PAY_TO_BANK = 'pay_to_bank'
     GO_TO_CASINO = 'go_to_casino'
+    REJECT_CASINO = 'reject_casino'
     WON_CASINO = 'won_casino'
     LOST_CASINO = 'lost_casino'

@@ -26,12 +26,24 @@ export function getTileFromPosition(tiles: Tile[], position: number) {
   return tiles.find((tile) => tile.position === position);
 }
 
+export function getTileFromId(tiles: Tile[], id: number) {
+  return tiles.find((tile) => tile.id === id);
+}
+
 export function getMeFromPlayers(players: Player[]) {
   const me = useGameStore.getState().me;
   return players.find((player) => player.id === me?.id);
 }
 
-export function getPlayerById(players: Player[], id: number) {
+export function getPlayerByIdDepricated(players: Player[], id: number) {
+  return players.find((player) => player.id === id);
+}
+
+export function getPlayerById(id: number) {
+  const players = useGameStore.getState().players;
+  if (!players) {
+    return null;
+  }
   return players.find((player) => player.id === id);
 }
 

@@ -119,8 +119,8 @@ class GameService:
     @staticmethod
     def roll_dice(game: Game, player: Player) -> list:
         events = []
-        # dices = [random.randint(1, 6) for _ in range(2)]
-        dices = [10, 10]
+        dices = [random.randint(1, 6) for _ in range(2)]
+        # dices = [10, 10]
 
         events.append({
             'type': 'game.action',
@@ -163,6 +163,7 @@ class GameService:
                 'type': 'game.action',
                 'action': GameEventType.PASSED_START,
                 'player': player.pk,
+                'amount': GameService.ROUND_TRIP_BONUS,
             })
             player.cash += GameService.ROUND_TRIP_BONUS
             player.save()
@@ -228,8 +229,8 @@ class GameService:
                 GameService.calculate_mortages(game, player)
                 GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
         elif tile.type == Tile.CHANCE:
-            # card = ChanceCard.get_random_card()
-            card = ChanceCard.objects.filter(card_type=ChanceCard.MOVE_BACKWARDS).first()
+            card = ChanceCard.get_random_card()
+            # card = ChanceCard.objects.filter(card_type=ChanceCard.MOVE_BACKWARDS).first()
 
             events.append({
                 'type': 'game.action',
@@ -366,6 +367,7 @@ class GameService:
                 'type': 'game.action',
                 'action': GameEventType.PRISON_RELEASE_FAIL,
                 'player': player.pk,
+                'tries_left': config.MAXIMUM_JAIL_TURNS - player.jail_turns,
             })
             next_player = GameService.calculate_next_player(game, player)
             if next_player:
@@ -453,7 +455,8 @@ class GameService:
             'type': 'game.action',
             'action': GameEventType.PAY_RENT,
             'player': player.pk,
-            'rent_price': rent_price,
+            'amount': rent_price,
+            'to_player': ownership.player.pk,
         })
 
         # If double add roll dice effect to current player else to the next one
@@ -680,6 +683,12 @@ class GameService:
 
         GameService.remove_effect(game, player, GameEffect.IN_CASINO)
 
+        events.append({
+            'type': 'game.action',
+            'action': GameEventType.REJECT_CASINO,
+            'player': player.pk,
+        })
+
         next_player = GameService.calculate_next_player(game, player)
         if next_player:
             game.current_player = next_player
@@ -716,7 +725,7 @@ class GameService:
                 'type': 'game.action',
                 'action': GameEventType.LOST_CASINO,
                 'player': player.pk,
-                'amount': -bet,
+                'amount': bet,
             })
             player.cash -= bet
 

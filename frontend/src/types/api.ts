@@ -19,8 +19,23 @@ export enum GameEventScope {
   GAME = "game",
 }
 
-export enum GameEventType {
+export enum GameScopeType {
   GAME_CONNECTED = "game.connected",
+}
+
+export enum GameEventType {
+  REJECT_CASINO = "reject_casino",
+  WON_CASINO = "won_casino",
+  LOST_CASINO = "lost_casino",
+  BUY_PROPERTY = "buy_property",
+  GO_TO_PRISON = "go_to_prison",
+  PAY_FOR_PRISON = "pay_for_prison",
+  PRISON_RELEASE_FAIL = "prison_release_fail",
+  RELEASE_FROM_PRISON = "release_from_prison",
+  PAY_RENT = "pay_rent",
+  CHANCE_CARD = "chance_card",
+  STEPPED_ON_OWN_PROPERTY = "stepped_on_own_property",
+  PAY_TO_BANK = "pay_to_bank",
 }
 
 export enum GameActionType {
@@ -38,6 +53,7 @@ export enum GameActionType {
   PAY = "pay",
   REJECT = "reject",
   ACCEPT = "accept",
+  GO_TO_CASINO = "go_to_casino",
   WON_CASINO = "won_casino",
   LOST_CASINO = "lost_casino",
 }
@@ -77,6 +93,17 @@ export enum PropertyGroup {
   COMMUNICATION = "COMMUNICATION",
   FOOD = "FOOD",
   CLOTH = "CLOTH",
+}
+
+export enum ChanceCardType {
+  MOVE = "MOVE",
+  MOVE_BACKWARDS = "MOVE_BACKWARDS",
+  MONEY = "MONEY",
+  MONEY_TO_PLAYER = "MONEY_TO_PLAYER",
+  GO_TO_JAIL = "GO_TO_JAIL",
+  FREE_JAIL = "FREE_JAIL",
+  REPAIRS = "REPAIRS",
+  MISC = "MISC",
 }
 
 // Enums end here
@@ -152,16 +179,28 @@ export type Game = {
   created: string;
 };
 
+export type ChangeCardData = {
+  title: string;
+  description: string;
+  card_type: ChanceCardType;
+  details: string;
+};
+
 export type GameEvent = {
-  type: GameEventType | null;
-  action: GameActionType | null;
+  type: GameScopeType | null;
+  action: GameActionType | GameEventType | null;
   player: number | null;
   dices: number[] | null;
   position: number | null;
+  amount: number | null;
+  tile: number | null;
+  tries_left: number | null;
+  chance_card_data: ChangeCardData | null;
+  to_player: number | null;
 };
 
 export type GameFrame = {
-  type: GameEventType;
+  type: GameScopeType;
   action: GameActionType | null;
   game: Game | null;
   players: Player[] | null;

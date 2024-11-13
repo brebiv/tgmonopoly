@@ -1,6 +1,6 @@
 import { PLAYER_CHIP_COLORS } from "@/config";
 import { useGame } from "@/hooks";
-import { cn, getPlayerById, hexToRGBA } from "@/lib/utils";
+import { cn, getPlayerByIdDepricated, hexToRGBA } from "@/lib/utils";
 import { useGameStore } from "@/stores/GameStore";
 import { Ownership, PropertyGroup, SVGIcons, Tile } from "@/types/api";
 import clsx from "clsx";
@@ -46,7 +46,7 @@ function Property({ tile, imSelected, tileInfo }: PropertyProps) {
     let ownership = ownerships?.find((ownership) => ownership.property === tile.propertyData?.id);
     if (ownership) {
       if (players) {
-        let player = getPlayerById(players, ownership.player);
+        let player = getPlayerByIdDepricated(players, ownership.player);
         if (player) {
           let color = PLAYER_CHIP_COLORS[player.color as keyof typeof PLAYER_CHIP_COLORS][0];
           let opacity = 0.6;

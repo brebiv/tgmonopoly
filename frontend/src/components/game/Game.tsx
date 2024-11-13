@@ -13,8 +13,9 @@ import TurnMenu from "./TurnMenu/TurnMenu";
 import GameLobby from "./GameLobby";
 import GameOverScreen from "./GameOverScreen";
 import TileInfo from "./TileInfo";
-import DebugPanel from "./DebugPanel";
+// import DebugPanel from "./DebugPanel";
 import { useTheme } from "@/stores/ThemeContext";
+import GameLog from "./GameLog/GameLog";
 
 function Game() {
   useEffect(() => {
@@ -62,14 +63,15 @@ function Game() {
         !boardLoaded) && <LoadingScreen />}
       {game?.status === GameStatus.FINISHED && <GameOverScreen />}
       <PlayersChipController players={players} boardLoaded={boardLoaded} />
-      <DiceController />
       {/* <BoardCenter>
         <DebugPanel />
         <TileInfo />
-      </BoardCenter> */}
+        </BoardCenter> */}
       <Board boardLoaded={boardLoaded} setBoardLoaded={setBoardLoaded}>
+        <DiceController />
         <TileInfo />
-        <DebugPanel />
+        <GameLog />
+        {/* <DebugPanel /> */}
       </Board>
       <PlayersSection />
       <TurnMenu />

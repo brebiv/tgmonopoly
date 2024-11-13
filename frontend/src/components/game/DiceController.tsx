@@ -30,9 +30,9 @@ function DiceController() {
   };
 
   return (
-    <div className="dices absolute z-10 flex aspect-square w-full items-center justify-center">
+    <div className="dices absolute flex aspect-square w-full items-center justify-center">
       <div
-        className="relative flex h-full w-full items-center justify-center"
+        className="relative z-20 flex h-full w-full items-center justify-center"
         style={{
           visibility: showDices == false ? "hidden" : "visible",
         }}

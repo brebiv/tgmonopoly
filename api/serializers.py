@@ -139,7 +139,10 @@ class GameEventSerializer(serializers.Serializer):
     dices = serializers.ListField(child=serializers.IntegerField(), required=False)
     position = serializers.IntegerField(required=False)
     tile = serializers.IntegerField(required=False)
+    amount = serializers.IntegerField(required=False)
+    tries_left = serializers.IntegerField(required=False)
     chance_card_data = serializers.DictField(required=False)
+    to_player = serializers.IntegerField(required=False)
 
 
 class JoinGameSerializer(serializers.Serializer):

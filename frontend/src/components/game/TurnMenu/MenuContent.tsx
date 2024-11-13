@@ -21,7 +21,7 @@ interface MenuContentProps {
 function MenuContent({ effects }: MenuContentProps) {
   const gameUUID = window.location.pathname.split("/")[2];
   const [currentTile, setCurrentTile] = useState<Tile | undefined>(undefined);
-  const { me, wonCasino } = useGameStore((state) => state);
+  const { me, wonCasino, setWonCasino } = useGameStore((state) => state);
   const { data: tiles } = useTiles();
   const firstEffect = effects[0];
   const [title, setTitle] = useState<string>("");
@@ -32,6 +32,12 @@ function MenuContent({ effects }: MenuContentProps) {
 
   const { hintColor } = useTheme();
 
+  const fireConfetti = async () => {
+    // @ts-ignore
+    await window.confetti({ ticks: 400 });
+    setWonCasino(false);
+  };
+
   useEffect(() => {
     if (tiles && me) {
       setCurrentTile(getTileFromPosition(tiles, me.position));
@@ -41,7 +47,7 @@ function MenuContent({ effects }: MenuContentProps) {
   useEffect(() => {
     if (wonCasino) {
       // @ts-ignore
-      window.confetti({ ticks: 400 });
+      fireConfetti();
     }
     return () => {
       // @ts-ignore

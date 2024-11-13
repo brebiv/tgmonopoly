@@ -351,9 +351,9 @@ class Ownership(models.Model):
             if last_effect.name == GameEffect.PAY_RENT:
                 return False, "You can't buy a house during the pay rent effect"
 
-        if last_effect.effect_data:
-            if last_effect.effect_data.get('bought_house', False):
-                return False, "You can't buy a house twice per turn"
+            if last_effect.effect_data:
+                if last_effect.effect_data.get('bought_house', False):
+                    return False, "You can't buy a house twice per turn"
 
         if ownerships.count() != properties_in_group.count():
             return False, "You must own all properties in this group to build houses."
@@ -486,6 +486,62 @@ class GameEffect(models.Model):
 
     def __str__(self):
         return f"GameEffect in {self.game.uuid} - {self.name}"
+
+
+# class GameEvent(models.Model):
+
+#     START_GAME = 'start_game'
+#     ROLL_DICE = 'roll_dice'
+#     MOVE_PLAYER = 'move_player'
+#     BUY_PROPERTY = 'buy_property'
+#     PASSED_START = 'passed_start'
+#     STEPPED_ON_OWN_PROPERTY = 'stepped_on_own_property'
+#     PAY_RENT = 'pay_rent'
+#     GO_TO_PRISON = 'go_to_prison'
+#     RELEASE_FROM_PRISON = 'release_from_prison'
+#     PRISON_RELEASE_FAIL = 'prison_release_fail'
+#     PAY_FOR_PRISON = 'pay_for_prison'
+#     MORTAGE_PROPERTY = 'mortage_property'
+#     BUYOUT_PROPERTY = 'buyout_property'
+#     BUY_HOUSE = 'buy_house'
+#     SELL_HOUSE = 'sell_house'
+#     CHANCE_CARD = 'chance_card'
+#     PAY_TO_BANK = 'pay_to_bank'
+#     GO_TO_CASINO = 'go_to_casino'
+#     WON_CASINO = 'won_casino'
+#     LOST_CASINO = 'lost_casino'
+
+#     TYPE = [
+#         (START_GAME, 'Start Game'),
+#         (ROLL_DICE, 'Roll Dice'),
+#         (MOVE_PLAYER, 'Move Player'),
+#         (BUY_PROPERTY, 'Buy Property'),
+#         (PASSED_START, 'Passed Start'),
+#         (STEPPED_ON_OWN_PROPERTY, 'Stepped on Own Property'),
+#         (PAY_RENT, 'Pay Rent'),
+#         (GO_TO_PRISON, 'Go to Prison'),
+#         (RELEASE_FROM_PRISON, 'Release from Prison'),
+#         (PRISON_RELEASE_FAIL, 'Prison Release Fail'),
+#         (PAY_FOR_PRISON, 'Pay for Prison'),
+#         (MORTAGE_PROPERTY, 'Mortage Property'),
+#         (BUYOUT_PROPERTY, 'Buyout Property'),
+#         (BUY_HOUSE, 'Buy House'),
+#         (SELL_HOUSE, 'Sell House'),
+#         (CHANCE_CARD, 'Chance Card'),
+#         (PAY_TO_BANK, 'Pay to Bank'),
+#         (GO_TO_CASINO, 'Go to Casino'),
+#         (WON_CASINO, 'Won Casino'),
+#         (LOST_CASINO, 'Lost Casino'),
+#     ]
+
+#     game = models.ForeignKey(Game, related_name='log', on_delete=models.CASCADE)
+#     player = models.ForeignKey(Player, related_name='log', on_delete=models.CASCADE)
+#     type = models.CharField(max_length=50, choices=TYPE)
+#     data = models.JSONField(null=True, blank=True)
+#     created = models.DateTimeField(auto_now_add=True)
+
+#     def __str__(self):
+#         return f"GameEvent in {self.game.uuid} - {self.type}"
 
 
 class ChanceCard(models.Model):

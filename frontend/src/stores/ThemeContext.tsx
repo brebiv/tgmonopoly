@@ -9,6 +9,8 @@ interface ThemeContextType {
   hintColor: string;
   buttonColor: string;
   buttonTextColor: string;
+  sectionSeparatorColor: string;
+  linkColor: string;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -26,6 +28,8 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const [hintColor, setHintColor] = useState("#fff");
   const [buttonColor, setButtonColor] = useState("");
   const [buttonTextColor, setButtonTextColor] = useState("#fff");
+  const [sectionSeparatorColor, setSectionSeparatorColor] = useState("#fff");
+  const [linkColor, setLinkColor] = useState("#fff");
 
   // const toggleTheme = () => {
   //   setTheme((prevTheme) => (prevTheme === 'light' ? 'dark' : 'light'));
@@ -43,6 +47,8 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       setHintColor(theme.hint_color);
       setButtonColor(theme.button_color);
       setButtonTextColor(theme.button_text_color);
+      setSectionSeparatorColor(theme.section_separator_color || theme.hint_color);
+      setLinkColor(theme.link_color);
     } else {
       setUsingTGTheme(false);
     }
@@ -57,6 +63,8 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     hintColor,
     buttonColor,
     buttonTextColor,
+    sectionSeparatorColor,
+    linkColor,
   };
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

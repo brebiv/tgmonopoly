@@ -281,7 +281,7 @@ class Player(models.Model):
 
 class Ownership(models.Model):
     class Meta:
-        unique_together = ('player', 'property')
+        unique_together = ('game', 'property')
 
     game = models.ForeignKey(Game, related_name='ownerships', on_delete=models.CASCADE)
     player = models.ForeignKey(Player, related_name='owned_properties', on_delete=models.CASCADE)

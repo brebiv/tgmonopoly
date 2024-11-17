@@ -24,5 +24,5 @@ class TelegramUser(models.Model):
         return ' '.join([s for s in [self.first_name, self.last_name] if s])
 
     def __str__(self):
-        return f"{self.user_id} | @{self.username}"
+        return f"{self.user_id} | {self.first_name} | @{self.username}"
 

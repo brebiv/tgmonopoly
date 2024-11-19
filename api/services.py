@@ -482,6 +482,12 @@ class GameService:
         player.status = Player.TIMEOUT
         player.save()
 
+        events.append({
+            'type': 'game.action',
+            'action': GameEventType.TIMEOUT,
+            'player': player.pk,
+        })
+
         next_player = GameService.calculate_next_player(game, player)
         if next_player:
             game.current_player = next_player

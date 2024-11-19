@@ -87,6 +87,9 @@ function GameLogRow({ event }: { event: GameEvent }) {
     case GameEventType.PAY_TO_BANK:
       message = `Payed ${event.amount} to bank`;
       break;
+    case GameEventType.TIMEOUT:
+      message = "Player timed out";
+      break;
   }
 
   return (

@@ -227,6 +227,12 @@ class Player(models.Model):
             amount_of_houses += ownership.houses
 
         return amount_of_houses
+    
+    def current_effect(self) -> 'GameEffect | None':
+        """
+        Returns the current effect of the player.
+        """
+        return GameEffect.objects.filter(player=self).last()
 
     # def can_build_house(self, property: Property) -> list[bool, str]:
     #     """
@@ -432,7 +438,7 @@ class Ownership(models.Model):
         return ownerships.count() == properties_in_group.count()
 
     def __str__(self):
-        return f"{self.property.board_space.name} owned by {self.player.user.username}"
+        return f"{self.property.board_space.name} owned by {self.player.user.first_name}"
 
 
 class Card(models.Model):
@@ -474,6 +480,7 @@ class GameEffect(models.Model):
     PAY_RENT = 'pay_rent'
     PAY_REPAIRS = 'pay_repairs'
     IN_CASINO = 'in_casino'
+    IN_TRADE = 'in_trade'
 
     game = models.ForeignKey(Game, related_name='effects', on_delete=models.CASCADE)
     player = models.ForeignKey(Player, related_name='effects', on_delete=models.CASCADE)

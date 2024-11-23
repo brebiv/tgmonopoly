@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient, UseQueryResult } from "react-query";
 import { createGame, getAuth, getTiles } from "./api";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { buildGameWebsocketUrl } from "./lib/utils";
 import { Game, GameFrame, GameEventScope, Ownership } from "./types/api";
 import { useEventStore } from "./stores/EventStore";
 import { useGameStore } from "./stores/GameStore";
 import { processGameData } from "./lib/game";
+import { TGInitParams } from "./types/telegram";
 
 // @ts-ignore
 const players = [
@@ -145,7 +146,7 @@ export const useOwnerships = (): UseQueryResult<Ownership[] | null> => {
 
 export const useReactQuerySubscription = (gameUUID: string) => {
   const queryClient = useQueryClient();
-  const addEvents = useEventStore((state) => state.addEvents);
+  const { addEvents, processGameFrame } = useEventStore((state) => state);
   const { setMe, setGame, setPlayers, setOwnerships } = useGameStore();
 
   React.useEffect(() => {
@@ -172,6 +173,7 @@ export const useReactQuerySubscription = (gameUUID: string) => {
           setGame(gameFrame.game!);
           setMe(gameFrame.me!);
           setOwnerships(gameFrame.ownerships!);
+          processGameFrame(gameFrame);
         } else if (gameFrame.type === "game.action") {
           queryClient.setQueryData(["game"], () => gameFrame.game);
           queryClient.setQueryData(["players"], () => gameFrame.players);
@@ -199,4 +201,15 @@ export const usePrevious = <T>(value: T): UsePreviousType<T> => {
     ref.current = value;
   }, [value]);
   return ref.current;
+};
+
+export const useTelegramInitParams = (): TGInitParams | null => {
+  const [initParams, setInitParams] = useState<TGInitParams | null>(null);
+
+  useEffect(() => {
+    // @ts-ignore
+    setInitParams(window.Telegram.WebView.initParams as TGInitParams);
+  }, []);
+
+  return initParams;
 };

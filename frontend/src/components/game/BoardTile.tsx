@@ -5,6 +5,8 @@ import { Clover, Coins, Columns4, Goal, PiggyBank, Siren } from "lucide-react";
 import Property from "./Property";
 import { useTileInfoStore } from "@/stores/TileInfoStore";
 import { useTheme } from "@/stores/ThemeContext";
+import { useOwnerships } from "@/hooks";
+import { useTradeStore } from "@/stores/TradeStore";
 
 interface TileProps {
   tile: Tile;
@@ -17,6 +19,9 @@ function BoardTile({ tile }: TileProps) {
 
   const { setTileInfo, tile: tileInfo } = useTileInfoStore();
   const [imSelected, setImSelected] = useState(true);
+
+  const { tradeMenuData, isOwnershipInTradeMenu } = useTradeStore();
+  const { data: ownerships } = useOwnerships();
 
   const { textColor } = useTheme();
 
@@ -63,12 +68,27 @@ function BoardTile({ tile }: TileProps) {
   }
 
   useEffect(() => {
-    if (tileInfo && tileInfo.position === position) {
-      setImSelected(true);
+    if (tradeMenuData) {
+      let isSelected = false;
+      ownerships?.forEach((ownership) => {
+        if (
+          ownership.player === tradeMenuData.from_player ||
+          ownership.player === tradeMenuData.to_player
+        ) {
+          if (ownership.property === tile.propertyData?.id) {
+            isSelected = true;
+          }
+        }
+      });
+      setImSelected(isSelected);
     } else {
-      setImSelected(false);
+      if (tileInfo && tileInfo.position === position) {
+        setImSelected(true);
+      } else {
+        setImSelected(false);
+      }
     }
-  }, [tileInfo]);
+  }, [tileInfo, tradeMenuData, ownerships, tile.propertyData?.id, position]);
 
   return (
     <div
@@ -86,16 +106,19 @@ function BoardTile({ tile }: TileProps) {
         backgroundColor: textColor,
       }}
       onClick={() => {
-        if (tileInfo && tileInfo.position === position) {
-          setTileInfo(null, null);
-        } else {
-          setTileInfo(tile, tileRef);
+        if (!tradeMenuData) {
+          if (tileInfo && tileInfo.position === position) {
+            setTileInfo(null, null);
+          } else {
+            setTileInfo(tile, tileRef);
+          }
         }
       }}
     >
-      {tileInfo && !imSelected && (
-        <div className="absolute z-50 h-full w-full bg-black opacity-50"></div>
-      )}
+      {((tileInfo || tradeMenuData) && !imSelected) ||
+      isOwnershipInTradeMenu(tile.propertyData?.id!) ? (
+        <div className="pointer-events-none absolute z-10 h-full w-full bg-black opacity-50"></div>
+      ) : null}
       {type === TileType.START && (
         <div>
           <Goal />
@@ -117,7 +140,12 @@ function BoardTile({ tile }: TileProps) {
         </div>
       )}
       {(type === TileType.PROPERTY || type === TileType.UTILITY) && (
-        <Property tile={tile} imSelected={imSelected} tileInfo={tileInfo} />
+        <Property
+          tile={tile}
+          imSelected={imSelected}
+          tileInfo={tileInfo}
+          tradeMenuData={tradeMenuData}
+        />
       )}
       {type === TileType.CHANCE && (
         <div>

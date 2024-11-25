@@ -7,10 +7,11 @@ from asgiref.sync import async_to_sync
 from .serializers import (
     CreateGameSerializer, GameSerializer, PlayerSerializer, 
     GameActionSerializer, GameEventSerializer, JoinGameSerializer,
-    OwnershipSerializer, MortagePropertySerializer, ExtraDataSerializer
+    OwnershipSerializer, MortagePropertySerializer, ExtraDataSerializer,
+    TradeDataSerializer
 )
 from .utils import telegram_auth_required, CustomRequest
-from .types import GameActionType
+from .types import GameActionType, TradeData
 from game.models import Player, Game, GameEffect, Ownership
 from game import config
 from .services import GameService
@@ -280,6 +281,40 @@ def game_action(request: CustomRequest):
                             game_group_name, game_frame
                         )
                         return JsonResponse({"status": "ok",}, status=200)
+                    elif action == GameActionType.CREATE_TRADE:
+                        extra_data_serializer = TradeDataSerializer(data=extra_data)
+                        if not extra_data_serializer.is_valid():
+                            return JsonResponse({"status": "!ok", "error": extra_data_serializer.errors}, status=400)
+
+                        trade_data_raw = extra_data_serializer.validated_data
+
+                        ownerships: list[Ownership] = []
+                        if trade_data_raw.get('ownerships'):
+                            if not isinstance(trade_data_raw.get('ownerships'), list):
+                                return JsonResponse({"status": "!ok", "error": "Invalid ownerships"}, status=400)
+
+                        try:
+                            for ownership_id in trade_data_raw.get('ownerships'):
+                                ownership = Ownership.objects.get(pk=ownership_id)
+                                ownerships.append(ownership)
+                        except Ownership.DoesNotExist:
+                            return JsonResponse({"status": "!ok", "error": "Could not find ownership"}, status=400)
+
+                        trade_data = TradeData(
+                            trade_data_raw.get('from_player'),
+                            trade_data_raw.get('to_player'),
+                            trade_data_raw.get('cash_given'),
+                            trade_data_raw.get('cash_received'),
+                            ownerships=ownerships
+                        )
+
+                        events = GameService.create_trade(game, player, trade_data)
+                        game_frame = GameService.assemble_game_frame(game, events)
+
+                        async_to_sync(channel_layer.group_send)(
+                            game_group_name, game_frame
+                        )
+                        return JsonResponse({"status": "ok",}, status=200)
                     else:
                         return JsonResponse({"status": "!ok", "error": "Unknown action"}, status=400)
             elif first_effect.name == GameEffect.ASK_BUY:
@@ -430,6 +465,25 @@ def game_action(request: CustomRequest):
                     bet = extra_data_serializer.data['bet_amount']
     
                     events = GameService.play_casino(game, player, bet)
+                    game_frame = GameService.assemble_game_frame(game, events)
+
+                    async_to_sync(channel_layer.group_send)(
+                        game_group_name, game_frame
+                    )
+                    return JsonResponse({"status": "ok",}, status=200)
+                else:
+                    return JsonResponse({"status": "!ok", "error": "Unknown action"}, status=400)
+            elif first_effect.name == GameEffect.IN_TRADE:
+                if action == GameActionType.REJECT:
+                    events = GameService.reject_trade(game, player)
+                    game_frame = GameService.assemble_game_frame(game, events)
+
+                    async_to_sync(channel_layer.group_send)(
+                        game_group_name, game_frame
+                    )
+                    return JsonResponse({"status": "ok",}, status=200)
+                elif action == GameActionType.ACCEPT:
+                    events = GameService.accept_trade(game, player)
                     game_frame = GameService.assemble_game_frame(game, events)
 
                     async_to_sync(channel_layer.group_send)(

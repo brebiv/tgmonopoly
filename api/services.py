@@ -1,11 +1,12 @@
 import random
 import uuid
 from django.utils import timezone
+from django.conf import settings
 from celery import current_app
 
 from game.models import Game, Player, GameEffect, Tile, Ownership, ChanceCard, PropertyGroup
 from game import config
-from .types import GameActionType, GameEventType
+from .types import GameActionType, GameEventType, TradeData
 from .tasks import handle_game_effect_timeout
 from .serializers import GameEventSerializer, GameSerializer, PlayerSerializer, OwnershipSerializer
 
@@ -40,9 +41,16 @@ class GameService:
         return game_players[next_index]
 
     @staticmethod
-    def apply_effect(game: Game, player: Player, name: str, effect_data: dict = None) -> GameEffect:
-        effect_timeout = config.EFFECTS_TIMEOUTS[name]
+    def apply_effect(game: Game, player: Player, name: str, effect_data: dict = None, timeout: int = None) -> GameEffect:
+        if timeout:
+            effect_timeout = timeout
+        else:
+            effect_timeout = config.EFFECTS_TIMEOUTS[name]
 
+        # For some reason it becomes 3000 sec
+        if settings.DEVELOPMENT and effect_timeout <= 0:
+            effect_timeout = 10
+        
         effect_timeout_timestamp = (timezone.now() + timezone.timedelta(seconds=effect_timeout)).timestamp() * 1000
         
         effect_data = effect_data or {}
@@ -276,7 +284,6 @@ class GameService:
                     total_recieved = 0
                     for sender in from_players:
                         payment = min(sender.cash, amount)
-                        print(payment)
                         sender.cash -= payment
                         sender.save()
                         total_recieved += payment
@@ -745,5 +752,124 @@ class GameService:
             game.save()
             GameService.calculate_mortages(game, player)
             GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
+
+        return events
+    
+    @staticmethod
+    def create_trade(game: Game, player: Player, trade_data: TradeData) -> list[dict]:
+        events = []
+
+        if not trade_data.is_valid():
+            raise ValueError("Invalid trade data")
+
+        from_player = Player.objects.get(pk=trade_data.from_player)
+        to_player = Player.objects.get(pk=trade_data.to_player)
+
+        removed_effect = GameService.remove_effect(game, player, GameEffect.ROLL_DICE)
+
+        removed_effect_timeout = removed_effect.effect_data.get('timeout')
+
+        time_left = (removed_effect_timeout - (timezone.now().timestamp() * 1000)) / 1000
+        
+        # for player in (from_player, to_player):
+        #     GameService.apply_effect(game, player, GameEffect.IN_TRADE, {
+        #         'from_player': player.pk,
+        #         'to_player': player.pk,
+        #         'cash_given': trade_data.cash_given,
+        #         'cash_received': trade_data.cash_received,
+        #         'ownerships': [o.pk for o in trade_data.ownerships],
+        #         'turn_time_left': time_left,
+        #     })x
+
+        game.current_player = to_player
+        game.save()
+
+        GameService.apply_effect(game, to_player, GameEffect.IN_TRADE, {
+            'from_player': from_player.pk,
+            'to_player': to_player.pk,
+            'cash_given': trade_data.cash_given,
+            'cash_received': trade_data.cash_received,
+            'ownerships': [o.pk for o in trade_data.ownerships],
+            'turn_time_left': time_left,
+        })
+
+        events.append({
+            'type': 'game.action',
+            'action': GameEventType.CREATE_TRADE,
+            'player': player.pk,
+            'to_player': to_player.pk,
+        })
+        
+        return events
+
+    @staticmethod
+    def reject_trade(game: Game, player: Player) -> list[dict]:
+        events = []
+
+        removed_trade_effect = GameService.remove_effect(game, player, GameEffect.IN_TRADE)
+        from_player_id = removed_trade_effect.effect_data.get('from_player')
+        turn_time_left = removed_trade_effect.effect_data.get('turn_time_left')
+
+        from_player = Player.objects.get(pk=from_player_id)
+
+        game.current_player = from_player
+        game.save()
+        GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE, timeout=turn_time_left)
+
+        events.append({
+            'type': 'game.action',
+            'action': GameEventType.REJECT_TRADE,
+            'player': player.pk,
+            'from_player': from_player.pk,
+        })
+
+        return events
+    
+    @staticmethod
+    def accept_trade(game: Game, player: Player) -> list[dict]:
+        events = []
+
+        removed_trade_effect = GameService.remove_effect(game, player, GameEffect.IN_TRADE)
+        
+        trade_data = TradeData.from_dict(removed_trade_effect.effect_data)
+
+        if not trade_data.is_valid():
+            raise Exception("Invalid trade data")
+
+        from_player_id = trade_data.from_player
+        to_player_id = trade_data.to_player
+
+        from_player = Player.objects.get(pk=from_player_id)
+        to_player = Player.objects.get(pk=to_player_id)
+
+        # Giving money from trade creator
+        from_player.cash -= trade_data.cash_given
+        to_player.cash += trade_data.cash_given
+
+        # Giving what trade creator asked for
+        from_player.cash += trade_data.cash_received
+        to_player.cash -= trade_data.cash_received
+
+        # Dealing with properties
+        for ownership in trade_data.ownerships:
+            if ownership.player == from_player:
+                ownership.player = to_player
+            else:
+                ownership.player = from_player
+            ownership.save()
+
+        from_player.save()
+        to_player.save()
+
+        game.current_player = from_player
+        game.save()
+        GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
+
+        events.append({
+            'type': 'game.action',
+            'action': GameEventType.ACCEPT_TRADE,
+            'player': player.pk,
+            'from_player': from_player.pk,
+        })
 
         return events

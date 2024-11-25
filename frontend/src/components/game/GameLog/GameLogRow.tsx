@@ -90,6 +90,19 @@ function GameLogRow({ event }: { event: GameEvent }) {
     case GameEventType.TIMEOUT:
       message = "Player timed out";
       break;
+    case GameEventType.CREATE_TRADE:
+      message = (
+        <p>
+          proposing trade to <PlayerNameSpan player={event.to_player!} />
+        </p>
+      );
+      break;
+    case GameEventType.REJECT_TRADE:
+      message = "rejected trade offer";
+      break;
+    case GameEventType.ACCEPT_TRADE:
+      message = "accepted trade offer";
+      break;
   }
 
   return (

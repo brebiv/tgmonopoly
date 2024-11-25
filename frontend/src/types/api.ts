@@ -1,3 +1,5 @@
+import { TradeMenuData } from "@/stores/TradeStore";
+
 export enum TileType {
   START = "START",
   PROPERTY = "PROPERTY",
@@ -21,6 +23,7 @@ export enum GameEventScope {
 
 export enum GameScopeType {
   GAME_CONNECTED = "game.connected",
+  GAME_ACTION = "game.action",
 }
 
 export enum GameEventType {
@@ -36,6 +39,10 @@ export enum GameEventType {
   CHANCE_CARD = "chance_card",
   STEPPED_ON_OWN_PROPERTY = "stepped_on_own_property",
   PAY_TO_BANK = "pay_to_bank",
+  TIMEOUT = "timeout",
+  CREATE_TRADE = "create_trade",
+  REJECT_TRADE = "reject_trade",
+  ACCEPT_TRADE = "accept_trade",
 }
 
 export enum GameActionType {
@@ -56,6 +63,7 @@ export enum GameActionType {
   GO_TO_CASINO = "go_to_casino",
   WON_CASINO = "won_casino",
   LOST_CASINO = "lost_casino",
+  CREATE_TRADE = "create_trade",
 }
 
 export enum GameEffectType {
@@ -65,6 +73,7 @@ export enum GameEffectType {
   PAY_RENT = "pay_rent",
   PAY_REPAIRS = "pay_repairs",
   IN_CASINO = "in_casino",
+  IN_TRADE = "in_trade",
 }
 
 export enum PlayerStatus {
@@ -144,7 +153,7 @@ export type EffectData = {
   timeout: number;
   created: number;
   available_bets: string[];
-};
+} & TradeMenuData;
 
 export type GameEffect = {
   name: GameEffectType;
@@ -226,6 +235,7 @@ export type CreateGameResponse = {
 };
 
 export type Ownership = {
+  id: number;
   player: number;
   property: number;
   houses: number;

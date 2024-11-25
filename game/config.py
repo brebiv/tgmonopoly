@@ -7,6 +7,7 @@ class GameEffectTypes(models.TextChoices):
     PAY_RENT = 'pay_rent', 'Pay Rent'
     PAY_REPAIRS = 'pay_repairs', 'Pay Repairs'
     IN_CASINO = 'in_casino', 'In Casino'
+    IN_TRADE = 'in_trade', 'In Trade'
 
 
 
@@ -18,11 +19,12 @@ class AvailableSVGIcons(models.TextChoices):
 
 # Timeouts in seconds
 EFFECTS_TIMEOUTS = {
-    GameEffectTypes.ROLL_DICE: 10,
+    GameEffectTypes.ROLL_DICE: 20,
     GameEffectTypes.ASK_BUY: 10,
     GameEffectTypes.PAY_RENT: 10,
     GameEffectTypes.PAY_REPAIRS: 10,
     GameEffectTypes.IN_CASINO: 10,
+    GameEffectTypes.IN_TRADE: 20,
 }
 
 DISABLE_AFK = True

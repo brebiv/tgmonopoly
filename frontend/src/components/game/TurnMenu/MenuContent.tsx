@@ -13,6 +13,9 @@ import PayButton from "./PayButton";
 import CasinoMenuContent from "./CasinoMenuContent";
 import { Button } from "@/components/ui/button";
 import { sendGameAction } from "@/api";
+import { useTradeStore } from "@/stores/TradeStore";
+import SendTradeButton from "./SendTradeButton";
+import CancelButton from "./CancelButton";
 
 interface MenuContentProps {
   effects: GameEffect[];
@@ -27,6 +30,7 @@ function MenuContent({ effects }: MenuContentProps) {
   const [title, setTitle] = useState<string>("");
   const [hint, setHint] = useState<string | React.ReactNode>("");
   const [actions, setActions] = useState<React.ReactNode[]>([]);
+  const { tradeMenuData, isTradeValid } = useTradeStore();
 
   const [acceptedCasino, setAcceptedCasino] = useState(false);
 
@@ -46,7 +50,6 @@ function MenuContent({ effects }: MenuContentProps) {
 
   useEffect(() => {
     if (wonCasino) {
-      // @ts-ignore
       fireConfetti();
     }
     return () => {
@@ -59,8 +62,6 @@ function MenuContent({ effects }: MenuContentProps) {
     if (!me) {
       return;
     }
-    console.log("effects", effects);
-    console.log("me", me);
 
     if (firstEffect == undefined) {
       setTitle("It's your turn!, but you have kind of nothing to do");
@@ -107,9 +108,18 @@ function MenuContent({ effects }: MenuContentProps) {
         }
 
         actions = [
-          <RollDiceButton key={0} gameUUID={gameUUID} />,
           //<IncreasePositionButton key={1} />
         ];
+
+        if (tradeMenuData) {
+          title = "You are in trade menu!";
+          hint = "";
+
+          actions.push(<SendTradeButton key={1} gameUUID={gameUUID} disabled={!isTradeValid()} />);
+          actions.push(<CancelButton key={2} />);
+        } else {
+          actions.push(<RollDiceButton key={0} gameUUID={gameUUID} />);
+        }
       }
       setTitle(title);
       setHint(hint);
@@ -154,10 +164,35 @@ function MenuContent({ effects }: MenuContentProps) {
       ];
       setTitle(`Do you want to flip a coin?`);
       setActions(actions);
+    } else if (firstEffect.name === GameEffectType.IN_TRADE) {
+      let actions = [
+        <Button
+          key={0}
+          variant={"default"}
+          className="w-full gap-2 py-6 text-lg font-semibold"
+          onClick={() => {
+            sendGameAction({ action: GameActionType.ACCEPT, game_uuid: gameUUID });
+          }}
+        >
+          {"Yes"}
+        </Button>,
+        <Button
+          key={0}
+          variant={"destructive"}
+          onClick={() => {
+            sendGameAction({ action: GameActionType.REJECT, game_uuid: gameUUID });
+          }}
+          className="w-full gap-2 py-6 text-lg font-semibold"
+        >
+          {"No"}
+        </Button>,
+      ];
+      setTitle("Accept trade?");
+      setActions(actions);
     } else {
       setTitle("Unknown effect");
     }
-  }, [effects, currentTile, me]);
+  }, [effects, currentTile, me, tradeMenuData]);
 
   return (
     <div className="flex flex-col items-center gap-4 px-2 pb-12">

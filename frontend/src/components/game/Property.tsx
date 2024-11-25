@@ -11,14 +11,16 @@ import ApartmentIcon from "../ui/icons/ApartmentIcon";
 import { useTheme } from "@/stores/ThemeContext";
 import WindPowerIcon from "../ui/icons/WindPowerIcon";
 import SolarPowerIcon from "../ui/icons/SolorPowerIcon";
+import { TradeMenuData, useTradeStore } from "@/stores/TradeStore";
 
 interface PropertyProps {
   tile: Tile;
   imSelected: boolean;
   tileInfo: Tile | null;
+  tradeMenuData: TradeMenuData | null;
 }
 
-function Property({ tile, imSelected, tileInfo }: PropertyProps) {
+function Property({ tile, imSelected, tileInfo, tradeMenuData }: PropertyProps) {
   let side: "top" | "right" | "bottom" | "left" | undefined = undefined;
 
   if (tile.position >= 0 && tile.position < 10) {
@@ -32,6 +34,9 @@ function Property({ tile, imSelected, tileInfo }: PropertyProps) {
   }
 
   const { ownerships, players } = useGameStore((state) => state);
+  const { addOwnershipToTradeMenu, isOwnershipInTradeMenu, removeOwnershipFromTradeMenu } =
+    useTradeStore();
+
   const { data: game } = useGame();
 
   const [color, setColor] = useState<string>("");
@@ -109,9 +114,18 @@ function Property({ tile, imSelected, tileInfo }: PropertyProps) {
         backgroundColor: color || "",
         boxShadow: color ? `inset 0px 0px 4px 1px rgb(0, 0, 0, 0.5)` : "",
       }}
+      onClick={() => {
+        if (tradeMenuData && ownership) {
+          if (!isOwnershipInTradeMenu(tile.propertyData!.id)) {
+            addOwnershipToTradeMenu(ownership);
+          } else {
+            removeOwnershipFromTradeMenu(tile.propertyData!.id);
+          }
+        }
+      }}
     >
       {mortgaged && (
-        <div className="absolute z-10 flex h-full w-full items-center justify-center">
+        <div className="ß absolute z-10 flex h-full w-full items-center justify-center">
           <div className="absolute h-full w-full bg-black opacity-50"></div>
         </div>
       )}
@@ -194,9 +208,10 @@ function Property({ tile, imSelected, tileInfo }: PropertyProps) {
           backgroundColor: `var(--group-color-${tile.propertyData?.group_id})`,
         }}
       >
-        {tileInfo && !imSelected && (
+        {((tileInfo || tradeMenuData) && !imSelected) ||
+        isOwnershipInTradeMenu(ownership?.property!) ? (
           <div className="absolute z-10 h-full w-full bg-black opacity-50"></div>
-        )}
+        ) : null}
         <div
           className="flex h-full w-full items-center justify-center"
           style={{
@@ -240,7 +255,7 @@ function Property({ tile, imSelected, tileInfo }: PropertyProps) {
             backgroundColor: destructiveColor,
           }}
         >
-          {tileInfo && !imSelected && (
+          {(tileInfo || tradeMenuData) && !imSelected && (
             <div className="absolute z-10 h-full w-full rounded-b-lg bg-black opacity-50"></div>
           )}
           <div

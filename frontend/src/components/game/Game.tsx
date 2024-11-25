@@ -16,6 +16,8 @@ import TileInfo from "./TileInfo";
 // import DebugPanel from "./DebugPanel";
 import { useTheme } from "@/stores/ThemeContext";
 import GameLog from "./GameLog/GameLog";
+import TradeMenu from "./TradeMenu/TradeMenu";
+import { useTradeStore } from "@/stores/TradeStore";
 
 function Game() {
   useEffect(() => {
@@ -36,6 +38,7 @@ function Game() {
 
   const [boardLoaded, setBoardLoaded] = useState(false);
   const { game, players } = useGameStore((state) => state);
+  const { tradeMenuData } = useTradeStore();
 
   const { secondaryBGColor } = useTheme();
 
@@ -68,9 +71,10 @@ function Game() {
         <TileInfo />
         </BoardCenter> */}
       <Board boardLoaded={boardLoaded} setBoardLoaded={setBoardLoaded}>
-        <DiceController />
-        <TileInfo />
-        <GameLog />
+        {!tradeMenuData && <DiceController />}
+        {!tradeMenuData && <TileInfo />}
+        {tradeMenuData != null && <TradeMenu />}
+        {!tradeMenuData && <GameLog />}
         {/* <DebugPanel /> */}
       </Board>
       <PlayersSection />

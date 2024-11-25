@@ -1,7 +1,17 @@
-import { Game, GameActionType, GameEvent, Ownership, Player } from "@/types/api";
+import {
+  Game,
+  GameActionType,
+  GameEffectType,
+  GameEvent,
+  GameEventType,
+  GameFrame,
+  GameScopeType,
+  Ownership,
+  Player,
+} from "@/types/api";
 import { create } from "zustand";
 
-import { getMeFromPlayers, sleep } from "@/lib/utils";
+import { buildTradeMenuDataFromServerResponse, getMeFromPlayers, sleep } from "@/lib/utils";
 import {
   COIN_FLIP_ANIMATION_DURATION_MS,
   COIN_FLIP_RESULT_DURATION_MS,
@@ -10,6 +20,7 @@ import {
 } from "@/config";
 import { useGameStore } from "./GameStore";
 import { queryClient } from "@/lib/queryClient";
+import { useTradeStore } from "./TradeStore";
 
 interface EventStore {
   eventQueue: GameEvent[] | [];
@@ -18,6 +29,7 @@ interface EventStore {
   addEvents: (event: GameEvent[]) => void;
   addEventLog: (event: GameEvent[]) => void;
   processNextEvent: () => void;
+  processGameFrame: (gameFrame: GameFrame) => void;
 }
 
 export const useEventStore = create<EventStore>((set, get) => ({
@@ -78,14 +90,30 @@ export const useEventStore = create<EventStore>((set, get) => ({
       get().processNextEvent();
     }
   },
+  processGameFrame: (gameFrame: GameFrame) => {
+    const { setShowTradeMenu, setTradeMenuData, setIsPreview } = useTradeStore.getState();
+    if (gameFrame.type === GameScopeType.GAME_CONNECTED) {
+      let players = queryClient.getQueriesData<Player[]>(["players"])[0][1];
+      let me = getMeFromPlayers(players);
+      let lastEffect = me?.effects[0];
+
+      if (lastEffect) {
+        if (lastEffect.name === GameEffectType.IN_TRADE) {
+          setShowTradeMenu(true);
+          setIsPreview(true);
+          setTradeMenuData(buildTradeMenuDataFromServerResponse(lastEffect.effect_data));
+        }
+      }
+    }
+  },
 }));
 
 const processEvent = async (event: GameEvent) => {
-  const { setDices, setShowDices, setShowTurnMenu, movePlayer, setCoinRotation, setWonCasino } =
+  const { setDices, setShowDices, setShowTurnMenu, movePlayer, setCoinRotation, setWonCasino, me } =
     useGameStore.getState();
+  const { setShowTradeMenu, resetTrade, setTradeMenuData, setIsPreview } = useTradeStore.getState();
 
-  if (event.action === GameActionType.START_GAME) {
-  } else if (event.action === GameActionType.ROLL_DICE) {
+  if (event.action === GameActionType.ROLL_DICE) {
     setShowTurnMenu(false);
     setShowDices(true);
     setDices(event.dices);
@@ -103,5 +131,22 @@ const processEvent = async (event: GameEvent) => {
     setCoinRotation(360 * 7);
     await sleep(COIN_FLIP_ANIMATION_DURATION_MS + COIN_FLIP_RESULT_DURATION_MS);
     setWonCasino(false);
+  } else if (event.action === GameEventType.TIMEOUT) {
+    setShowTradeMenu(false);
+    resetTrade();
+  } else if (event.action == GameEventType.CREATE_TRADE) {
+    if (event.to_player === me?.id) {
+      let players = queryClient.getQueriesData<Player[]>(["players"])[0][1];
+      let me = getMeFromPlayers(players);
+
+      let tradeMenuData = buildTradeMenuDataFromServerResponse(me!.effects[0]!.effect_data);
+
+      setTradeMenuData(tradeMenuData);
+      setShowTradeMenu(true);
+      setIsPreview(true);
+    }
+  } else if (event.action === GameEventType.REJECT_TRADE) {
+    setShowTradeMenu(false);
+    resetTrade();
   }
 };

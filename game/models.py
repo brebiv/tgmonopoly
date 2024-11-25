@@ -316,7 +316,6 @@ class Ownership(models.Model):
                 return self.property.rent * dice_sum
         else:
             if self.houses == 0:
-                print("Self rent", self.property.rent)
                 return self.property.rent
             elif self.houses == 1:
                 return self.property.rent_with_1_house

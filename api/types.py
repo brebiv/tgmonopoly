@@ -1,4 +1,5 @@
-from enum import Enum
+from dataclasses import dataclass
+from game.models import Ownership
 
 class GameActionType:
     START_GAME = 'start_game'
@@ -13,6 +14,7 @@ class GameActionType:
     PAY = "pay"
     REJECT = "reject"
     ACCEPT = "accept"
+    CREATE_TRADE = "create_trade"
 
 class GameEventType:
     START_GAME = 'start_game'
@@ -36,3 +38,36 @@ class GameEventType:
     REJECT_CASINO = 'reject_casino'
     WON_CASINO = 'won_casino'
     LOST_CASINO = 'lost_casino'
+    TIMEOUT = 'timeout'
+    CREATE_TRADE = 'create_trade'
+    REJECT_TRADE = 'reject_trade'
+    ACCEPT_TRADE = 'accept_trade'
+
+@dataclass
+class TradeData:
+    from_player: int
+    to_player: int
+    cash_given: int
+    cash_received: int
+    ownerships: list[Ownership]
+
+    def is_valid(self) -> bool:
+        return self.cash_given > 0 and self.cash_received > 0 or (self.ownerships and len(self.ownerships) > 0)
+
+    @classmethod
+    def from_dict(cls, trade_data: dict) -> 'TradeData':
+        ownerships = []
+        try:
+            for ownership_id in trade_data.get('ownerships', []):
+                ownership = Ownership.objects.get(pk=ownership_id)
+                ownerships.append(ownership)
+        except Ownership.DoesNotExist:
+            raise Exception({"status": "!ok", "error": "Could not find ownership"}, status=400)
+
+        return cls(
+            from_player=trade_data.get('from_player'),
+            to_player=trade_data.get('to_player'),
+            cash_given=trade_data.get('cash_given', 0),
+            cash_received=trade_data.get('cash_received', 0),
+            ownerships=ownerships
+        )

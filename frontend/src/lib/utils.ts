@@ -1,7 +1,8 @@
 import { useGameStore } from "@/stores/GameStore";
-import { Player, Tile } from "@/types/api";
+import { Ownership, Player, Tile } from "@/types/api";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { queryClient } from "./queryClient";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -45,6 +46,37 @@ export function getPlayerById(id: number) {
     return null;
   }
   return players.find((player) => player.id === id);
+}
+
+export function getPropertyById(id: number) {
+  const tiles = queryClient.getQueriesData<Tile[]>(["tiles"])[0][1];
+  if (!tiles) {
+    return null;
+  }
+  return tiles.find((tile) => tile.propertyData?.id === id);
+}
+
+export function getOwnershipById(id: number) {
+  let ownerships = queryClient.getQueriesData<Ownership[]>(["ownerships"])[0][1];
+  if (!ownerships) {
+    return null;
+  }
+  return ownerships.find((ownership) => ownership.id === id);
+}
+
+export function buildTradeMenuDataFromServerResponse(data: any) {
+  let tradeMenuData = {
+    from_player: data.from_player,
+    to_player: data.to_player,
+    cash_given: data.cash_given,
+    cash_received: data.cash_received,
+    ownerships: data.ownerships.map((ownership_id: number) => {
+      // @ts-ignore
+      return getOwnershipById(ownership_id);
+    }),
+  };
+
+  return tradeMenuData;
 }
 
 export function hexToRGBA(hex: string, alpha: number) {

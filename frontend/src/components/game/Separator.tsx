@@ -1,8 +1,14 @@
+import { cn } from "@/lib/utils";
 import { useTheme } from "@/stores/ThemeContext";
 
-function Separator() {
+function Separator({ orientation = "horizontal" }: { orientation?: "vertical" | "horizontal" }) {
   const { sectionSeparatorColor } = useTheme();
-  return <div className="h-[2px] w-full" style={{ backgroundColor: sectionSeparatorColor }} />;
+  return (
+    <div
+      className={cn(orientation === "vertical" ? "h-full w-[2px]" : "h-[2px] w-full")}
+      style={{ backgroundColor: sectionSeparatorColor }}
+    />
+  );
 }
 
 export default Separator;

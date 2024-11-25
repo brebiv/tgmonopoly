@@ -156,7 +156,7 @@ class OwnershipSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ownership
         fields = (
-            'player', 'property', 'houses', 'mortgaged', 'mortage_last_turn', 
+            'id', 'player', 'property', 'houses', 'mortgaged', 'mortage_last_turn', 
             'can_build_house', 'can_sell_house', 'calculate_rent', 'owns_entire_group'
         )
 
@@ -171,3 +171,12 @@ class OwnershipSerializer(serializers.ModelSerializer):
     def get_can_sell_house(self, obj):
         can_sell, reason = obj.can_sell_house()
         return can_sell
+
+
+class TradeDataSerializer(serializers.Serializer):
+    from_player = serializers.IntegerField()
+    to_player = serializers.IntegerField()
+    cash_given = serializers.IntegerField()
+    cash_received = serializers.IntegerField()
+    ownerships = serializers.ListField(child=serializers.IntegerField(), allow_empty=True)
+

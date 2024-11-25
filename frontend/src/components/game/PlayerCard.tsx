@@ -14,6 +14,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import TelegramIcon from "../ui/icons/TelegramIcon";
 import Separator from "./Separator";
 import { useGameStore } from "@/stores/GameStore";
+import { PopoverClose } from "@radix-ui/react-popover";
+import { useTradeStore } from "@/stores/TradeStore";
 
 type PlayerCardProps = {
   player: Player;
@@ -22,6 +24,7 @@ type PlayerCardProps = {
 function PlayerCard({ player }: PlayerCardProps) {
   const { data: game } = useGame();
   const { me } = useGameStore();
+  const { initTradeMenuData } = useTradeStore();
   const [isCurrentPlayer, setIsCurrentPlayer] = useState(false);
   const [primaryColor, _] = PLAYER_CHIP_COLORS[player.color as keyof typeof PLAYER_CHIP_COLORS];
   const [cashLoss, setCashLoss] = useState(0);
@@ -211,7 +214,7 @@ function PlayerCard({ player }: PlayerCardProps) {
           <div className="absolute right-0 top-0">{isCurrentPlayer && <Dices />}</div>
         </Card>
       </PopoverTrigger>
-      <PopoverContent side="top" className="p-0">
+      <PopoverContent side="top" className="p-0 focus:outline-none">
         {me?.id === player.id ? (
           <div className="flex flex-col">
             <button className="flex h-1/4 w-full items-center justify-start gap-4 p-3">
@@ -221,15 +224,24 @@ function PlayerCard({ player }: PlayerCardProps) {
           </div>
         ) : (
           <div className="flex flex-col">
-            <button className="flex h-1/4 w-full items-center justify-start gap-4 p-3">
-              <TelegramIcon className="h-5" />
-              {"Send message"}
-            </button>
+            <PopoverClose asChild>
+              <button className="flex w-full items-center justify-start gap-4 p-3 focus:outline-none">
+                <TelegramIcon className="h-5" />
+                {"Send message"}
+              </button>
+            </PopoverClose>
             <Separator />
-            <button className="flex h-1/4 w-full items-center justify-start gap-4 p-3">
-              <HandshakeIcon />
-              {"Trade"}
-            </button>
+            <PopoverClose asChild>
+              <button
+                className="flex w-full items-center justify-start gap-4 p-3 focus:outline-none"
+                onClick={() => {
+                  initTradeMenuData(me!.id, player.id);
+                }}
+              >
+                <HandshakeIcon />
+                {"Trade"}
+              </button>
+            </PopoverClose>
           </div>
         )}
       </PopoverContent>

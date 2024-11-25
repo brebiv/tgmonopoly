@@ -15,7 +15,7 @@ function GameLog() {
   return (
     <div
       ref={containerRef}
-      className="game-log absolute flex h-full w-full flex-col overflow-y-scroll p-1 text-white"
+      className="game-log absolute top-0 flex h-full w-full flex-col overflow-y-scroll p-1 text-white"
     >
       {eventLog.map((event, i) => (
         <GameLogRow key={`${event.type}-${i}`} event={event} />

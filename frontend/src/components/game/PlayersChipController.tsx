@@ -9,16 +9,12 @@ function PlayersChipController({
   players: Player[] | [] | any;
   boardLoaded: boolean;
 }) {
-  if (players == undefined || players.length == 0) {
-    return null;
-  }
-
   const [playerChips, setPlayerChips] = useState<PlayerChipType[]>([]);
   const tilePositions = useRef({});
 
   // Collect tile positions
   useEffect(() => {
-    if (!boardLoaded) {
+    if (!boardLoaded || players == undefined || players.length == 0) {
       return;
     }
 
@@ -37,7 +33,7 @@ function PlayersChipController({
   }, [boardLoaded, players]);
 
   useEffect(() => {
-    if (!boardLoaded) {
+    if (!boardLoaded || players == undefined || players.length == 0) {
       return;
     }
 

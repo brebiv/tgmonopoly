@@ -144,8 +144,14 @@ const processEvent = async (event: GameEvent) => {
       setTradeMenuData(tradeMenuData);
       setShowTradeMenu(true);
       setIsPreview(true);
+    } else {
+      setShowTradeMenu(false);
+      resetTrade();
     }
-  } else if (event.action === GameEventType.REJECT_TRADE) {
+  } else if (
+    event.action === GameEventType.REJECT_TRADE ||
+    event.action === GameEventType.ACCEPT_TRADE
+  ) {
     setShowTradeMenu(false);
     resetTrade();
   }

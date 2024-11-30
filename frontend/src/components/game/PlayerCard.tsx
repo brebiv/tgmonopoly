@@ -23,7 +23,7 @@ type PlayerCardProps = {
 
 function PlayerCard({ player }: PlayerCardProps) {
   const { data: game } = useGame();
-  const { me } = useGameStore();
+  const { me, myTurn } = useGameStore();
   const { initTradeMenuData } = useTradeStore();
   const [isCurrentPlayer, setIsCurrentPlayer] = useState(false);
   const [primaryColor, _] = PLAYER_CHIP_COLORS[player.color as keyof typeof PLAYER_CHIP_COLORS];
@@ -215,6 +215,7 @@ function PlayerCard({ player }: PlayerCardProps) {
         </Card>
       </PopoverTrigger>
       <PopoverContent side="top" className="p-0 focus:outline-none">
+        {/* Menu for me */}
         {me?.id === player.id ? (
           <div className="flex flex-col">
             <button className="flex h-1/4 w-full items-center justify-start gap-4 p-3">
@@ -224,6 +225,7 @@ function PlayerCard({ player }: PlayerCardProps) {
           </div>
         ) : (
           <div className="flex flex-col">
+            {/* Menu for other players */}
             <PopoverClose asChild>
               <button className="flex w-full items-center justify-start gap-4 p-3 focus:outline-none">
                 <TelegramIcon className="h-5" />
@@ -231,17 +233,19 @@ function PlayerCard({ player }: PlayerCardProps) {
               </button>
             </PopoverClose>
             <Separator />
-            <PopoverClose asChild>
-              <button
-                className="flex w-full items-center justify-start gap-4 p-3 focus:outline-none"
-                onClick={() => {
-                  initTradeMenuData(me!.id, player.id);
-                }}
-              >
-                <HandshakeIcon />
-                {"Trade"}
-              </button>
-            </PopoverClose>
+            {myTurn && (
+              <PopoverClose asChild>
+                <button
+                  className="flex w-full items-center justify-start gap-4 p-3 focus:outline-none"
+                  onClick={() => {
+                    initTradeMenuData(me!.id, player.id);
+                  }}
+                >
+                  <HandshakeIcon />
+                  {"Trade"}
+                </button>
+              </PopoverClose>
+            )}
           </div>
         )}
       </PopoverContent>

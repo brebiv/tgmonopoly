@@ -1,11 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { cn, sleep } from "@/lib/utils";
+import { cn, getPlayerById, sleep } from "@/lib/utils";
 import { useGameStore } from "@/stores/GameStore";
 import { useTheme } from "@/stores/ThemeContext";
 import { useTradeStore } from "@/stores/TradeStore";
 import { ExitIcon } from "@radix-ui/react-icons";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 interface AddMoneyToTradeDialogProps {
   open: boolean;
@@ -20,6 +20,13 @@ function AddMoneyToTradeDialog({ open, setOpen, isGivingMoney }: AddMoneyToTrade
   const { destructiveTextColor } = useTheme();
 
   const { setCashGiven, setCashReceived: setCashRecieved, tradeMenuData } = useTradeStore();
+
+  const toPlayer = useMemo(() => getPlayerById(tradeMenuData?.to_player!), [tradeMenuData]);
+  let playerThatGivesMoney = me;
+
+  if (!isGivingMoney) {
+    playerThatGivesMoney = toPlayer!;
+  }
 
   useEffect(() => {
     async function resetMoney() {
@@ -68,7 +75,7 @@ function AddMoneyToTradeDialog({ open, setOpen, isGivingMoney }: AddMoneyToTrade
           const parsedValue = Number(value);
           setMoney(parsedValue);
 
-          if (parsedValue > me!.cash) {
+          if (parsedValue > playerThatGivesMoney!.cash) {
             setErrorMessage("You don't have enough cash");
           } else {
             setErrorMessage("");
@@ -76,27 +83,45 @@ function AddMoneyToTradeDialog({ open, setOpen, isGivingMoney }: AddMoneyToTrade
         }}
         value={money}
         min={0}
-        max={me?.cash}
+        max={playerThatGivesMoney?.cash}
         placeholder="0"
       />
       <div className="grid w-full grid-cols-4 gap-2">
-        <Button className="gap-1" onClick={() => setMoney(money + 10)}>
+        <Button
+          className="gap-1 transition-all"
+          onClick={() => setMoney(money + 10)}
+          disabled={money + 10! > playerThatGivesMoney?.cash!}
+        >
           +10
         </Button>
-        <Button className="gap-1" onClick={() => setMoney(money + 20)}>
+        <Button
+          className="gap-1 transition-all"
+          onClick={() => setMoney(money + 20)}
+          disabled={money + 20! > playerThatGivesMoney?.cash!}
+        >
           +20
         </Button>
-        <Button className="gap-1" onClick={() => setMoney(money + 50)}>
+        <Button
+          className="gap-1 transition-all"
+          onClick={() => setMoney(money + 50)}
+          disabled={money + 50! > playerThatGivesMoney?.cash!}
+        >
           +50
         </Button>
-        <Button className="gap-1" onClick={() => setMoney(money + 100)}>
+        <Button
+          className="gap-1 transition-all"
+          onClick={() => setMoney(money + 100)}
+          disabled={money + 100! > playerThatGivesMoney?.cash!}
+        >
           +100
         </Button>
       </div>
       <Button
         variant={"default"}
-        className="w-full"
-        disabled={money === 0 || isNaN(money) || errorMessage !== ""}
+        className="w-full transition-all"
+        disabled={
+          money === 0 || isNaN(money) || errorMessage !== "" || money > playerThatGivesMoney?.cash!
+        }
         onClick={() => {
           const amount = Number.isNaN(money) ? 0 : money;
           if (amount === 0) {
@@ -111,7 +136,7 @@ function AddMoneyToTradeDialog({ open, setOpen, isGivingMoney }: AddMoneyToTrade
           setOpen(false);
         }}
       >
-        Add money
+        {"Add money"}
       </Button>
     </div>
   );

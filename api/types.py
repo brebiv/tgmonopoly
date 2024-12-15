@@ -52,6 +52,12 @@ class TradeData:
     ownerships: list[Ownership]
 
     def is_valid(self) -> bool:
+        try:
+            for ownership in self.ownerships:
+                Ownership.objects.get(pk=ownership.pk)
+        except Ownership.DoesNotExist:
+            return False
+        
         return self.cash_given > 0 and self.cash_received > 0 or (self.ownerships and len(self.ownerships) > 0)
 
     @classmethod

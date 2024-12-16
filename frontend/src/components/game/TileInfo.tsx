@@ -2,7 +2,7 @@ import { useTileInfoStore } from "@/stores/TileInfoStore";
 import { Card, CardContent, CardHeader } from "../ui/card";
 // @ts-ignore
 import { CircleX, House, LockOpen, X } from "lucide-react";
-import HouseIcon from "./HouseIcon";
+import HouseIcon from "../ui/icons/HouseIcon";
 import { useOwnerships } from "@/hooks";
 import { useEffect, useState } from "react";
 import { useGameStore } from "@/stores/GameStore";

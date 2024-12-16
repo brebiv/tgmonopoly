@@ -1,18 +1,24 @@
-const HouseIcon = ({ fill = "#fff", outline = "#000", className = "" }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    height="24px"
-    viewBox="0 -960 960 960"
-    width="24px"
-    fill={fill}
-    className={className}
-  >
-    <path
-      d="M169-204v-355q0-18 7.75-33.75T199-619l236-177q20-15 45-15t45 15l236 177q14.5 10.5 22.25 26.25T791-559v355q0 31-22 53t-53 22H600q-15.5 0-26.5-11t-11-26.5v-201q0-15.5-11-26.5T525-405h-90q-15.5 0-26.5 11t-11 26.5v201q0 15.5-11 26.5T360-129H244q-31 0-53-22t-22-53Z"
-      stroke={outline}
-      strokeWidth="80"
-    />
-  </svg>
-);
+interface HouseIconProps {
+  strokeWidth?: string;
+}
+
+function HouseIcon({ strokeWidth = "1.5" }: HouseIconProps) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" />
+      <path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+    </svg>
+  );
+}
 
 export default HouseIcon;

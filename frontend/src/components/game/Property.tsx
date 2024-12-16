@@ -6,7 +6,7 @@ import { Ownership, PropertyGroup, SVGIcons, Tile } from "@/types/api";
 import clsx from "clsx";
 import { AtomIcon, DamIcon, Lock } from "lucide-react";
 import { useEffect, useState } from "react";
-import HouseIcon from "../ui/icons/HouseIcon";
+import HouseIcon from "../ui/icons/PropertyHouseIcon";
 import ApartmentIcon from "../ui/icons/ApartmentIcon";
 import { useTheme } from "@/stores/ThemeContext";
 import WindPowerIcon from "../ui/icons/WindPowerIcon";

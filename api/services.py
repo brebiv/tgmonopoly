@@ -9,7 +9,7 @@ from game import config
 from .types import GameActionType, GameEventType, TradeData
 from .tasks import handle_game_effect_timeout
 from .serializers import GameEventSerializer, GameSerializer, PlayerSerializer, OwnershipSerializer
-
+from .utils import is_running_tests
 
 class GameService:
 
@@ -129,6 +129,9 @@ class GameService:
         events = []
         dices = [random.randint(1, 6) for _ in range(2)]
         # dices = [10, 10]
+
+        if is_running_tests():
+            dices = config.TEST_DICE_VALUES
 
         events.append({
             'type': 'game.action',

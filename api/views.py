@@ -54,7 +54,9 @@ def create_game(request: CustomRequest):
             )
 
             response_data = {
+                'status': 'ok',
                 'next_url': f'/game/{game.uuid}',
+                'game_uuid': game.uuid,
                 # 'game': GameSerializer(game).data,
                 # 'players': [PlayerSerializer(player).data],
             }

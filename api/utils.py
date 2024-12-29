@@ -4,6 +4,7 @@ from typing import Optional
 import hashlib
 import hmac
 import json
+import sys
 
 from django.conf import settings
 from django.http import HttpResponseForbidden, HttpRequest
@@ -17,11 +18,40 @@ class CustomRequest(HttpRequest, DRFRequest):
     telegram_user: Optional[TelegramUser]
 
 
+def validate_telegram_webapp_data(data: dict) -> bool:
+    required_keys = {"query_id", "user", "auth_date", "hash"}
+    
+    if not required_keys.issubset(data.keys()):
+        return False
+    
+    try:
+        user_data = json.loads(data['user'])
+        required_user_keys = {"id", "first_name", "last_name", "language_code", "allows_write_to_pm"}
+        if not required_user_keys.issubset(user_data.keys()):
+            return False
+        if not isinstance(user_data["id"], int):
+            return False
+        if not isinstance(user_data["allows_write_to_pm"], bool):
+            return False
+    except (json.JSONDecodeError, TypeError):
+        return False
+
+    try:
+        auth_date = int(data['auth_date'])
+    except ValueError:
+        return False
+    
+    return True
+
+
 def verify_telegram_init_data(init_data: dict, bot_token: str) -> bool:
     """Don't touch. Thank god it works.
     `init_data` is a result of running `{k: v[0] for k, v in parse_qs(auth_data).items()}`
     auth_data is string that is passed from `window.Telegram.WebApp.initData` in the frontend
     """
+
+    if not validate_telegram_webapp_data(init_data):
+        return False
     
     hash = init_data.pop('hash')
     data_check = sorted([f"{key}={value}" for key, value in init_data.items()])
@@ -67,11 +97,11 @@ def telegram_auth_required(view_func):
                     is_hash_correct = verify_telegram_init_data(auth_data, settings.BOT_TOKEN)
 
                     if not is_hash_correct:
-                        return
+                        return HttpResponseForbidden("Forbidden")
 
                     user_data = json.loads(auth_data.get('user'))
                     if user_data == None:
-                        return
+                        return HttpResponseForbidden("Forbidden")
 
                     try:
                         user = TelegramUser.objects.get(user_id=int(user_data['id']))
@@ -110,3 +140,7 @@ def telegram_auth_required(view_func):
             return HttpResponseForbidden("Forbidden")
 
     return _wrapped_view
+
+
+def is_running_tests():
+    return 'test' in sys.argv

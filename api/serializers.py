@@ -132,6 +132,14 @@ class ExtraDataSerializer(serializers.Serializer):
     bet_amount = serializers.IntegerField()
 
 
+class AuctionDataSerializer(serializers.Serializer):
+    started_by = serializers.IntegerField()
+    current_player_in_auction = serializers.IntegerField()
+    players_participating_in_auction = serializers.ListField(child=serializers.IntegerField())
+    current_auction_price = serializers.IntegerField()
+    property = serializers.IntegerField()
+
+
 class GameEventSerializer(serializers.Serializer):
     type = serializers.CharField()
     action = serializers.CharField()
@@ -143,6 +151,7 @@ class GameEventSerializer(serializers.Serializer):
     tries_left = serializers.IntegerField(required=False)
     chance_card_data = serializers.DictField(required=False)
     to_player = serializers.IntegerField(required=False)
+    auction_data = serializers.DictField(required=False)
 
 
 class JoinGameSerializer(serializers.Serializer):

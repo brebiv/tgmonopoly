@@ -1,15 +1,20 @@
 import random
 import uuid
 from django.utils import timezone
+from django.db.models import QuerySet, Q
 from django.conf import settings
 from celery import current_app
 
-from game.models import Game, Player, GameEffect, Tile, Ownership, ChanceCard, PropertyGroup
+from game.models import (
+    Game, Player, GameEffect, Tile, Ownership, 
+    ChanceCard, PropertyGroup, Property
+)
 from game import config
-from .types import GameActionType, GameEventType, TradeData
+from .types import GameActionType, GameEventType, TradeData, AuctionData
 from .tasks import handle_game_effect_timeout
 from .serializers import GameEventSerializer, GameSerializer, PlayerSerializer, OwnershipSerializer
 from .utils import is_running_tests
+from .exceptions import GameException
 
 class GameService:
 
@@ -874,5 +879,201 @@ class GameService:
             'player': player.pk,
             'from_player': from_player.pk,
         })
+
+        return events
+    
+    @staticmethod
+    def start_auction(game: Game, player: Player) -> list[dict]:
+        events = []
+
+        try:
+            property: Property = Tile.objects.get(position=player.position).property
+        except Tile.DoesNotExist:
+            raise Exception("You can't start auction on a non-property tile")
+        
+        players_participating_in_auction: QuerySet[Player] = (
+            game.players.order_by('pk')
+            .exclude(pk=player.pk)
+            .exclude(cash__lt=property.price)
+            .exclude(in_jail=True)
+            .exclude(~Q(status=Player.PLAYING))
+        )
+
+        if players_participating_in_auction.count() == 0:
+            # Passing auction because there are no players participating
+            raise Exception("There are no players participating in auction")
+        
+        GameService.remove_effect(game, player, GameEffect.ASK_BUY)
+
+        next_player_in_auction = players_participating_in_auction.first()
+
+        game.current_player = next_player_in_auction
+        game.save()
+
+        GameService.apply_effect(
+            game,
+            game.current_player,
+            GameEffect.IN_AUCTION,
+            {
+                'started_by': player.pk,
+                'current_player_in_auction': next_player_in_auction.pk,
+                'players_participating_in_auction': [player.pk for player in players_participating_in_auction],
+                'current_auction_price': property.price + config.AUCTION_STEP,
+                # 'auction_step': config.AUCTION_STEP, 
+                'property': property.pk,
+            }
+        )
+
+        events.append({
+            'type': 'game.action',
+            'action': GameEventType.START_AUCTION,
+            'player': player.pk,
+        })
+
+        return events
+    
+    @staticmethod
+    def reject_auction(game: Game, player: Player) -> list[dict]:
+        events = []
+
+        removed_effect = GameService.remove_effect(game, player, GameEffect.IN_AUCTION)
+
+        # started_by: int = removed_effect.effect_data.get('started_by')
+        # current_player_in_auction: int = removed_effect.effect_data.get('current_player_in_auction')
+        # players_participating_in_auction: list[int] = removed_effect.effect_data.get('players_participating_in_auction')
+        # current_auction_price: int = removed_effect.effect_data.get('current_auction_price')
+        # property: int = removed_effect.effect_data.get('property')
+
+        auction_data = AuctionData.from_dict(removed_effect.effect_data)
+        auction_data.reject()
+
+        events.append({
+            'type': 'game.action',
+            'action': GameEventType.REJECT_AUCTION,
+            'player': player.pk,
+        })
+
+        if auction_data.resolved:
+            if auction_data.is_bet:
+                auction_winner = Player.objects.get(pk=auction_data.winner)
+
+                ownership = Ownership.objects.create(
+                    game=game,
+                    player=auction_winner,
+                    property_id=auction_data.property,
+                )
+
+                auction_winner.cash -= auction_data.current_auction_price
+                auction_winner.save()
+
+                started_by = Player.objects.get(pk=auction_data.started_by)
+                next_player = GameService.calculate_next_player(game, started_by)
+
+                if next_player:
+                    game.current_player = next_player
+                    game.turn += 1
+                    game.save()
+                    GameService.calculate_mortages(game, started_by)
+                    GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
+
+                events.append({
+                    'type': 'game.action',
+                    'action': GameEventType.WON_AUCTION,
+                    'player': auction_winner.pk,
+                    'auction_data': auction_data.to_dict()
+                })
+            else:
+                started_by = Player.objects.get(pk=auction_data.started_by)
+                next_player = GameService.calculate_next_player(game, started_by)
+
+                # if player has double
+                game.current_player = next_player
+                game.save()
+                GameService.calculate_mortages(game, started_by)
+                GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
+        else:
+            # next_index = (current_player_in_auction_index + 1) % len(players_participating_in_auction)
+            # next_player_id = players_participating_in_auction[next_index]
+
+            # players_participating_in_auction.pop(current_player_in_auction_index)
+
+            next_player = Player.objects.get(pk=auction_data.current_player_in_auction)
+
+            game.current_player = next_player
+            game.save()
+
+            GameService.apply_effect(
+                game,
+                game.current_player,
+                GameEffect.IN_AUCTION,
+                {
+                    'started_by': auction_data.started_by,
+                    'current_player_in_auction': auction_data.current_player_in_auction,
+                    'players_participating_in_auction': auction_data.players_participating_in_auction,
+                    'current_auction_price': auction_data.current_auction_price,
+                    'property': auction_data.property,
+                }
+            )
+
+        return events
+    
+    @staticmethod
+    def accept_auction(game: Game, player: Player):
+        events = []
+
+        current_effect = player.get_current_effect()
+        auction_data = AuctionData.from_dict(current_effect.effect_data)
+
+        if player.cash < auction_data.current_auction_price:
+            # raise GameException(GameExceptionCode.NOT_ENOUGH_MONEY)
+            raise GameException('Not enough money to accept auction')
+
+        removed_effect = GameService.remove_effect(game, player, GameEffect.IN_AUCTION)
+
+        auction_data.accept()
+
+        events.append({
+            'type': 'game.action',
+            'action': GameEventType.ACCEPT_AUCTION,
+            'player': player.pk,
+            'auction_data': auction_data.to_dict()
+        })
+
+        if auction_data.resolved:
+            ownership = Ownership.objects.create(
+                game=game,
+                player=player,
+                property_id=auction_data.property,
+            )
+
+            player.cash -= auction_data.current_auction_price
+            player.save()
+
+            started_by = Player.objects.get(pk=auction_data.started_by)
+            next_player = GameService.calculate_next_player(game, started_by)
+
+            if next_player:
+                game.current_player = next_player
+                game.turn += 1
+                game.save()
+                GameService.calculate_mortages(game, player)
+                GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
+
+                events.append({
+                    'type': 'game.action',
+                    'action': GameEventType.WON_AUCTION,
+                    'player': player.pk,
+                    'auction_data': auction_data.to_dict()
+                })
+        else:
+            game.current_player = Player.objects.get(pk=auction_data.current_player_in_auction)
+            game.save()
+
+            GameService.apply_effect(
+                game,
+                game.current_player,
+                GameEffect.IN_AUCTION,
+                auction_data.to_dict()
+            )
 
         return events

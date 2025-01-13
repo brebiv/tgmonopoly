@@ -131,7 +131,8 @@ STATIC_ROOT = BASE_DIR / 'static'
 STATIC_URL = 'static/'
 
 STATICFILES_DIRS = [
-  BASE_DIR / 'frontend' / "assets"
+  BASE_DIR / 'frontend' / "assets",
+  BASE_DIR / 'game' / 'static'
 ]
 
 MEDIA_ROOT = BASE_DIR / 'media'
@@ -151,7 +152,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 #   }
 # }
 
-DJANGO_VITE_DEV_MODE = True
+DEVELOPMENT = True # Change this to False in production
+
+DJANGO_VITE_DEV_MODE = DEVELOPMENT
 
 DEVELOPMENT = True
 # Telegram
@@ -160,7 +163,7 @@ BOT_TOKEN_PROD = '6299465929:AAGKi8QsEzP4QL_p6OzsmjQV5-jjfKZAKHY'
 BOT_USERNAME = '@TestBot2fiojfeijfieBot'
 TG_WEBHOOK_SECRET = '66e818ee'
 
-USE_TELEGRAM_TEST_ENV = True
+USE_TELEGRAM_TEST_ENV = DEVELOPMENT
 USE_TELEGRAM_TEST_ENV_HTTPS = False
 if USE_TELEGRAM_TEST_ENV:
     BOT_TOKEN = BOT_TOKEN_DEV

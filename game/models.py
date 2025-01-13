@@ -228,7 +228,7 @@ class Player(models.Model):
 
         return amount_of_houses
     
-    def current_effect(self) -> 'GameEffect | None':
+    def get_current_effect(self) -> 'GameEffect | None':
         """
         Returns the current effect of the player.
         """
@@ -480,6 +480,7 @@ class GameEffect(models.Model):
     PAY_REPAIRS = 'pay_repairs'
     IN_CASINO = 'in_casino'
     IN_TRADE = 'in_trade'
+    IN_AUCTION = 'in_auction'
 
     game = models.ForeignKey(Game, related_name='effects', on_delete=models.CASCADE)
     player = models.ForeignKey(Player, related_name='effects', on_delete=models.CASCADE)

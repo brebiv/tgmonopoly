@@ -8,6 +8,7 @@ class GameEffectTypes(models.TextChoices):
     PAY_REPAIRS = 'pay_repairs', 'Pay Repairs'
     IN_CASINO = 'in_casino', 'In Casino'
     IN_TRADE = 'in_trade', 'In Trade'
+    IN_AUCTION = 'in_auction', 'In Auction'
 
 
 
@@ -25,6 +26,7 @@ EFFECTS_TIMEOUTS = {
     GameEffectTypes.PAY_REPAIRS: 10,
     GameEffectTypes.IN_CASINO: 10,
     GameEffectTypes.IN_TRADE: 20,
+    GameEffectTypes.IN_AUCTION: 20,
 }
 
 DISABLE_AFK = True
@@ -33,4 +35,5 @@ PRISON_PAY_AMOUNT = 50
 MORTAGE_MAX_TURNS = 15
 MORTAGE_INTEREST_RATE = 1.1
 MAX_HOUSES = 5
+AUCTION_STEP = 10
 TEST_DICE_VALUES = [1, 2]

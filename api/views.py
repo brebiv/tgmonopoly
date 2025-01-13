@@ -15,6 +15,7 @@ from .types import GameActionType, TradeData
 from game.models import Player, Game, GameEffect, Ownership
 from game import config
 from .services import GameService
+from .exceptions import GameException
 
 
 # Create your views here.
@@ -96,6 +97,13 @@ def join_game(request: CustomRequest):
             # return HttpResponse(status=400)
         
         game = Game.objects.last()
+
+        if game.status != Game.WAITING:
+            return JsonResponse({"status": "!ok", "error": "Game is not in waiting state"}, status=400)
+        
+        if game.max_players == game.players.count():
+            return JsonResponse({"status": "!ok", "error": "Game is full"}, status=400)
+
         player = Player.objects.create(
             user=request.telegram_user,
             game=game,
@@ -137,7 +145,7 @@ def game_action(request: CustomRequest):
 
         first_effect: GameEffect = player.effects.first()
 
-        if first_effect:
+        if first_effect and game.current_player == player:
             if first_effect.name == GameEffect.ROLL_DICE:
                 if player.in_jail:
                     if action == GameActionType.ROLL_DICE:
@@ -369,6 +377,14 @@ def game_action(request: CustomRequest):
                         game_group_name, game_frame
                     )
                     return JsonResponse({"status": "ok",}, status=200)
+                elif action == GameActionType.START_AUCTION:
+                    events = GameService.start_auction(game, player)
+                    game_frame = GameService.assemble_game_frame(game, events)
+
+                    async_to_sync(channel_layer.group_send)(
+                        game_group_name, game_frame
+                    )
+                    return JsonResponse({"status": "ok",}, status=200)
                 else:
                     return JsonResponse({"status": "!ok", "error": "Unknown action"}, status=400)
             elif first_effect.name == GameEffect.PAY_RENT:
@@ -494,6 +510,28 @@ def game_action(request: CustomRequest):
                     return JsonResponse({"status": "ok",}, status=200)
                 else:
                     return JsonResponse({"status": "!ok", "error": "Unknown action"}, status=400)
+            elif first_effect.name == GameEffect.IN_AUCTION:
+                if action == GameActionType.ACCEPT:
+                    try:
+                        events = GameService.accept_auction(game, player)
+                        game_frame = GameService.assemble_game_frame(game, events)
+
+                        async_to_sync(channel_layer.group_send)(
+                            game_group_name, game_frame
+                        )
+                        return JsonResponse({"status": "ok",}, status=200)
+                    except GameException as e:
+                        return JsonResponse({"status": "!ok", "error": str(e)}, status=400)
+                elif action == GameActionType.REJECT:
+                    events = GameService.reject_auction(game, player)
+                    game_frame = GameService.assemble_game_frame(game, events)
+
+                    async_to_sync(channel_layer.group_send)(
+                        game_group_name, game_frame
+                    )
+                    return JsonResponse({"status": "ok",}, status=200)
+                else:
+                    return JsonResponse({"status": "!ok", "error": "Unknown action"}, status=400)
             else:
                 return JsonResponse({"status": "!ok", "error": "Unknown action"}, status=400)
         else:
@@ -506,6 +544,6 @@ def game_action(request: CustomRequest):
                 )
                 return JsonResponse({"status": "ok",}, status=200)
             else:
-                return JsonResponse({"status": "!ok", "error": "Unknown action"}, status=400)
+                return JsonResponse({"status": "!ok", "error": "Unknown action or it's not your turn"}, status=400)
     else:
         return HttpResponse(status=405)

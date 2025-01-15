@@ -43,6 +43,10 @@ export enum GameEventType {
   CREATE_TRADE = "create_trade",
   REJECT_TRADE = "reject_trade",
   ACCEPT_TRADE = "accept_trade",
+  START_AUCTION = "start_auction",
+  REJECT_AUCTION = "reject_auction",
+  ACCEPT_AUCTION = "accept_auction",
+  WON_AUCTION = "won_auction",
 }
 
 export enum GameActionType {
@@ -64,6 +68,7 @@ export enum GameActionType {
   WON_CASINO = "won_casino",
   LOST_CASINO = "lost_casino",
   CREATE_TRADE = "create_trade",
+  START_AUCTION = "start_auction",
 }
 
 export enum GameEffectType {
@@ -74,6 +79,7 @@ export enum GameEffectType {
   PAY_REPAIRS = "pay_repairs",
   IN_CASINO = "in_casino",
   IN_TRADE = "in_trade",
+  IN_AUCTION = "in_auction",
 }
 
 export enum PlayerStatus {
@@ -153,6 +159,11 @@ export type EffectData = {
   timeout: number;
   created: number;
   available_bets: string[];
+  current_player_in_auction: number | null;
+  players_participating_in_auction: number[];
+  current_auction_price: number;
+  started_by: number;
+  property: number;
 } & TradeMenuData;
 
 export type GameEffect = {
@@ -195,6 +206,15 @@ export type ChangeCardData = {
   details: string;
 };
 
+export type AuctionData = {
+  started_by: number;
+  current_player_in_auction: number;
+  players_participating_in_auction: number[];
+  current_auction_price: number;
+  property: number;
+  is_bet: boolean;
+};
+
 export type GameEvent = {
   type: GameScopeType | null;
   action: GameActionType | GameEventType | null;
@@ -206,6 +226,7 @@ export type GameEvent = {
   tries_left: number | null;
   chance_card_data: ChangeCardData | null;
   to_player: number | null;
+  auction_data: AuctionData | null;
 };
 
 export type GameFrame = {

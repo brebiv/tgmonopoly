@@ -1,6 +1,6 @@
 import { usePlayers, useTiles } from "@/hooks";
-import { getPlayerByIdDepricated, getTileFromId } from "@/lib/utils";
-import { ChanceCardType, GameActionType, GameEvent, GameEventType } from "@/types/api";
+import { getPlayerByIdDepricated, getPropertyById, getTileFromId } from "@/lib/utils";
+import { ChanceCardType, GameActionType, GameEvent, GameEventType, Tile } from "@/types/api";
 import PlayerNameSpan from "./PlayerNameSpan";
 
 const IGNORABLE_EVENTS = [GameActionType.START_GAME, GameActionType.MOVE_PLAYER];
@@ -17,6 +17,7 @@ function GameLogRow({ event }: { event: GameEvent }) {
 
   // @ts-ignore
   const player = getPlayerByIdDepricated(players, event.player);
+  let tile: Tile | null | undefined = null;
 
   switch (event.action) {
     case GameActionType.ROLL_DICE:
@@ -38,7 +39,7 @@ function GameLogRow({ event }: { event: GameEvent }) {
       message = `Lost $${event.amount} in the casino`;
       break;
     case GameEventType.BUY_PROPERTY:
-      let tile = getTileFromId(tiles, event.tile!);
+      tile = getTileFromId(tiles, event.tile!);
       message = (
         <p>
           {"Bought property"}{" "}
@@ -103,6 +104,29 @@ function GameLogRow({ event }: { event: GameEvent }) {
     case GameEventType.ACCEPT_TRADE:
       message = "accepted trade offer";
       break;
+    case GameEventType.START_AUCTION:
+      message = "started auction";
+      break;
+    case GameEventType.REJECT_AUCTION:
+      message = "rejected auction";
+      break;
+    case GameEventType.ACCEPT_AUCTION:
+      message = `accepted auction, bet is now $${event.auction_data!.current_auction_price}`;
+      break;
+    case GameEventType.WON_AUCTION:
+      tile = getPropertyById(event.auction_data!.property);
+      message = (
+        <p>
+          {" "}
+          won auction for{" "}
+          <span style={{ color: `var(--group-color-${tile?.propertyData?.group_id})` }}>
+            {/* <span style={{ backgroundColor: `var(--group-color-${tile?.propertyData?.group_id})` }}> */}
+            {tile?.name}
+          </span>{" "}
+          and paid ${event.auction_data!.current_auction_price}
+        </p>
+      );
+      break;
   }
 
   return (
@@ -113,3 +137,19 @@ function GameLogRow({ event }: { event: GameEvent }) {
 }
 
 export default GameLogRow;
+
+// {
+//     "type": "game.action",
+//     "action": "won_auction",
+//     "player": 384,
+//     "auction_data": {
+//         "started_by": 383,
+//         "current_player_in_auction": 384,
+//         "players_participating_in_auction": [
+//             384
+//         ],
+//         "current_auction_price": 120,
+//         "property": 3,
+//         "is_bet": true
+//     }
+// }

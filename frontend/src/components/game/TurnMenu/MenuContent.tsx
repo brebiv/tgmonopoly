@@ -2,7 +2,7 @@ import { GameActionType, GameEffect, GameEffectType, Tile } from "@/types/api";
 import { useEffect, useState } from "react";
 import { useTiles } from "@/hooks";
 import { useGameStore } from "@/stores/GameStore";
-import { getTileFromPosition } from "@/lib/utils";
+import { getPropertyById, getTileFromPosition } from "@/lib/utils";
 import BuyPropertyButton from "./BuyPropertyButton";
 import RollDiceButton from "./RollDiceButton";
 import PayRentButton from "./PayRentButton";
@@ -16,6 +16,8 @@ import { sendGameAction } from "@/api";
 import { useTradeStore } from "@/stores/TradeStore";
 import SendTradeButton from "./SendTradeButton";
 import CancelButton from "./CancelButton";
+import { GavelIcon } from "lucide-react";
+import RejectButton from "./RejectButton";
 
 interface MenuContentProps {
   effects: GameEffect[];
@@ -125,7 +127,20 @@ function MenuContent({ effects }: MenuContentProps) {
       setHint(hint);
       setActions(actions);
     } else if (firstEffect.name === GameEffectType.ASK_BUY) {
-      let actions = [<BuyPropertyButton key={0} gameUUID={gameUUID} />];
+      let actions = [
+        <BuyPropertyButton key={0} gameUUID={gameUUID} />,
+        <Button
+          key={1}
+          variant={"destructive"}
+          className="w-full gap-2 py-6 text-lg font-semibold"
+          onClick={() => {
+            sendGameAction({ action: GameActionType.START_AUCTION, game_uuid: gameUUID });
+          }}
+        >
+          <GavelIcon />
+          {"Auction"}
+        </Button>,
+      ];
       setTitle(`Do you want to buy ${currentTile?.name}?`);
       setHint(`It would cost $${firstEffect.effect_data?.price}`);
       setActions(actions);
@@ -188,6 +203,36 @@ function MenuContent({ effects }: MenuContentProps) {
         </Button>,
       ];
       setTitle("Accept trade?");
+      setActions(actions);
+    } else if (firstEffect.name === GameEffectType.IN_AUCTION) {
+      let amountOfPeopleInAuction =
+        firstEffect.effect_data!.players_participating_in_auction.length;
+
+      let property = getPropertyById(firstEffect.effect_data!.property);
+      let title = `Do you want to bet $${firstEffect.effect_data!.current_auction_price} for ${property!.name}?`;
+      let hint = `There are ${amountOfPeopleInAuction} people participating in auction`;
+
+      if (amountOfPeopleInAuction === 1) {
+        title = `Do you want to buy ${property!.name} for $${firstEffect.effect_data!.current_auction_price}?`;
+        hint = `You can purchase this property without competition`;
+      }
+
+      let actions = [
+        <Button
+          key={0}
+          variant={"default"}
+          className="w-full gap-2 py-6 text-lg font-semibold"
+          onClick={() => {
+            sendGameAction({ action: GameActionType.ACCEPT, game_uuid: gameUUID });
+          }}
+        >
+          {amountOfPeopleInAuction > 1 ? "Bet" : "Buy"}
+        </Button>,
+        <RejectButton key={1} gameUUID={gameUUID} />,
+      ];
+
+      setTitle(title);
+      setHint(hint);
       setActions(actions);
     } else {
       setTitle("Unknown effect");

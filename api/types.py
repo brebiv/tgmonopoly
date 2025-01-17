@@ -58,11 +58,22 @@ class TradeData:
     ownerships: list[Ownership]
 
     def is_valid(self) -> bool:
+        """Insanity check"""
         try:
             for ownership in self.ownerships:
                 Ownership.objects.get(pk=ownership.pk)
         except Ownership.DoesNotExist:
             return False
+        else:
+            # Checking if there is no gift giving
+            given_ownerships = Ownership.objects.filter(player=self.from_player, pk__in=[o.pk for o in self.ownerships])
+            recieved_ownerships = Ownership.objects.filter(player=self.to_player, pk__in=[o.pk for o in self.ownerships])
+
+            if self.cash_given <= 0 and given_ownerships.count() >= 0:
+                return False
+            elif self.cash_received <= 0 and recieved_ownerships.count() >= 0:
+                return False
+
         
         return self.cash_given > 0 and self.cash_received > 0 or (self.ownerships and len(self.ownerships) > 0)
 

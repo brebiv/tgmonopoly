@@ -1,13 +1,14 @@
 from django.test import TestCase, Client
 from django.http import HttpResponse
 from django.urls import reverse
-from game.models import Game
+import unittest
 
 from . import data as test_data
 from api.types import GameActionType, AuctionData
 from api.utils import parse_user_from_qs
+from api.serializers import GameActionSerializer
 from bot.models import TelegramUser
-from game.models import Player, GameEffect, Property
+from game.models import Game, Player, GameEffect, Property, Ownership
 from game import config
 
 
@@ -155,7 +156,7 @@ class GameLobbyTest(TestCase):
         self.assertEqual(resp_data['next_url'], f'/game/{game.uuid}')
 
 
-class AuctionAPITest(TestCase):
+class BaseAPITestCase(TestCase):
     game: Game
     client_1: Client
     client_2: Client
@@ -226,6 +227,16 @@ class AuctionAPITest(TestCase):
             self.assertEqual(response.status_code, 200)
 
         self.players = self.game.players.all()
+    
+    def _start_game(self):
+        response = self.client_1.post(
+            reverse('game_action'),
+            data={
+                'action': GameActionType.START_GAME,
+                'game_uuid': self.game.uuid,
+            }
+        )
+        self.assertEqual(response.status_code, 200)
 
     def _start_game_and_begin_auction_flow(self):
         """
@@ -236,14 +247,7 @@ class AuctionAPITest(TestCase):
          4) Attempting to start an auction from the correct tile
         """
         # 1) Start the game
-        response = self.client_1.post(
-            reverse('game_action'),
-            data={
-                'action': GameActionType.START_GAME,
-                'game_uuid': self.game.uuid,
-            }
-        )
-        self.assertEqual(response.status_code, 200)
+        self._start_game()
 
         # 2) Attempt to start an auction from the start tile
         response = self.client_1.post(
@@ -315,25 +319,51 @@ class AuctionAPITest(TestCase):
         for player in self.players:
             player.refresh_from_db()
 
-    def _post_game_action(self, client: Client, action: GameActionType, expected_status_code=200, expected_status='ok', expected_error: str | None = None) -> HttpResponse:
-        response = client.post(
-            reverse('game_action'),
-            data={
-                'action': action,
-                'game_uuid': self.game.uuid,
-            }
-        )
+    def _post_game_action(
+            self,
+            client: Client,
+            action: GameActionType,
+            expected_status_code=200,
+            expected_status='ok',
+            expected_error: str | None = None,
+            extra_data: dict | None = None,
+            enable_logging: bool = False,
+            disable_asserts: bool = False,
+        ) -> HttpResponse:
+
+        payload = {
+            'action': action,
+            'game_uuid': self.game.uuid,
+        }
+
+        if extra_data:
+            payload['extra_data'] = extra_data
+
+        serializer = GameActionSerializer(data=payload)
+
+        if not serializer.is_valid():
+            raise Exception(serializer.errors)
+        
+        response = client.post(reverse('game_action'), data=serializer.data, content_type='application/json')
+
+        if enable_logging:
+            print(f"Post game action: {action} {response.content}")
+
         resp_data = response.json()
-        self.assertEqual(response.status_code, expected_status_code)
-        self.assertEqual(resp_data['status'], expected_status)
-        if expected_error:
-            self.assertEqual(resp_data['error'], expected_error)
-        else:
-            with self.assertRaises(KeyError):
-                resp_data['error']
+
+        if not disable_asserts:
+            self.assertEqual(response.status_code, expected_status_code)
+            self.assertEqual(resp_data['status'], expected_status)
+            if expected_error:
+                self.assertEqual(resp_data['error'], expected_error)
+            else:
+                with self.assertRaises(KeyError):
+                    resp_data['error']
 
         return response
 
+
+class AuctionAPITest(BaseAPITestCase):
     def test_create_auction_2_players(self):
         self._create_game(2)
         self._start_game_and_begin_auction_flow()
@@ -625,3 +655,328 @@ class AuctionAPITest(TestCase):
         self.assertEqual(player_2, self.game.current_player)
 
         self._post_game_action(self.client_2, GameActionType.ACCEPT, 400, "!ok", "Not enough money to accept auction")
+
+    @unittest.skip("Not implemented")
+    def test_reject_auction_with_double(self):
+        pass
+
+
+class TradingAPITest(BaseAPITestCase):
+    enable_logging: bool
+
+    def setUp(self):
+        super().setUp()
+
+        self.enable_logging = False
+        self._create_game(2)
+
+        self.player_1_ownership = Ownership.objects.create(
+            game=self.game,
+            player=self.players[0],
+            property=Property.objects.get(board_space__position=3),
+        )
+
+        self._start_game()
+        self._refresh_game_and_players()
+
+    def _start_trade(
+            self,
+            from_player: Player,
+            to_player: Player,
+            cash_given: int = 0,
+            cash_received: int = 0,
+            ownerships: list[int] = [],
+        ) -> HttpResponse:
+        
+        response = self._post_game_action(
+            self.client_1,
+            GameActionType.CREATE_TRADE,
+            extra_data={
+                "from_player": from_player.pk,
+                "to_player": to_player.pk,
+                "cash_given": cash_given,
+                "cash_received": cash_received,
+                "ownerships": ownerships
+            },
+            disable_asserts=True,
+            enable_logging=self.enable_logging
+        )
+
+        return response
+
+    def _start_trade_and_other_player_rejects(self, disable_assertions: bool = False) -> list[HttpResponse]:
+        responses = []
+        response = self._start_trade(
+            from_player=self.players[0],
+            to_player=self.players[1],
+            cash_given=200,
+            cash_received=100,
+            ownerships=[
+                self.player_1_ownership.pk
+            ]
+        )
+        responses.append(response)
+
+        self._refresh_game_and_players()
+        current_effect_1 = self.players[0].get_current_effect()
+        current_effect_2 = self.players[1].get_current_effect()
+
+        if not disable_assertions:
+            self.assertEqual(self.game.current_player, self.players[1])
+            self.assertIsNone(current_effect_1)
+            self.assertEqual(current_effect_2.name, GameEffect.IN_TRADE)
+
+        response = self._post_game_action(self.client_2, GameActionType.REJECT, disable_asserts=disable_assertions)
+        responses.append(response)
+
+        self._refresh_game_and_players()
+        current_effect_1 = self.players[0].get_current_effect()
+        current_effect_2 = self.players[1].get_current_effect()
+
+        if not disable_assertions:
+            self.assertEqual(self.game.current_player, self.players[0])
+            self.assertEqual(current_effect_1.name, GameEffect.ROLL_DICE)
+            self.assertIsNone(current_effect_2)
+
+        return responses
+
+    def test_start_trade_success(self):
+        self._start_trade(
+            from_player=self.players[0],
+            to_player=self.players[1],
+            cash_given=200,
+            cash_received=100,
+            ownerships=[
+                self.player_1_ownership.pk
+            ]
+        )
+
+        self._refresh_game_and_players()
+        current_effect_1 = self.players[0].get_current_effect()
+        current_effect_2 = self.players[1].get_current_effect()
+
+        self.assertEqual(self.game.current_player, self.players[1])
+        self.assertIsNone(current_effect_1)
+        self.assertEqual(current_effect_2.name, GameEffect.IN_TRADE)
+    
+    def test_start_trade_error_dont_have_property(self):
+        response = self._start_trade(
+            from_player=self.players[0],
+            to_player=self.players[1],
+            cash_given=200,
+            cash_received=100,
+            ownerships=[
+                2 # Property with id 2 doesn't exist
+            ]
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()['error'], 'Could not find ownership')
+
+    def test_giving_more_money_than_player_has(self):
+        player_1_money = self.players[0].cash
+
+        response = self._start_trade(
+            from_player=self.players[0],
+            to_player=self.players[1],
+            cash_given=player_1_money + 10,
+            cash_received=100,
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()['error'], 'You are giving more money than you have')
+
+    def test_asking_more_money_than_player_has(self):
+        player_1_money = self.players[0].cash
+        player_2_money = self.players[1].cash
+
+        response = self._start_trade(
+            from_player=self.players[0],
+            to_player=self.players[1],
+            cash_given=player_1_money,
+            cash_received=player_2_money + 1,
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()['error'], "Other player doesn't have enough money to send")
+    
+    def test_reject_trade(self):
+        self._start_trade_and_other_player_rejects()
+    
+    def test_that_just_giving_or_receiving_money_doesnt_work(self):
+        cash_given = 200
+        cash_received = 0
+
+        response = self._start_trade(
+            from_player=self.players[0],
+            to_player=self.players[1],
+            cash_given=cash_given,
+            cash_received=cash_received,
+            ownerships=[]
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()['error'], "Invalid trade data")
+
+        cash_given = 0
+        cash_received = 100
+
+        response = self._start_trade(
+            from_player=self.players[0],
+            to_player=self.players[1],
+            cash_given=cash_given,
+            cash_received=cash_received,
+            ownerships=[]
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()['error'], "Invalid trade data")
+
+    def test_gifting_property(self):
+        response = self._start_trade(
+            from_player=self.players[0],
+            to_player=self.players[1],
+            cash_given=0,
+            cash_received=0,
+            ownerships=[
+                self.player_1_ownership.pk
+            ]
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()['error'], "Invalid trade data")
+
+    def test_accept_trade_with_everything(self):
+        cash_given = 200
+        cash_received = 100
+
+        self._start_trade(
+            from_player=self.players[0],
+            to_player=self.players[1],
+            cash_given=cash_given,
+            cash_received=cash_received,
+            ownerships=[
+                self.player_1_ownership.pk
+            ]
+        )
+
+        self._refresh_game_and_players()
+        current_effect_1 = self.players[0].get_current_effect()
+        current_effect_2 = self.players[1].get_current_effect()
+        player_1_cash_before_trade = self.players[0].cash
+        player_2_cash_before_trade = self.players[1].cash
+
+        self.assertEqual(self.game.current_player, self.players[1])
+        self.assertIsNone(current_effect_1)
+        self.assertEqual(current_effect_2.name, GameEffect.IN_TRADE)
+        self.assertEqual(self.players[0].owned_properties.count(), 1)
+
+        self._post_game_action(self.client_2, GameActionType.ACCEPT)
+
+        self._refresh_game_and_players()
+        current_effect_1 = self.players[0].get_current_effect()
+        current_effect_2 = self.players[1].get_current_effect()
+
+        self.assertEqual(self.game.current_player, self.players[0])
+        self.assertEqual(current_effect_1.name, GameEffect.ROLL_DICE)
+        self.assertEqual(current_effect_1.effect_data['trade_count'], 1)
+        self.assertEqual(current_effect_1.effect_data['trade_accepted'], True)
+        self.assertIsNone(current_effect_2)
+        self.assertEqual(self.players[0].owned_properties.count(), 0)
+        self.assertEqual(self.players[1].owned_properties.count(), 1)
+        self.assertEqual(self.players[1].owned_properties.first().property.pk, self.player_1_ownership.property.pk)
+        self.assertEqual(self.players[0].cash, player_1_cash_before_trade + (cash_received - cash_given))
+        self.assertEqual(self.players[1].cash, player_2_cash_before_trade + (cash_given - cash_received))
+
+    def test_creating_more_than_max_trades(self):
+        for i in range(config.MAX_TRADE_PROPOSALS + 1):
+            responses = self._start_trade_and_other_player_rejects(disable_assertions=True)
+
+            if i + 1 < config.MAX_TRADE_PROPOSALS:
+                for response in responses:
+                    self.assertEqual(response.status_code, 200)
+            else:
+                create_trade_response = responses[0]
+                reject_trade_response = responses[1]
+
+                self.assertEqual(create_trade_response.status_code, 400)
+                self.assertEqual(create_trade_response.json()['error'], f"You can't create more than {config.MAX_TRADE_PROPOSALS} trades in one turn")
+                self.assertEqual(reject_trade_response.status_code, 400)
+                self.assertEqual(reject_trade_response.json()['error'], "Unknown action or it's not your turn")
+
+    def test_if_trade_accepted_no_more_trades_in_this_turn(self):
+        self.test_accept_trade_with_everything()
+
+        response = self._start_trade(
+            from_player=self.players[0],
+            to_player=self.players[1],
+            cash_given=100,
+            cash_received=100,
+            ownerships=[
+                self.player_1_ownership.pk
+            ]
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()['error'], "You can't create more trades in this turn")
+    
+    def test_trade_counter_is_reset_next_turn(self):
+        raise NotImplementedError
+
+
+# {
+#     "from_player": 387,
+#     "to_player": 386,
+#     "cash_given": 200,
+#     "cash_received": cash_received,
+#     "ownerships":cash_given [
+#         281
+#     ]
+# }
+    # def test_create_auction_3_players(self):
+    #     self._create_game(3)
+    #     self._start_game_and_begin_auction_flow()
+    
+    # def test_reject_auction_2_players(self):
+    #     self._create_game(2)
+    #     self._start_game_and_begin_auction_flow()
+
+    #     self._refresh_game_and_players()
+    #     player_1, player_2 = self.players
+
+    #     self.assertEqual(player_2, self.game.current_player)
+
+    #     self._post_game_action(self.client_2, GameActionType.REJECT)
+
+    #     self._refresh_game_and_players()
+    #     current_effect_2 = player_2.get_current_effect()
+
+    #     self.assertEqual(self.game.current_player, player_2)
+    #     self.assertEqual(current_effect_2.name, GameEffect.ROLL_DICE)
+
+    # def test_reject_auction_3_players(self):
+    #     self._create_game(3)
+    #     self._start_game_and_begin_auction_flow()
+
+    #     self._refresh_game_and_players()
+    #     player_1, player_2, player_3 = self.players
+
+    #     self.assertEqual(player_2, self.game.current_player)
+
+    #     self._post_game_action(self.client_2, GameActionType.REJECT)
+
+    #     self._refresh_game_and_players()
+    #     current_effect_2 = player_2.get_current_effect()
+    #     current_effect_3 = player_3.get_current_effect()
+
+    #     self.assertEqual(self.game.current_player.pk, player_3.pk)
+    #     self.assertIsNone(current_effect_2)
+    #     self.assertEqual(current_effect_3.name, GameEffect.IN_AUCTION)
+
+    #     self._post_game_action(self.client_3, GameActionType.REJECT)
+
+    #     self._refresh_game_and_players()
+    #     current_effect_2 = player_2.get_current_effect()
+    #     current_effect_3 = player_3.get_current_effect()
+
+    #     self.assertEqual(self.game.current_player.pk, player_2.pk)
+    #     self.assertEqual(current_effect_2.name, GameEffect.ROLL_DICE)
+    #     self.assertIsNone(current_effect_3)

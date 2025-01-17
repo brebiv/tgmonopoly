@@ -61,6 +61,8 @@ class GameService:
         effect_data = effect_data or {}
         effect_data['timeout'] = effect_timeout_timestamp
         effect_data['created'] = timezone.now().timestamp() * 1000
+        effect_data['trade_count'] = effect_data.get('trade_count', 0)
+        effect_data['trade_accepted'] = effect_data.get('trade_accepted', False)
 
         task_id = str(uuid.uuid4())
 
@@ -132,8 +134,8 @@ class GameService:
     @staticmethod
     def roll_dice(game: Game, player: Player) -> list:
         events = []
-        dices = [random.randint(1, 6) for _ in range(2)]
-        # dices = [10, 10]
+        # dices = [random.randint(1, 6) for _ in range(2)]
+        dices = [2, 1]
 
         if is_running_tests():
             dices = config.TEST_DICE_VALUES
@@ -768,10 +770,24 @@ class GameService:
         events = []
 
         if not trade_data.is_valid():
-            raise ValueError("Invalid trade data")
+            raise GameException("Invalid trade data")
+        
+        current_effect = player.get_current_effect()
+        current_effect_data = current_effect.effect_data
+
+        if current_effect_data['trade_count'] >= config.MAX_TRADE_PROPOSALS:
+            raise GameException(f"You can't create more than {config.MAX_TRADE_PROPOSALS} trades in one turn")
+        if current_effect_data.get('trade_accepted', False):
+            raise GameException("You can't create more trades in this turn")
 
         from_player = Player.objects.get(pk=trade_data.from_player)
         to_player = Player.objects.get(pk=trade_data.to_player)
+
+        if from_player.cash < trade_data.cash_given:
+            raise GameException("You are giving more money than you have")
+        
+        if to_player.cash < trade_data.cash_received:
+            raise GameException("Other player doesn't have enough money to send")
 
         removed_effect = GameService.remove_effect(game, player, GameEffect.ROLL_DICE)
 
@@ -799,6 +815,8 @@ class GameService:
             'cash_received': trade_data.cash_received,
             'ownerships': [o.pk for o in trade_data.ownerships],
             'turn_time_left': time_left,
+            'trade_count': removed_effect.effect_data.get('trade_count', 0) + 1,
+            'trade_accepted': False
         })
 
         events.append({
@@ -822,7 +840,13 @@ class GameService:
 
         game.current_player = from_player
         game.save()
-        GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE, timeout=turn_time_left)
+
+        effect_data = {
+            "trade_count": removed_trade_effect.effect_data.get('trade_count', 0) + 1
+        }
+
+        GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE, 
+                                 timeout=turn_time_left, effect_data=effect_data)
 
         events.append({
             'type': 'game.action',
@@ -871,7 +895,13 @@ class GameService:
 
         game.current_player = from_player
         game.save()
-        GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
+
+        effect_data = {
+            "trade_count": removed_trade_effect.effect_data['trade_count'], 
+            "trade_accepted": True
+        }
+
+        GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE, effect_data=effect_data)
 
         events.append({
             'type': 'game.action',

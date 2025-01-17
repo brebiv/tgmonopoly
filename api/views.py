@@ -128,7 +128,7 @@ def game_action(request: CustomRequest):
     if request.method == 'POST':
         game_action_serializer = GameActionSerializer(data=request.data)
         if not game_action_serializer.is_valid():
-            return HttpResponse(status=400)
+            return JsonResponse({"status": "!ok", "error": "Invalid game action"}, status=400)
 
         try:
             game = Game.objects.get(uuid=request.data['game_uuid'])
@@ -318,13 +318,16 @@ def game_action(request: CustomRequest):
                             ownerships=ownerships
                         )
 
-                        events = GameService.create_trade(game, player, trade_data)
-                        game_frame = GameService.assemble_game_frame(game, events)
+                        try:
+                            events = GameService.create_trade(game, player, trade_data)
+                            game_frame = GameService.assemble_game_frame(game, events)
 
-                        async_to_sync(channel_layer.group_send)(
-                            game_group_name, game_frame
-                        )
-                        return JsonResponse({"status": "ok",}, status=200)
+                            async_to_sync(channel_layer.group_send)(
+                                game_group_name, game_frame
+                            ) 
+                            return JsonResponse({"status": "ok",}, status=200)
+                        except GameException as e:
+                            return JsonResponse({"status": "!ok", "error": str(e)}, status=400)
                     else:
                         return JsonResponse({"status": "!ok", "error": "Unknown action"}, status=400)
             elif first_effect.name == GameEffect.ASK_BUY:

@@ -69,6 +69,7 @@ export enum GameActionType {
   LOST_CASINO = "lost_casino",
   CREATE_TRADE = "create_trade",
   START_AUCTION = "start_auction",
+  NEXT_TURN = "next_turn",
 }
 
 export enum GameEffectType {

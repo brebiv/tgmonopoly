@@ -6,5 +6,8 @@ class ApiException(Exception):
     def __str__(self):
         return f"{self.status_code}: {self.message}"
 
+class AuthException(Exception):
+    pass
+
 class GameException(Exception):
     pass

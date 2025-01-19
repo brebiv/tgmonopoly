@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from enum import Enum
 from game.models import Ownership
 from game import config
 
@@ -48,6 +49,11 @@ class GameEventType:
     REJECT_AUCTION = 'reject_auction'
     ACCEPT_AUCTION = 'accept_auction'
     WON_AUCTION = 'won_auction'
+    NEXT_TURN = 'next_turn'
+
+class WSEventType(Enum):
+    GAME_CONNECTED = 'game.connected'
+    GAME_ACTION = 'game.action'
 
 @dataclass
 class TradeData:

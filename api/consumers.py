@@ -8,6 +8,8 @@ from django.conf import settings
 from .utils import parse_user_from_qs, verify_telegram_init_data
 from .serializers import PlayerSerializer
 from .services import GameService
+from .exceptions import AuthException
+from .types import WSEventType
 from game.models import Game, Player
 
 from pprint import pprint as print
@@ -16,12 +18,17 @@ from pprint import pprint as print
 class GameConsumer(WebsocketConsumer):
     def connect(self):
         init_data_raw = self.scope['query_string'].decode()
+
+        if not init_data_raw:
+            self.close()
+            # raise AuthException("No init data")
         
         parsed_qs = {k: v[0] for k, v in parse_qs(init_data_raw).items()}
         game_uuid = self.scope['url_route']['kwargs']['game_uuid']
 
         try:
-            if True or verify_telegram_init_data(parsed_qs, settings.BOT_TOKEN):
+            # if True or verify_telegram_init_data(parsed_qs, settings.BOT_TOKEN):
+            if verify_telegram_init_data(parsed_qs, settings.BOT_TOKEN):
                 user = parse_user_from_qs(init_data_raw)
                 # user = TelegramUser.objects.first()
 
@@ -29,7 +36,7 @@ class GameConsumer(WebsocketConsumer):
                     game = Game.objects.get(uuid=game_uuid)
                     player = Player.objects.get(game=game, user=user)
                 except Game.DoesNotExist:
-                    print("Game.DoesNotExist")
+                    # print("Game.DoesNotExist")
                     self.close()
                     return
                 
@@ -44,12 +51,13 @@ class GameConsumer(WebsocketConsumer):
                 # self.scope['game_data'] = game_data
                 self.accept()
 
-                game_frame = GameService.assemble_game_frame(game, [], 'game.connected')
+                game_frame = GameService.assemble_game_frame(game, [], WSEventType.GAME_CONNECTED)
                 game_frame['me'] = PlayerSerializer(player).data
 
                 self.send(text_data=json.dumps(game_frame))
             else:
-                print("Not aue")
+                # print("Not aue")
+                self.close()
         except KeyError:
             print("Nope")
             self.close()

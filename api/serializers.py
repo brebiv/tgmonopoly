@@ -143,7 +143,7 @@ class AuctionDataSerializer(serializers.Serializer):
 class GameEventSerializer(serializers.Serializer):
     type = serializers.CharField()
     action = serializers.CharField()
-    player = serializers.IntegerField()
+    player = serializers.IntegerField(required=False)
     dices = serializers.ListField(child=serializers.IntegerField(), required=False)
     position = serializers.IntegerField(required=False)
     tile = serializers.IntegerField(required=False)

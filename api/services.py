@@ -10,7 +10,7 @@ from game.models import (
     ChanceCard, PropertyGroup, Property
 )
 from game import config
-from .types import GameActionType, GameEventType, TradeData, AuctionData
+from .types import GameActionType, GameEventType, TradeData, AuctionData, WSEventType
 from .tasks import handle_game_effect_timeout
 from .serializers import GameEventSerializer, GameSerializer, PlayerSerializer, OwnershipSerializer
 from .utils import is_running_tests
@@ -95,7 +95,25 @@ class GameService:
         return effect
     
     @staticmethod
-    def assemble_game_frame(game: Game, events: list, type = 'game.action') -> dict:
+    def next_turn(game: Game, after_player: Player) -> list[dict]:
+        events = []
+
+        next_player = GameService.calculate_next_player(game, after_player)
+
+        if next_player:
+            game.current_player = next_player
+            game.turn += 1
+            game.save()
+            GameService.calculate_mortages(game, next_player)
+            GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
+
+            events.append({
+                'type': 'game.service',
+                'action': GameEventType.NEXT_TURN,
+            })
+    
+    @staticmethod
+    def assemble_game_frame(game: Game, events: list, type = WSEventType.GAME_ACTION) -> dict:
         events_serializer = GameEventSerializer(data=events, many=True)
 
         if not events_serializer.is_valid():
@@ -105,7 +123,7 @@ class GameService:
         ownerships_serializer = OwnershipSerializer(ownerships, many=True)
 
         return {
-            'type': type,
+            'type': type.value,
             'game': GameSerializer(game).data,
             'players': [PlayerSerializer(player).data for player in game.players.all()],
             'events': events_serializer.data,

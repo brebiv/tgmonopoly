@@ -178,7 +178,7 @@ class Player(models.Model):
     game = models.ForeignKey(Game, related_name='players', on_delete=models.CASCADE)
 
     position = models.IntegerField(default=0)
-    cash = models.IntegerField(default=1500)
+    cash = models.IntegerField(default=config.STARTING_CASH)
     color = models.CharField(max_length=10, choices=COLOR_CHOICES, null=True, blank=True)
     in_jail = models.BooleanField(default=False)
     jail_turns = models.IntegerField(default=0)

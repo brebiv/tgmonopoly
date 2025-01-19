@@ -5,12 +5,12 @@ from asgiref.sync import async_to_sync
 from channels.generic.websocket import WebsocketConsumer
 from django.conf import settings
 
+from game.services import GameService
+from game.models import Game, Player
 from .utils import parse_user_from_qs, verify_telegram_init_data
 from .serializers import PlayerSerializer
-from .services import GameService
 from .exceptions import AuthException
 from .types import WSEventType
-from game.models import Game, Player
 
 from pprint import pprint as print
 

@@ -10,12 +10,12 @@ from .serializers import (
     OwnershipSerializer, MortagePropertySerializer, ExtraDataSerializer,
     TradeDataSerializer
 )
-from .utils import telegram_auth_required, CustomRequest
-from .types import GameActionType, TradeData
 from game.models import Player, Game, GameEffect, Ownership
 from game import config
-from .services import GameService
-from .exceptions import GameException
+from game.services import GameService
+from game.exceptions import GameException
+from .utils import telegram_auth_required, CustomRequest
+from .types import GameActionType, TradeData
 
 
 # Create your views here.

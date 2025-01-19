@@ -7,7 +7,7 @@ from game.models import Game, GameEffect
 
 @shared_task
 def handle_game_effect_timeout(effect_id: int):
-    from api.services import GameService
+    from game.services import GameService
     print("Handling game effect timeout")
 
     effect = GameEffect.objects.get(pk=effect_id)

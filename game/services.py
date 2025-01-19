@@ -10,11 +10,11 @@ from game.models import (
     ChanceCard, PropertyGroup, Property
 )
 from game import config
-from .types import GameActionType, GameEventType, TradeData, AuctionData, WSEventType
-from .tasks import handle_game_effect_timeout
-from .serializers import GameEventSerializer, GameSerializer, PlayerSerializer, OwnershipSerializer
-from .utils import is_running_tests
-from .exceptions import GameException
+from game.exceptions import GameException
+from game.tasks import handle_game_effect_timeout
+from api.types import GameActionType, GameEventType, TradeData, AuctionData, WSEventType
+from api.serializers import GameEventSerializer, GameSerializer, PlayerSerializer, OwnershipSerializer
+from api.utils import is_running_tests
 
 class GameService:
 

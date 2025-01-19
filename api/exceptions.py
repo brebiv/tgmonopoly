@@ -8,6 +8,3 @@ class ApiException(Exception):
 
 class AuthException(Exception):
     pass
-
-class GameException(Exception):
-    pass

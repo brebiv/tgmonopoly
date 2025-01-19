@@ -143,4 +143,4 @@ def telegram_auth_required(view_func):
 
 
 def is_running_tests():
-    return 'test' in sys.argv
+    return 'test' in sys.argv or settings.TESTING

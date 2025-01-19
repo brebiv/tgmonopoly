@@ -150,13 +150,15 @@ class GameService:
         },]
     
     @staticmethod
-    def roll_dice(game: Game, player: Player) -> list:
+    def roll_dice(game: Game, player: Player, override_dices: list[int] | None = None) -> list:
         events = []
-        # dices = [random.randint(1, 6) for _ in range(2)]
-        dices = [2, 1]
 
+        # if override_dices:
+        #     dices = override_dices
         if is_running_tests():
             dices = config.TEST_DICE_VALUES
+        else:
+            dices = [random.randint(1, 6) for _ in range(2)]
 
         events.append({
             'type': 'game.action',
@@ -860,7 +862,7 @@ class GameService:
         game.save()
 
         effect_data = {
-            "trade_count": removed_trade_effect.effect_data.get('trade_count', 0) + 1
+            "trade_count": removed_trade_effect.effect_data.get('trade_count')
         }
 
         GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE, 

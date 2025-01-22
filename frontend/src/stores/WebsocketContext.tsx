@@ -13,7 +13,7 @@ interface WebsocketContextProviderProps {
 
 function WebsocketService({ gameUUID }: { gameUUID: string }) {
   useReactQuerySubscription(gameUUID);
-  return <></>;
+  return null;
 }
 
 export const WebsocketContextProvider: React.FC<WebsocketContextProviderProps> = () => {

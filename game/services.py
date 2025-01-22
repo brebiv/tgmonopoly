@@ -222,12 +222,8 @@ class GameService:
                         'player': player.pk,
                         'tile': tile.pk,
                     })
-                    # Should be placed in next_turn or something
-                    game.turn += 1
-                    game.current_player = GameService.calculate_next_player(game, player)
-                    GameService.calculate_mortages(game, player)
 
-                    GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
+                    GameService.next_turn(game, player)
                 else:
                     rent = 0
                     if ownership.property.group.name == PropertyGroup.UTILITIES_1:
@@ -258,14 +254,7 @@ class GameService:
                 'player': player.pk,
             })
 
-            # Should be placed in next_turn or something
-            next_player = GameService.calculate_next_player(game, player)
-            if next_player:
-                game.current_player = next_player
-                game.turn += 1
-                game.save()
-                GameService.calculate_mortages(game, player)
-                GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
+            GameService.next_turn(game, player)
         elif tile.type == Tile.CHANCE:
             card = ChanceCard.get_random_card()
             # card = ChanceCard.objects.filter(card_type=ChanceCard.MOVE_BACKWARDS).first()
@@ -285,27 +274,14 @@ class GameService:
             if card.card_type == ChanceCard.MOVE_BACKWARDS:
                 player.move_backwards = True
                 player.save()
-
-                next_player = GameService.calculate_next_player(game, player)
-                if next_player:
-                    game.current_player = next_player
-                    game.turn += 1
-                    game.save()
-                    GameService.calculate_mortages(game, player)
-                    GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
+                GameService.next_turn(game, player)
             elif card.card_type == ChanceCard.GO_TO_JAIL:
                 player.position = Tile.objects.get(type=Tile.JAIL).position
                 player.in_jail = True
                 player.jail_turns = 0
                 player.save()
 
-                next_player = GameService.calculate_next_player(game, player)
-                if next_player:
-                    game.current_player = next_player
-                    game.turn += 1
-                    game.save()
-                    GameService.calculate_mortages(game, player)
-                    GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
+                GameService.next_turn(game, player)
             elif card.card_type == ChanceCard.MONEY_TO_PLAYER:
                 from_player = card.details.get('from')
                 amount = card.details.get('amount')
@@ -320,24 +296,11 @@ class GameService:
                     player.cash += total_recieved
                     player.save()
                 
-                next_player = GameService.calculate_next_player(game, player)
-                if next_player:
-                    game.current_player = next_player
-                    game.turn += 1
-                    game.save()
-                    GameService.calculate_mortages(game, player)
-                    GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
+                GameService.next_turn(game, player)
             elif card.card_type == ChanceCard.MONEY:
                 player.cash += card.details.get('amount')
                 player.save()
-
-                next_player = GameService.calculate_next_player(game, player)
-                if next_player:
-                    game.current_player = next_player
-                    game.turn += 1
-                    game.save()
-                    GameService.calculate_mortages(game, player)
-                    GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
+                GameService.next_turn(game, player)
             elif card.card_type == ChanceCard.REPAIRS:
                 house_repair_cost = card.details.get('house_repair_cost')
                 houses_owned = player.houses_owned()
@@ -370,12 +333,7 @@ class GameService:
             #     GameService.calculate_mortages(game, player)
             #     GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
         else:
-            # Should be placed in next_turn or something
-            game.turn += 1
-            game.current_player = GameService.calculate_next_player(game, player)
-            GameService.calculate_mortages(game, player)
-
-            GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
+            GameService.next_turn(game, player)
 
         game.save()
         player.save()
@@ -406,13 +364,8 @@ class GameService:
                 'player': player.pk,
                 'tries_left': config.MAXIMUM_JAIL_TURNS - player.jail_turns,
             })
-            next_player = GameService.calculate_next_player(game, player)
-            if next_player:
-                game.current_player = next_player
-                game.turn += 1
-                game.save()
-                GameService.calculate_mortages(game, player)
-                GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
+
+            GameService.next_turn(game, player)
         
         return events
     
@@ -450,17 +403,7 @@ class GameService:
                 })
 
                 # If double add roll dice effect to current player else to the next one
-                # effect = GameEffect.objects.create(
-                #     game=game,
-                #     player=player,
-                #     name=GameEffect.ROLL_DICE,
-                # )
-                game.turn += 1
-                game.current_player = GameService.calculate_next_player(game, player)
-                game.save()
-                GameService.calculate_mortages(game, player)
-
-                GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
+                GameService.next_turn(game, player)
         return events
     
     @staticmethod
@@ -497,17 +440,7 @@ class GameService:
         })
 
         # If double add roll dice effect to current player else to the next one
-        # effect = GameEffect.objects.create(
-        #     game=game,
-        #     player=player,
-        #     name=GameEffect.ROLL_DICE,
-        # )
-        game.turn += 1
-        game.current_player = GameService.calculate_next_player(game, player)
-        game.save()
-        GameService.calculate_mortages(game, player)
-
-        GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
+        GameService.next_turn(game, player)
 
         return events
     
@@ -525,14 +458,7 @@ class GameService:
             'player': player.pk,
         })
 
-        next_player = GameService.calculate_next_player(game, player)
-        if next_player:
-            game.current_player = next_player
-            game.turn += 1
-            game.save()
-            GameService.calculate_mortages(game, player)
-            
-            GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
+        GameService.next_turn(game, player)
 
         return events
     
@@ -710,13 +636,7 @@ class GameService:
             'amount': amount,
         })
 
-        next_player = GameService.calculate_next_player(game, player)
-        if next_player:
-            game.current_player = next_player
-            game.turn += 1
-            game.save()
-            GameService.calculate_mortages(game, player)
-            GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
+        GameService.next_turn(game, player)
 
         return events
     
@@ -732,13 +652,7 @@ class GameService:
             'player': player.pk,
         })
 
-        next_player = GameService.calculate_next_player(game, player)
-        if next_player:
-            game.current_player = next_player
-            game.turn += 1
-            game.save()
-            GameService.calculate_mortages(game, player)
-            GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
+        GameService.next_turn(game, player)
 
         return events
     
@@ -775,14 +689,7 @@ class GameService:
         player.save()
 
         # Check if not double
-        next_player = GameService.calculate_next_player(game, player)
-        if next_player:
-            game.current_player = next_player
-            game.turn += 1
-            game.save()
-            GameService.calculate_mortages(game, player)
-            GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
-
+        GameService.next_turn(game, player)
         return events
     
     @staticmethod
@@ -1016,31 +923,19 @@ class GameService:
                 auction_winner.cash -= auction_data.current_auction_price
                 auction_winner.save()
 
-                started_by = Player.objects.get(pk=auction_data.started_by)
-                next_player = GameService.calculate_next_player(game, started_by)
-
-                if next_player:
-                    game.current_player = next_player
-                    game.turn += 1
-                    game.save()
-                    GameService.calculate_mortages(game, started_by)
-                    GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
-
                 events.append({
                     'type': 'game.action',
                     'action': GameEventType.WON_AUCTION,
                     'player': auction_winner.pk,
                     'auction_data': auction_data.to_dict()
                 })
-            else:
-                started_by = Player.objects.get(pk=auction_data.started_by)
-                next_player = GameService.calculate_next_player(game, started_by)
 
+                started_by = Player.objects.get(pk=auction_data.started_by)
+                GameService.next_turn(game, started_by)
+            else:
                 # if player has double
-                game.current_player = next_player
-                game.save()
-                GameService.calculate_mortages(game, started_by)
-                GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
+                started_by = Player.objects.get(pk=auction_data.started_by)
+                GameService.next_turn(game, started_by)
         else:
             # next_index = (current_player_in_auction_index + 1) % len(players_participating_in_auction)
             # next_player_id = players_participating_in_auction[next_index]
@@ -1099,22 +994,15 @@ class GameService:
             player.cash -= auction_data.current_auction_price
             player.save()
 
+            events.append({
+                'type': 'game.action',
+                'action': GameEventType.WON_AUCTION,
+                'player': player.pk,
+                'auction_data': auction_data.to_dict()
+            })
+
             started_by = Player.objects.get(pk=auction_data.started_by)
-            next_player = GameService.calculate_next_player(game, started_by)
-
-            if next_player:
-                game.current_player = next_player
-                game.turn += 1
-                game.save()
-                GameService.calculate_mortages(game, player)
-                GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
-
-                events.append({
-                    'type': 'game.action',
-                    'action': GameEventType.WON_AUCTION,
-                    'player': player.pk,
-                    'auction_data': auction_data.to_dict()
-                })
+            GameService.next_turn(game, started_by)
         else:
             game.current_player = Player.objects.get(pk=auction_data.current_player_in_auction)
             game.save()

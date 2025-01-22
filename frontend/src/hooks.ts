@@ -1,12 +1,13 @@
 import { useMutation, useQuery, useQueryClient, UseQueryResult } from "react-query";
 import { createGame, getAuth, getTiles } from "./api";
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { buildGameWebsocketUrl } from "./lib/utils";
 import { Game, GameFrame, GameEventScope, Ownership } from "./types/api";
 import { useEventStore } from "./stores/EventStore";
 import { useGameStore } from "./stores/GameStore";
 import { processGameData } from "./lib/game";
 import { TGInitParams } from "./types/telegram";
+import { useWebsocketStore } from "./stores/WebsocketStore";
 
 // @ts-ignore
 const players = [
@@ -148,12 +149,14 @@ export const useReactQuerySubscription = (gameUUID: string) => {
   const queryClient = useQueryClient();
   const { addEvents, processGameFrame } = useEventStore((state) => state);
   const { setMe, setGame, setPlayers, setOwnerships } = useGameStore();
+  const { setConnected } = useWebsocketStore();
 
-  React.useEffect(() => {
+  useEffect(() => {
     // const websocket = new WebSocket("wss://echo.websocket.org/");
     const websocket = new WebSocket(buildGameWebsocketUrl(gameUUID));
 
     websocket.onopen = () => {
+      setConnected(true);
       // websocket.send("Hello, Server!");
     };
 
@@ -185,6 +188,12 @@ export const useReactQuerySubscription = (gameUUID: string) => {
           addEvents(gameFrame.events);
         }
       }
+    };
+
+    websocket.onclose = (event) => {
+      setConnected(false);
+      event.wasClean;
+      console.log("Connection closed");
     };
 
     return () => {

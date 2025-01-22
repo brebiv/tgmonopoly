@@ -22,6 +22,7 @@ function PlayersChipController({
     tiles.forEach((tile) => {
       const position = tile.getAttribute("data-position");
       const rect = tile.getBoundingClientRect();
+
       // @ts-ignore
       tilePositions.current[position] = {
         x: rect.x,
@@ -45,103 +46,110 @@ function PlayersChipController({
       return acc;
     }, {});
 
-    const newPlayerChips = [];
-    const tilePositionsWithPlayers = Object.keys(groupedByPosition).map((key) => parseInt(key));
+    function calculatePlayerChips() {
+      const newPlayerChips = [];
+      const tilePositionsWithPlayers = Object.keys(groupedByPosition).map((key) => parseInt(key));
 
-    for (let i = 0; i < tilePositionsWithPlayers.length; i++) {
-      let position = tilePositionsWithPlayers[i];
-      // @ts-ignore
-      let tilePos = tilePositions.current[position];
-      // let position = Object.keys(groupedByPosition)
-      for (let j = 0; j < groupedByPosition[position].length; j++) {
-        let player = groupedByPosition[position][j];
-        let playersOnTheTile = groupedByPosition[position];
-        let halfChipSize = 6;
-        let x, y;
-        let side = position < 10 ? 0 : position < 20 ? 1 : position < 30 ? 2 : 3;
-        if (position == 0 || position == 10 || position == 20 || position == 30) {
-          side = -1;
+      for (let i = 0; i < tilePositionsWithPlayers.length; i++) {
+        let position = tilePositionsWithPlayers[i];
+        // @ts-ignore
+        let tilePos = tilePositions.current[position];
+        // let position = Object.keys(groupedByPosition)
+        for (let j = 0; j < groupedByPosition[position].length; j++) {
+          let player = groupedByPosition[position][j];
+          let playersOnTheTile = groupedByPosition[position];
+          let halfChipSize = 6;
+          let x, y;
+          let side = position < 10 ? 0 : position < 20 ? 1 : position < 30 ? 2 : 3;
+          if (position == 0 || position == 10 || position == 20 || position == 30) {
+            side = -1;
+          }
+
+          if (playersOnTheTile.length == 1) {
+            x = tilePos.x + tilePos.width / 2 - halfChipSize;
+            y = tilePos.y + tilePos.height / 2 - halfChipSize;
+          } else if (playersOnTheTile.length == 2) {
+            console.log("playersOnTheTile", playersOnTheTile);
+            console.log("side", side);
+
+            if (side == 0 || side == 2) {
+              if (j == 0) {
+                x = tilePos.x + tilePos.width / 2 - halfChipSize;
+                y = tilePos.y + tilePos.height / 4 - halfChipSize;
+              } else if (j == 1) {
+                x = tilePos.x + tilePos.width / 2 - halfChipSize;
+                y = tilePos.y + tilePos.height / 2 + halfChipSize;
+              }
+            } else if (side == 1 || side == 3 || side == -1) {
+              if (j == 0) {
+                x = tilePos.x + tilePos.width / 4 - halfChipSize;
+                y = tilePos.y + tilePos.height / 2 - halfChipSize;
+              } else if (j == 1) {
+                x = tilePos.x + tilePos.width / 1.4 - halfChipSize;
+                y = tilePos.y + tilePos.height / 2 - halfChipSize;
+              }
+            }
+          } else if (playersOnTheTile.length == 3) {
+            let offset = 2;
+            if (side == 0 || side == 2) {
+              if (j == 0) {
+                x = tilePos.x + tilePos.width / 2 - halfChipSize;
+                y = tilePos.y + tilePos.height / 4 + offset - halfChipSize;
+              } else if (j == 1) {
+                x = tilePos.x + tilePos.width / 3.8 - halfChipSize;
+                y = tilePos.y + tilePos.height / 1.8 + offset - halfChipSize;
+              } else if (j == 2) {
+                x = tilePos.x + tilePos.width / 1.3 - halfChipSize;
+                y = tilePos.y + tilePos.height / 1.8 + offset - halfChipSize;
+              }
+            } else if (side == 1 || side == 3 || side == -1) {
+              if (j == 0) {
+                x = tilePos.x + tilePos.width / 3.5 - halfChipSize;
+                y = tilePos.y + tilePos.height / (2 - 0.5) - halfChipSize;
+              } else if (j == 1) {
+                x = tilePos.x + tilePos.width / 1.4 - halfChipSize;
+                y = tilePos.y + tilePos.height / (2 - 0.5) - halfChipSize;
+              } else if (j == 2) {
+                x = tilePos.x + tilePos.width / 2 - halfChipSize;
+                y = tilePos.y + tilePos.height / (2 + 1.7) - halfChipSize;
+              }
+            }
+          } else if (playersOnTheTile.length == 4) {
+            if (side == 0 || side == 1 || side == 2 || side == 3 || side == -1) {
+              if (j == 0) {
+                x = tilePos.x + tilePos.width / 3.8 - halfChipSize;
+                y = tilePos.y + tilePos.height / (2 + 1.7) - halfChipSize;
+              } else if (j == 1) {
+                x = tilePos.x + tilePos.width / 1.25 - halfChipSize;
+                y = tilePos.y + tilePos.height / (2 + 1.7) - halfChipSize;
+              } else if (j == 2) {
+                x = tilePos.x + tilePos.width / 3.8 - halfChipSize;
+                y = tilePos.y + tilePos.height / (2 - 0.5) - halfChipSize;
+              } else if (j == 3) {
+                x = tilePos.x + tilePos.width / 1.25 - halfChipSize;
+                y = tilePos.y + tilePos.height / (2 - 0.5) - halfChipSize;
+              }
+            }
+          }
+
+          newPlayerChips.push({
+            ...player,
+            x: x,
+            y: y,
+            side: side,
+          });
         }
-
-        if (playersOnTheTile.length == 1) {
-          x = tilePos.x + tilePos.width / 2 - halfChipSize;
-          y = tilePos.y + tilePos.height / 2 - halfChipSize;
-        } else if (playersOnTheTile.length == 2) {
-          console.log("playersOnTheTile", playersOnTheTile);
-          console.log("side", side);
-
-          if (side == 0 || side == 2) {
-            if (j == 0) {
-              x = tilePos.x + tilePos.width / 2 - halfChipSize;
-              y = tilePos.y + tilePos.height / 4 - halfChipSize;
-            } else if (j == 1) {
-              x = tilePos.x + tilePos.width / 2 - halfChipSize;
-              y = tilePos.y + tilePos.height / 2 + halfChipSize;
-            }
-          } else if (side == 1 || side == 3 || side == -1) {
-            if (j == 0) {
-              x = tilePos.x + tilePos.width / 4 - halfChipSize;
-              y = tilePos.y + tilePos.height / 2 - halfChipSize;
-            } else if (j == 1) {
-              x = tilePos.x + tilePos.width / 1.4 - halfChipSize;
-              y = tilePos.y + tilePos.height / 2 - halfChipSize;
-            }
-          }
-        } else if (playersOnTheTile.length == 3) {
-          let offset = 2;
-          if (side == 0 || side == 2) {
-            if (j == 0) {
-              x = tilePos.x + tilePos.width / 2 - halfChipSize;
-              y = tilePos.y + tilePos.height / 4 + offset - halfChipSize;
-            } else if (j == 1) {
-              x = tilePos.x + tilePos.width / 3.8 - halfChipSize;
-              y = tilePos.y + tilePos.height / 1.8 + offset - halfChipSize;
-            } else if (j == 2) {
-              x = tilePos.x + tilePos.width / 1.3 - halfChipSize;
-              y = tilePos.y + tilePos.height / 1.8 + offset - halfChipSize;
-            }
-          } else if (side == 1 || side == 3 || side == -1) {
-            if (j == 0) {
-              x = tilePos.x + tilePos.width / 3.5 - halfChipSize;
-              y = tilePos.y + tilePos.height / (2 - 0.5) - halfChipSize;
-            } else if (j == 1) {
-              x = tilePos.x + tilePos.width / 1.4 - halfChipSize;
-              y = tilePos.y + tilePos.height / (2 - 0.5) - halfChipSize;
-            } else if (j == 2) {
-              x = tilePos.x + tilePos.width / 2 - halfChipSize;
-              y = tilePos.y + tilePos.height / (2 + 1.7) - halfChipSize;
-            }
-          }
-        } else if (playersOnTheTile.length == 4) {
-          if (side == 0 || side == 1 || side == 2 || side == 3 || side == -1) {
-            if (j == 0) {
-              x = tilePos.x + tilePos.width / 3.8 - halfChipSize;
-              y = tilePos.y + tilePos.height / (2 + 1.7) - halfChipSize;
-            } else if (j == 1) {
-              x = tilePos.x + tilePos.width / 1.25 - halfChipSize;
-              y = tilePos.y + tilePos.height / (2 + 1.7) - halfChipSize;
-            } else if (j == 2) {
-              x = tilePos.x + tilePos.width / 3.8 - halfChipSize;
-              y = tilePos.y + tilePos.height / (2 - 0.5) - halfChipSize;
-            } else if (j == 3) {
-              x = tilePos.x + tilePos.width / 1.25 - halfChipSize;
-              y = tilePos.y + tilePos.height / (2 - 0.5) - halfChipSize;
-            }
-          }
-        }
-
-        newPlayerChips.push({
-          ...player,
-          x: x,
-          y: y,
-          side: side,
-        });
       }
+
+      newPlayerChips.sort((a, b) => a.id - b.id);
+
+      setPlayerChips(newPlayerChips);
     }
+    calculatePlayerChips();
 
-    newPlayerChips.sort((a, b) => a.id - b.id);
-
-    setPlayerChips(newPlayerChips);
+    // playersControllerRef.current.addEventListener("resize", () => {
+    //   console.log("here we gho");
+    // });
   }, [players, boardLoaded]);
 
   return (

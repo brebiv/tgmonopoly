@@ -18,9 +18,7 @@ import { useTheme } from "@/stores/ThemeContext";
 import GameLog from "./GameLog/GameLog";
 import TradeMenu from "./TradeMenu/TradeMenu";
 import { useTradeStore } from "@/stores/TradeStore";
-import { WebsocketContextProvider } from "@/stores/WebsocketContext";
 import { useWebsocketStore } from "@/stores/WebsocketStore";
-import { WEBSOCKET_RECONNECT_DELAY } from "@/config";
 import ConnectionError from "./ConnectionError";
 import { Button } from "../ui/button";
 
@@ -44,28 +42,9 @@ function Game() {
   const [boardLoaded, setBoardLoaded] = useState(false);
   const { game, players } = useGameStore((state) => state);
   const { tradeMenuData } = useTradeStore();
-  const { connected: websocketConnected } = useWebsocketStore();
-  const [mountWebsocket, setMountWebsocket] = useState(true);
+  const { connected: websocketConnected, setConnected } = useWebsocketStore();
 
   const { secondaryBGColor } = useTheme();
-
-  useEffect(() => {
-    console.log("websocketConnected", websocketConnected);
-    let interval: NodeJS.Timeout | undefined;
-    if (!websocketConnected && websocketConnected !== undefined) {
-      setMountWebsocket(false);
-
-      interval = setInterval(() => {
-        setMountWebsocket(true);
-      }, WEBSOCKET_RECONNECT_DELAY);
-    }
-
-    return () => {
-      if (interval) {
-        clearInterval(interval);
-      }
-    };
-  }, [websocketConnected]);
 
   const isLoading =
     auth == undefined || isMeLoading || game == undefined || players == undefined || !boardLoaded;
@@ -74,8 +53,6 @@ function Game() {
     return <Forbidden />;
   }
 
-  // useReactQuerySubscription(gameUUID);
-
   if (game?.status === GameStatus.WAITING) {
     return <GameLobby />;
   }
@@ -83,13 +60,13 @@ function Game() {
   return (
     <>
       <div className="absolute z-50 mt-20 flex h-full w-full justify-center">
-        <Button variant={"default"} onClick={() => setMountWebsocket(false)}>
+        <Button variant={"default"} onClick={() => setConnected(false)}>
           Trigger disconnect
         </Button>
       </div>
       {isLoading && <LoadingScreen />}
-      {mountWebsocket && <WebsocketContextProvider />}
-      {!isLoading && <ConnectionError show={!mountWebsocket || !websocketConnected} />}
+
+      {!isLoading && <ConnectionError show={!websocketConnected} />}
 
       <div
         className="flex min-h-screen flex-col gap-4"

@@ -5,9 +5,8 @@ interface WebsocketStore {
   setConnected: (connected: boolean) => void;
 }
 
-// @ts-ignore
-export const useWebsocketStore = create<WebsocketStore>((set, get) => ({
-  connected: false,
+export const useWebsocketStore = create<WebsocketStore>((set) => ({
+  connected: undefined,
   setConnected: (connected: boolean) => {
     set({ connected });
   },

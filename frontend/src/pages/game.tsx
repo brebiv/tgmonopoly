@@ -9,13 +9,15 @@ import "../Game.css";
 import Game from "../components/game/Game";
 import { queryClient } from "@/lib/queryClient";
 import { ThemeProvider } from "@/stores/ThemeContext";
+import { WebsocketContextProvider } from "@/stores/WebsocketContext";
 
 createRoot(document.getElementById("game")!).render(
-  <StrictMode>
-    <QueryClientProvider client={queryClient}>
+  <QueryClientProvider client={queryClient}>
+    <WebsocketContextProvider />
+    <StrictMode>
       <ThemeProvider>
         <Game />
       </ThemeProvider>
-    </QueryClientProvider>
-  </StrictMode>,
+    </StrictMode>
+  </QueryClientProvider>,
 );

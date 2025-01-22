@@ -1,18 +1,51 @@
 import { useReactQuerySubscription } from "@/hooks";
-import React, { createContext } from "react";
+import React, { createContext, useEffect } from "react";
+import { useWebsocketStore } from "./WebsocketStore";
+import { WEBSOCKET_RECONNECT_DELAY } from "@/config";
 
 interface WebsocketContextType {}
 
 const WebsocketContext = createContext<WebsocketContextType | undefined>(undefined);
 
 interface WebsocketContextProviderProps {
-  //   children: ReactNode;
+  mountWebsocket?: boolean;
 }
 
-export const WebsocketContextProvider: React.FC<WebsocketContextProviderProps> = ({}) => {
+function WebsocketService({ gameUUID }: { gameUUID: string }) {
+  useReactQuerySubscription(gameUUID);
+  return <></>;
+}
+
+export const WebsocketContextProvider: React.FC<WebsocketContextProviderProps> = () => {
   const value: WebsocketContextType = {};
   const gameUUID = window.location.pathname.split("/")[2];
-  useReactQuerySubscription(gameUUID);
+  const [mountWebsocket, setMountWebsocket] = React.useState(true);
+  const { connected } = useWebsocketStore();
 
-  return <WebsocketContext.Provider value={value}></WebsocketContext.Provider>;
+  useEffect(() => {
+    console.log("websocketConnected", connected);
+    let interval: NodeJS.Timeout | undefined;
+
+    if (!connected && connected !== undefined) {
+      setMountWebsocket(false);
+
+      let reconnectDelay = WEBSOCKET_RECONNECT_DELAY;
+
+      interval = setInterval(() => {
+        setMountWebsocket(true);
+      }, reconnectDelay);
+    }
+
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [connected]);
+
+  return (
+    <WebsocketContext.Provider value={value}>
+      {mountWebsocket && <WebsocketService gameUUID={gameUUID} />}
+    </WebsocketContext.Provider>
+  );
 };

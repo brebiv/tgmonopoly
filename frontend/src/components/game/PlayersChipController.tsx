@@ -4,17 +4,17 @@ import { useEffect, useRef, useState } from "react";
 
 function PlayersChipController({
   players,
-  boardLoaded,
+  isGameLoading,
 }: {
   players: Player[] | [] | any;
-  boardLoaded: boolean;
+  isGameLoading: boolean;
 }) {
   const [playerChips, setPlayerChips] = useState<PlayerChipType[]>([]);
   const tilePositions = useRef({});
 
   // Collect tile positions
   useEffect(() => {
-    if (!boardLoaded || players == undefined || players.length == 0) {
+    if (isGameLoading) {
       return;
     }
 
@@ -31,10 +31,10 @@ function PlayersChipController({
         height: rect.height,
       };
     });
-  }, [boardLoaded, players]);
+  }, [isGameLoading]);
 
   useEffect(() => {
-    if (!boardLoaded || players == undefined || players.length == 0) {
+    if (isGameLoading || players == undefined || players.length == 0) {
       return;
     }
 
@@ -150,7 +150,7 @@ function PlayersChipController({
     // playersControllerRef.current.addEventListener("resize", () => {
     //   console.log("here we gho");
     // });
-  }, [players, boardLoaded]);
+  }, [players, isGameLoading]);
 
   return (
     <div className="players absolute z-20">

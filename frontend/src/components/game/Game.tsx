@@ -69,13 +69,13 @@ function Game() {
       {!isLoading && <ConnectionError show={!websocketConnected} />}
 
       <div
-        className="flex min-h-screen flex-col gap-4"
+        className="relative flex min-h-screen flex-col gap-4"
         style={{
           backgroundColor: secondaryBGColor,
         }}
       >
         {game?.status === GameStatus.FINISHED && <GameOverScreen />}
-        <PlayersChipController players={players} boardLoaded={boardLoaded} />
+        <PlayersChipController players={players} isGameLoading={isLoading} />
         {/* <BoardCenter>
         <DebugPanel />
         <TileInfo />

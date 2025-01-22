@@ -27,3 +27,9 @@ frontend/.env*
 
 # Dev stuff
 dev_env/
+
+# Local stuff
+.local/
+
+# I'm not sure what this is
+.swp

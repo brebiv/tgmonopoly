@@ -12,31 +12,29 @@ function PlayersChipController({
   const [playerChips, setPlayerChips] = useState<PlayerChipType[]>([]);
   const tilePositions = useRef({});
 
-  // Collect tile positions
-  useEffect(() => {
-    if (isGameLoading) {
-      return;
-    }
-
-    const tiles = document.querySelectorAll(".tile[data-position]");
-    tiles.forEach((tile) => {
-      const position = tile.getAttribute("data-position");
-      const rect = tile.getBoundingClientRect();
-
-      // @ts-ignore
-      tilePositions.current[position] = {
-        x: rect.x,
-        y: rect.y,
-        width: rect.width,
-        height: rect.height,
-      };
-    });
-  }, [isGameLoading]);
-
   useEffect(() => {
     if (isGameLoading || players == undefined || players.length == 0) {
       return;
     }
+
+    function getTilePositions() {
+      const tiles = document.querySelectorAll(".tile[data-position]");
+      tiles.forEach((tile) => {
+        const position = tile.getAttribute("data-position");
+        const rect = tile.getBoundingClientRect();
+
+        // @ts-ignore
+        tilePositions.current[position] = {
+          x: rect.x,
+          y: rect.y,
+          width: rect.width,
+          height: rect.height,
+        };
+      });
+    }
+
+    // Collect tile positions
+    getTilePositions();
 
     const groupedByPosition = players.reduce((acc: any, player: Player) => {
       if (!acc[player.position]) {

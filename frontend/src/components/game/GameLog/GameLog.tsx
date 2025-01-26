@@ -1,6 +1,7 @@
 import { useEventStore } from "@/stores/EventStore";
 import { useEffect, useRef } from "react";
 import GameLogRow from "./GameLogRow";
+import { GameScopeType } from "@/types/api";
 
 function GameLog() {
   const { eventLog } = useEventStore((state) => state);
@@ -17,7 +18,7 @@ function GameLog() {
       ref={containerRef}
       className="game-log absolute top-0 flex h-full w-full flex-col overflow-y-scroll p-1 text-white"
     >
-      {eventLog.map((event, i) => (
+      {eventLog.filter((event) => event.type !== GameScopeType.GAME_SERVICE).map((event, i) => (
         <GameLogRow key={`${event.type}-${i}`} event={event} />
       ))}
     </div>

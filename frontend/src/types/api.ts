@@ -24,6 +24,7 @@ export enum GameEventScope {
 export enum GameScopeType {
   GAME_CONNECTED = "game.connected",
   GAME_ACTION = "game.action",
+  GAME_SERVICE = "game.service",
 }
 
 export enum GameEventType {

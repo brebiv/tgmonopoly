@@ -102,7 +102,7 @@ class PlayerSerializer(serializers.ModelSerializer):
         model = Player
         fields = (
             'id', 'position', 'cash', 'color', 'in_jail', 'jail_turns', 'effects',
-            'name', 'status', 'move_backwards'
+            'name', 'status', 'move_backwards', 'rolled_double', 'dobule_count'
         )
     
     effects = GameEffectSerializer(many=True, read_only=True)

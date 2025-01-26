@@ -4,7 +4,6 @@ from django.test import TestCase, Client
 from django.http import HttpResponse
 from django.urls import reverse
 from asgiref.sync import sync_to_async
-import unittest
 from unittest.mock import patch
 import uuid
 import re
@@ -103,7 +102,8 @@ class BaseAPITestCase(TestCase):
         )
         self.assertEqual(response.status_code, 200)
 
-    def _start_game_and_begin_auction_flow(self):
+    @patch('game.services.GameService._roll_dice_values')
+    def _start_game_and_begin_auction_flow(self, mock_roll_dice_values):
         """
         Helper method that encapsulates the logic of:
          1) Starting the game
@@ -111,6 +111,8 @@ class BaseAPITestCase(TestCase):
          3) Rolling dice
          4) Attempting to start an auction from the correct tile
         """
+        dices_values = config.TEST_DICE_VALUES
+        mock_roll_dice_values.return_value = dices_values
         # 1) Start the game
         self._start_game()
 
@@ -816,9 +818,57 @@ class AuctionAPITest(BaseAPITestCase):
 
         self._post_game_action(self.client_2, GameActionType.ACCEPT, 400, "!ok", "Not enough money to accept auction")
 
-    @unittest.skip("Not implemented")
     def test_reject_auction_with_double(self):
-        pass
+        self._create_game(2)
+        self._start_game()
+
+        dices_values = config.TEST_DICE_DOUBLE
+        with patch('game.services.GameService._roll_dice_values', return_value=dices_values):
+            response = self.client_1.post(
+                reverse('game_action'),
+                data={
+                    'action': GameActionType.ROLL_DICE,
+                    'game_uuid': self.game.uuid,
+                }
+            )
+            self.assertEqual(response.status_code, 200)
+
+        response = self.client_1.post(
+            reverse('game_action'),
+            data={
+                'action': GameActionType.START_AUCTION,
+                'game_uuid': self.game.uuid,
+            }
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['status'], 'ok')
+
+        self._refresh_game_and_players()
+
+        player_1, player_2, *_ = self.players
+
+        # Testing effect data
+        current_effect_2 = player_2.get_current_effect()
+        effect_data = current_effect_2.effect_data
+
+        started_by = effect_data['started_by']
+        current_player_in_auction = effect_data['current_player_in_auction']
+        players_participating_in_auction = effect_data['players_participating_in_auction']
+        property = Property.objects.get(pk=effect_data['property'])
+
+        self.assertNotEqual(self.game.current_player, player_1)
+        self.assertEqual(current_effect_2.name, GameEffect.IN_AUCTION)
+        self.assertEqual(started_by, player_1.pk)
+        self.assertEqual(current_player_in_auction, player_2.pk)
+        self.assertEqual(len(players_participating_in_auction), self.num_players - 1)
+        self.assertNotIn(player_1.pk, players_participating_in_auction)
+        self.assertEqual(current_effect_2.effect_data['current_auction_price'], property.price + config.AUCTION_STEP)
+
+        resp = self._post_game_action(self.client_2, GameActionType.REJECT)
+        self.assertEqual(resp.status_code, 200)
+
+        self._refresh_game_and_players()
+        self.assertEqual(self.game.current_player, player_1)
 
 
 class TradingAPITest(BaseAPITestCase):
@@ -1081,7 +1131,10 @@ class TradingAPITest(BaseAPITestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json()['error'], "You can't create more trades in this turn")
     
-    def test_trade_counter_is_reset_next_turn(self):
+    @patch('game.services.GameService._roll_dice_values')
+    def test_trade_counter_is_reset_next_turn(self, mock_roll_dice_values):
+        dices_values = config.TEST_DICE_VALUES
+        mock_roll_dice_values.return_value = dices_values
         self.test_creating_more_than_max_trades()
         resp = self._post_game_action(self.client_1, GameActionType.ROLL_DICE)
         self.assertEqual(resp.status_code, 200)
@@ -1110,8 +1163,7 @@ class TradingAPITest(BaseAPITestCase):
 
         self.test_creating_more_than_max_trades()
 
-
-class GameplayAPITest(BaseAPITestCase):
+class DiceRollAPITest(BaseAPITestCase):
     def setUp(self):
         super().setUp()
 
@@ -1123,7 +1175,11 @@ class GameplayAPITest(BaseAPITestCase):
         self._start_game()
         self._refresh_game_and_players()
 
-    async def test_first_turn(self):
+    @patch('game.services.GameService._roll_dice_values')
+    async def test_first_turn(self, mock_roll_dice_values):
+        dices_values = config.TEST_DICE_VALUES
+        mock_roll_dice_values.return_value = dices_values
+
         communicator = self._get_ws_communicator(self.player_1)
         connected, subprotocol = await communicator.connect()
         self.assertTrue(connected)
@@ -1147,7 +1203,7 @@ class GameplayAPITest(BaseAPITestCase):
         self.assertEqual(WSEventType(message['type']), WSEventType.GAME_ACTION)
         players = [PlayerSerializer(data=player).initial_data for player in players_data]
         current_player = await services.get_player_by_id(self.game.current_player_id)
-        test_dice_sum = sum(config.TEST_DICE_VALUES)
+        test_dice_sum = sum(dices_values)
 
         for i, player in enumerate(players):
             self.assertEqual(player['id'], self.players[i].pk)
@@ -1181,3 +1237,111 @@ class GameplayAPITest(BaseAPITestCase):
         self.assertEqual(events[1]['action'], GameEventType.MOVE_PLAYER)
         self.assertEqual(events[1]['player'], self.player_1.pk)
         self.assertEqual(events[1]['position'], test_dice_sum)
+
+    @patch('game.services.GameService._roll_dice_values')
+    async def test_reject_buy_with_double(self, mock_roll_dice_values):
+        dices_values = [3, 3]
+        mock_roll_dice_values.return_value = dices_values
+
+        communicator = self._get_ws_communicator(self.player_1)
+        connected, subprotocol = await communicator.connect()
+        self.assertTrue(connected)
+
+        message = await communicator.receive_json_from()
+        self.assertEqual(WSEventType(message['type']), WSEventType.GAME_CONNECTED)
+
+        self.assertEqual(self.game.turn, 1)
+        self.assertEqual(self.game.current_player_id, self.player_1.pk)
+        current_effect = await services.get_current_effect(self.player_1)
+        self.assertEqual(current_effect.name, GameEffect.ROLL_DICE)
+
+        resp = await self._post_game_action_async(self.client_1, GameActionType.ROLL_DICE)
+
+        await self._refresh_game_and_players_async()
+
+        message = await communicator.receive_json_from()
+        players_data = message['players']
+
+        self.assertEqual(WSEventType(message['type']), WSEventType.GAME_ACTION)
+        players = [PlayerSerializer(data=player).initial_data for player in players_data]
+        current_player = await services.get_player_by_id(self.game.current_player_id)
+        test_dice_sum = sum(dices_values)
+
+        for i, player in enumerate(players):
+            self.assertEqual(player['id'], self.players[i].pk)
+            self.assertEqual(player['cash'], config.STARTING_CASH)
+            self.assertEqual(player['color'], self.players[i].color)
+            self.assertEqual(player['in_jail'], False)
+            self.assertEqual(player['jail_turns'], 0)
+            if player['id'] == current_player.pk:
+                self.assertEqual(player['position'], test_dice_sum)
+                self.assertEqual(len(player['effects']), 1)
+                current_effect = await services.get_current_effect(self.players[i])
+                effect_from_gameframe = player['effects'][0]
+
+                self.assertEqual(current_effect.name, GameEffect.ASK_BUY)
+                self.assertEqual(effect_from_gameframe['name'], GameEffect.ASK_BUY)
+                self.assertEqual(effect_from_gameframe['effect_data']['trade_count'], 0)
+                self.assertEqual(effect_from_gameframe['effect_data']['trade_accepted'], False)
+            else:
+                self.assertEqual(player['position'], 0)
+                self.assertEqual(player['effects'], [])
+            self.assertEqual(player['status'], Player.PLAYING)
+            self.assertEqual(player['move_backwards'], False)
+
+        events = message['events']
+        self.assertEqual(len(events), 2)
+        self.assertEqual(WSEventType(events[0]['type']), WSEventType.GAME_ACTION)
+        self.assertEqual(events[0]['action'], GameEventType.ROLL_DICE)
+        self.assertEqual(events[0]['dices'], dices_values)
+
+        self.assertEqual(WSEventType(events[1]['type']), WSEventType.GAME_ACTION)
+        self.assertEqual(events[1]['action'], GameEventType.MOVE_PLAYER)
+        self.assertEqual(events[1]['player'], self.player_1.pk)
+        self.assertEqual(events[1]['position'], test_dice_sum)
+
+        await self._post_game_action_async(self.client_1, GameActionType.START_AUCTION)
+        await self._post_game_action_async(self.client_2, GameActionType.REJECT)
+        await self._refresh_game_and_players_async()
+
+        player_1 = await services.get_player_by_id(self.player_1.pk)
+        player_2 = await services.get_player_by_id(self.player_2.pk)
+
+        current_effect_1 = await services.get_current_effect(self.player_1)
+        current_effect_2 = await services.get_current_effect(self.player_2)
+
+        self.assertEqual(current_effect_1.name, GameEffect.ROLL_DICE)
+        self.assertIsNone(current_effect_2)
+    
+    @patch('game.services.GameService._roll_dice_values')
+    def test_max_doubles(self, mock_roll_dice_values):
+        dices_values = [3, 3]
+        mock_roll_dice_values.return_value = dices_values
+
+        for i in range(config.MAX_DOUBLES + 1):
+            self._post_game_action(self.client_1, GameActionType.ROLL_DICE)
+            self._refresh_game_and_players()
+
+            current_effect_1 = self.player_1.get_current_effect()
+            current_effect_2 = self.player_2.get_current_effect()
+
+            if i == 0:
+                self.assertEqual(current_effect_1.name, GameEffect.ASK_BUY)
+            elif i == 1:
+                self.assertEqual(current_effect_1.name, GameEffect.ASK_BUY)
+            elif i == 2:
+                self.assertEqual(current_effect_1.name, GameEffect.ASK_BUY)
+            elif i == 3:
+                self.assertEqual(self.player_1.in_jail, True)
+                self.assertEqual(self.game.current_player, self.player_2)
+                self.assertIsNone(current_effect_1)
+                self.assertEqual(current_effect_2.name, GameEffect.ROLL_DICE)
+                self.assertEqual(self.player_1.dobule_count, 0)
+
+            if current_effect_1:
+                if current_effect_1.name == GameEffect.ASK_BUY:
+                    self._post_game_action(self.client_1, GameActionType.START_AUCTION)
+                    self._post_game_action(self.client_2, GameActionType.REJECT)
+                else:
+                    raise Exception("Something went wrong with default test flow")
+

@@ -180,6 +180,8 @@ class Player(models.Model):
     position = models.IntegerField(default=0)
     cash = models.IntegerField(default=config.STARTING_CASH)
     color = models.CharField(max_length=10, choices=COLOR_CHOICES, null=True, blank=True)
+    rolled_double = models.BooleanField(default=False)
+    dobule_count = models.IntegerField(default=0)
     in_jail = models.BooleanField(default=False)
     jail_turns = models.IntegerField(default=0)
     move_backwards = models.BooleanField(default=False)
@@ -233,6 +235,10 @@ class Player(models.Model):
         Returns the current effect of the player.
         """
         return GameEffect.objects.filter(player=self).last()
+
+    @property
+    def exceded_doubles(self) -> bool:
+        return self.dobule_count > config.MAX_DOUBLES
 
     # def can_build_house(self, property: Property) -> list[bool, str]:
     #     """

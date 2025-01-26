@@ -96,9 +96,19 @@ class GameService:
     
     @staticmethod
     def next_turn(game: Game, after_player: Player) -> list[dict]:
+        """Should be called after ALL other calculations"""
         events = []
+        next_player: Player | None  = None
 
-        next_player = GameService.calculate_next_player(game, after_player)
+        if after_player.rolled_double and not after_player.in_jail:
+            # If rolled less then max amount of doubles, it gets calculated in roll_dice function
+            next_player = after_player
+        else:
+            # If rolled more then max amount of doubles, it gets calculated in roll_dice function
+            # It should cover both:
+            # elif after_player.rolled_double and after_player.in_jail:
+            next_player = GameService.calculate_next_player(game, after_player)
+
 
         if next_player:
             game.current_player = next_player
@@ -111,6 +121,8 @@ class GameService:
                 'type': 'game.service',
                 'action': GameEventType.NEXT_TURN,
             })
+        
+        return events
     
     @staticmethod
     def assemble_game_frame(game: Game, events: list, type = WSEventType.GAME_ACTION) -> dict:
@@ -148,17 +160,16 @@ class GameService:
             'action': GameActionType.START_GAME,
             'player': player.pk,
         },]
+
+    @staticmethod
+    def _roll_dice_values() -> list[int]:
+        return [random.randint(1, 6) for _ in range(2)]
+        # return [3,3]
     
     @staticmethod
     def roll_dice(game: Game, player: Player, override_dices: list[int] | None = None) -> list:
         events = []
-
-        # if override_dices:
-        #     dices = override_dices
-        if is_running_tests():
-            dices = config.TEST_DICE_VALUES
-        else:
-            dices = [random.randint(1, 6) for _ in range(2)]
+        dices = override_dices or GameService._roll_dice_values()
 
         events.append({
             'type': 'game.action',
@@ -167,7 +178,43 @@ class GameService:
             'dices': dices,
         })
 
+        if dices[0] == dices[1]:
+            player.rolled_double = True
+            player.dobule_count += 1
+            player.save()
+        else:
+            player.rolled_double = False
+            player.save()
+
         GameService.remove_effect(game, player, GameEffect.ROLL_DICE)
+
+        # Catching player that rolled more than allowed rolls
+        if player.exceded_doubles:
+            jail_position = Tile.objects.get(type=Tile.JAIL).position
+            player.position = jail_position
+            player.in_jail = True
+            player.dobule_count = 0
+            player.rolled_double = False
+            player.save()
+
+            next_turn_events = GameService.next_turn(game, player)
+
+            events.append({
+                'type': 'game.action',
+                'action': GameEventType.MOVE_PLAYER,
+                'player': player.pk,
+                'position': player.position,
+            })
+
+            events.append({
+                'type': 'game.action',
+                'action': GameEventType.GO_TO_PRISON,
+                'player': player.pk,
+            })
+
+            events.extend(next_turn_events)
+
+            return events
 
         if player.in_jail:
             events.extend(GameService._handle_jail_roll(game, player, dices))

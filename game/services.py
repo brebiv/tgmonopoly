@@ -110,17 +110,16 @@ class GameService:
             next_player = GameService.calculate_next_player(game, after_player)
 
 
-        if next_player:
-            game.current_player = next_player
-            game.turn += 1
-            game.save()
-            GameService.calculate_mortages(game, next_player)
-            GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
+        game.current_player = next_player
+        game.turn += 1
+        game.save()
+        GameService.calculate_mortages(game, next_player)
+        GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
 
-            events.append({
-                'type': 'game.service',
-                'action': GameEventType.NEXT_TURN,
-            })
+        events.append({
+            'type': 'game.service',
+            'action': GameEventType.NEXT_TURN,
+        })
         
         return events
     
@@ -163,8 +162,8 @@ class GameService:
 
     @staticmethod
     def _roll_dice_values() -> list[int]:
-        return [random.randint(1, 6) for _ in range(2)]
-        # return [3,3]
+        # return [random.randint(1, 6) for _ in range(2)]
+        return [3,3]
     
     @staticmethod
     def roll_dice(game: Game, player: Player, override_dices: list[int] | None = None) -> list:

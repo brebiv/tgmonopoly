@@ -96,7 +96,10 @@ class GameService:
     
     @staticmethod
     def next_turn(game: Game, after_player: Player) -> list[dict]:
-        """Should be called after ALL other calculations"""
+        """
+        Should be called after ALL other calculations.
+        It just calculates whether next turn should belog to the next player or to the same
+        """
         events = []
         next_player: Player | None  = None
 
@@ -162,8 +165,8 @@ class GameService:
 
     @staticmethod
     def _roll_dice_values() -> list[int]:
-        # return [random.randint(1, 6) for _ in range(2)]
-        return [3,3]
+        return [random.randint(1, 6) for _ in range(2)]
+        # return [2, 1]
     
     @staticmethod
     def roll_dice(game: Game, player: Player, override_dices: list[int] | None = None) -> list:
@@ -378,6 +381,17 @@ class GameService:
             #     game.save()
             #     GameService.calculate_mortages(game, player)
             #     GameService.apply_effect(game, game.current_player, GameEffect.ROLL_DICE)
+        elif tile.type == Tile.TAX:
+            events.append({
+                'type': 'game.action',
+                'action': GameEventType.PAY_TO_BANK,
+                'player': player.pk,
+                'amount': config.TAX_AMOUNT,
+            })
+
+            player.cash -= config.TAX_AMOUNT
+            player.save()
+            events.extend(GameService.next_turn(game, player))
         else:
             GameService.next_turn(game, player)
 

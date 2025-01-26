@@ -1344,4 +1344,31 @@ class DiceRollAPITest(BaseAPITestCase):
                     self._post_game_action(self.client_2, GameActionType.REJECT)
                 else:
                     raise Exception("Something went wrong with default test flow")
+    
+    @patch('game.services.GameService._roll_dice_values')
+    def test_landing_on_tax(self, mock_roll_dice_values):
+        dices_values = [3, 1]
+        mock_roll_dice_values.return_value = dices_values
 
+        player_1_cash_before_tax = self.players[0].cash
+
+        self._post_game_action(self.client_1, GameActionType.ROLL_DICE)
+        self._refresh_game_and_players()
+
+        self.assertEqual(player_1_cash_before_tax - config.TAX_AMOUNT, self.player_1.cash)
+        self.assertEqual(self.game.current_player, self.player_2)
+        self.assertEqual(self.game.turn, 2)
+
+    @patch('game.services.GameService._roll_dice_values')
+    def test_landing_on_tax_with_double(self, mock_roll_dice_values):
+        dices_values = [2, 2]
+        mock_roll_dice_values.return_value = dices_values
+
+        player_1_cash_before_tax = self.players[0].cash
+
+        self._post_game_action(self.client_1, GameActionType.ROLL_DICE)
+        self._refresh_game_and_players()
+
+        self.assertEqual(player_1_cash_before_tax - config.TAX_AMOUNT, self.player_1.cash)
+        self.assertEqual(self.game.current_player, self.player_1)
+        self.assertEqual(self.game.turn, 2)

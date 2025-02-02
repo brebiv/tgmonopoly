@@ -1,6 +1,7 @@
 import { useGames } from "@/hooks";
 import GameRow from "./GameRow";
 import { useTheme } from "@/stores/ThemeContext";
+import { Button } from "@/components/ui/button";
 
 function GameList() {
   const { data: games, isLoading: isGamesLoading } = useGames(true, true);
@@ -8,7 +9,12 @@ function GameList() {
 
   return (
     <div className="flex h-full w-full flex-1 flex-col gap-4">
-      <h1 className="text-2xl">Games</h1>
+      <div className="flex w-full">
+        <h1 className="text-2xl">Games</h1>
+        <Button variant={"default"} className="ml-auto">
+          Create game
+        </Button>
+      </div>
       <div
         className="flex h-full flex-1 flex-col gap-2 rounded-xl py-4"
         style={{ backgroundColor: bgColor }}

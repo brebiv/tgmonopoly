@@ -125,8 +125,7 @@ def join_game(request: CustomRequest):
     if request.method == 'POST':
         game_join_serializer = JoinGameSerializer(data=request.data)
         if not game_join_serializer.is_valid():
-            pass
-            # return HttpResponse(status=400)
+            return HttpResponse(status=400)
         
         # game = Game.objects.last()
         game_uuid = request.data.get('game_uuid')
@@ -142,11 +141,6 @@ def join_game(request: CustomRequest):
             'next_url': f'/game/{game.uuid}',
         }
         return JsonResponse(response_data, status=200)
-
-        # try:
-        #     game = Game.objects.get(uuid=request.data['game_uuid'])
-        # except Game.DoesNotExist:
-        #     return HttpResponse(status=400)
 
 
 @api_view(['POST',])

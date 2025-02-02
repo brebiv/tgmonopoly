@@ -71,6 +71,8 @@ function GameLogRow({ event }: { event: GameEvent }) {
         message = `Stepped on chance card, next turn he will move backwards`;
       } else if (event.chance_card_data!.card_type === ChanceCardType.REPAIRS) {
         message = `Stepped on chance card, he has to repair all of his properties`;
+      } else if (event.chance_card_data!.card_type === ChanceCardType.GO_TO_JAIL) {
+        message = `Stepped on chance card, he will go to jail`;
       } else {
         message = "Unknown chance card action";
       }

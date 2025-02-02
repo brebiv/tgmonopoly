@@ -1,8 +1,9 @@
 from django.http import HttpResponse, JsonResponse
-from django.views.decorators.csrf import csrf_exempt
+from django.core.paginator import Paginator
 from rest_framework.decorators import api_view
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
+from urllib.parse import urlencode
 
 from .serializers import (
     CreateGameSerializer, GameSerializer, PlayerSerializer, 
@@ -44,7 +45,7 @@ def create_game(request: CustomRequest):
     if request.method == 'POST':
         serializer = CreateGameSerializer(data=request.data)
         if serializer.is_valid():
-            # Delete from here
+            # Delete from here. It allows user to create to multiple games at the same time
             game = Game.objects.create(
                 max_players=serializer.data['max_players'],
             )
@@ -63,29 +64,59 @@ def create_game(request: CustomRequest):
             }
             return JsonResponse(response_data, status=200)
             # To here
-            try:
-                player = Player.objects.get(user=request.telegram_user, game__status=Game.PLAYING)
-                return JsonResponse({'error': 'You are already playing a game'}, status=400)
-            except Player.DoesNotExist:
-                game = Game.objects.create(
-                    max_players=serializer.data['max_players'],
-                )
-                player = Player.objects.create(
-                    user=request.telegram_user,
-                    game=game,
-                    color="red",
-                )
+            # try:
+            #     player = Player.objects.get(user=request.telegram_user, game__status=Game.PLAYING)
+            #     return JsonResponse({'error': 'You are already playing a game'}, status=400)
+            # except Player.DoesNotExist:
+            #     game = Game.objects.create(
+            #         max_players=serializer.data['max_players'],
+            #     )
+            #     player = Player.objects.create(
+            #         user=request.telegram_user,
+            #         game=game,
+            #         color="red",
+            #     )
 
-                response_data = {
-                    'next_url': f'/game/{game.uuid}',
-                    # 'game': GameSerializer(game).data,
-                    # 'players': [PlayerSerializer(player).data],
-                }
-                return JsonResponse(response_data, status=200)
+            #     response_data = {
+            #         'status': 'ok',
+            #         'next_url': f'/game/{game.uuid}',
+            #         'game_uuid': game.uuid,
+            #         # 'game': GameSerializer(game).data,
+            #         # 'players': [PlayerSerializer(player).data],
+            #     }
+            #     return JsonResponse(response_data, status=200)
         else:
             return HttpResponse(status=400)
     else:
         return HttpResponse(status=405)
+
+
+@api_view(['GET',])
+@telegram_auth_required
+def game_list(request: CustomRequest):
+    status = request.query_params.get('status')
+    if status:
+        status = Game.STATUS_CHOICES[int(status)][0]
+        games = Game.objects.filter(status=status).order_by('-created')
+    else:
+        games = Game.objects.filter(status=Game.WAITING).order_by('-created')
+    
+    paginator = Paginator(games, 10)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+    
+    resp_data = {
+        'status': 'ok',
+        'games': [GameSerializer(game).data for game in page_obj],
+    }
+
+    if page_obj.has_next():
+        query_params = request.GET.copy()
+        query_params['page'] = page_obj.next_page_number()
+        resp_data['next_url'] = f'{request.path}?{urlencode(query_params)}'
+    
+    return JsonResponse(resp_data, status=200)
+
 
 @api_view(['POST',])
 @telegram_auth_required

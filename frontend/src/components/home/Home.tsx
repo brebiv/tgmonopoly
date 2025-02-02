@@ -3,10 +3,12 @@ import { DollarSign, PlayCircle, Settings, Book, Globe } from "lucide-react";
 import { useAuth } from "@/hooks";
 import LoadingScreen from "../LoadingScreen";
 import Forbidden from "../Forbidden";
-import { joinGame } from "@/api";
+import { useNavigate } from "@tanstack/react-router";
 
 function Home() {
   const { data: me, isLoading: isMeLoading, isError: isMeError } = useAuth(true);
+
+  const navigate = useNavigate();
 
   if (isMeError) {
     return <Forbidden />;
@@ -67,10 +69,11 @@ function Home() {
             className="w-full py-6 text-lg font-semibold"
             variant="outline"
             onClick={async () => {
-              let resp = await joinGame("random-uuid");
-              if (resp.status === "ok") {
-                window.location.href = resp.next_url;
-              }
+              navigate({ to: "/games" });
+              // let resp = await joinGame("random-uuid");
+              // if (resp.status === "ok") {
+              //   window.location.href = resp.next_url;
+              // }
             }}
           >
             <Globe className="mr-2 h-6 w-6" />

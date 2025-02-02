@@ -81,14 +81,6 @@ class CreateGameSerializer(serializers.Serializer):
     max_players = serializers.IntegerField()
 
 
-class GameSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Game
-        fields = (
-            'uuid', 'max_players', 'turn', 'current_player', 'status', 'created'
-        )
-
-
 class GameEffectSerializer(serializers.ModelSerializer):
     class Meta:
         model = GameEffect
@@ -116,6 +108,32 @@ class PlayerSerializer(serializers.ModelSerializer):
     
     def get_name(self, obj):
         return obj.user.first_name
+
+
+class CompactPlayerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Player
+        fields = (
+            'id', 'name', 'color',
+        )
+    
+    name = serializers.SerializerMethodField()
+    
+    def get_name(self, obj):
+        return obj.user.first_name
+
+
+class GameSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Game
+        fields = (
+            'uuid', 'max_players', 'turn', 'current_player', 'status', 'created', 'players'
+        )
+    
+    players = serializers.SerializerMethodField()
+
+    def get_players(self, obj):
+        return CompactPlayerSerializer(obj.players.all(), many=True).data
 
 
 class GameActionSerializer(serializers.Serializer):

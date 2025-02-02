@@ -70,3 +70,9 @@ export const sendGameAction = (action: GameAction) => {
     return response.data;
   });
 };
+
+export const getGames = () => {
+  return axios.get("/api/games/").then((response) => {
+    return response.data;
+  });
+};

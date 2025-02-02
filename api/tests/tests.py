@@ -1372,3 +1372,53 @@ class DiceRollAPITest(BaseAPITestCase):
         self.assertEqual(player_1_cash_before_tax - config.TAX_AMOUNT, self.player_1.cash)
         self.assertEqual(self.game.current_player, self.player_1)
         self.assertEqual(self.game.turn, 2)
+
+
+class GameListAPITest(BaseAPITestCase):
+    def setUp(self):
+        super().setUp()
+
+        self.enable_logging = False
+        self._create_game(2)
+
+        self.player_1, self.player_2 = self.players
+
+    def test_game_list(self):
+        response = self.client_1.get(reverse('game_list'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['status'], 'ok')
+        self.assertEqual(len(response.json()['games']), 1)
+
+        game = Game.objects.get(uuid=response.json()['games'][0]['uuid'])
+        self.assertEqual(game.max_players, 2)
+        self.assertEqual(game.status, Game.WAITING)
+
+    def test_game_list_filtered_by_status(self):
+        response = self.client_1.get(reverse('game_list'), {'status': 1})   # Playing
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['status'], 'ok')
+        self.assertEqual(len(response.json()['games']), 0)
+
+        response = self.client_1.get(reverse('game_list'), {'status': 2})   # Finished
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['status'], 'ok')
+        self.assertEqual(len(response.json()['games']), 0)
+
+        response = self.client_1.get(reverse('game_list'), {'status': 0})   # Waiting
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['status'], 'ok')
+        self.assertEqual(len(response.json()['games']), 1)
+
+    def test_game_list_pagination(self):
+        for i in range(20):
+            self._create_game(2)
+        
+        response = self.client_1.get(reverse('game_list'), {'status': 0})
+        resp_data = response.json()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(resp_data['status'], 'ok')
+        self.assertEqual(len(resp_data['games']), 10)
+        self.assertIn('next_url', resp_data)
+        self.assertIn('status=', resp_data['next_url'])
+        self.assertIn('page=2', resp_data['next_url'])

@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient, UseQueryResult } from "react-query";
-import { createGame, getAuth, getTiles } from "./api";
+import { createGame, getAuth, getGames, getTiles } from "./api";
 import { useEffect, useRef, useState } from "react";
 import { buildGameWebsocketUrl } from "./lib/utils";
-import { Game, GameFrame, GameEventScope, Ownership } from "./types/api";
+import { Game, GameFrame, GameEventScope, Ownership, GamesResponse } from "./types/api";
 import { useEventStore } from "./stores/EventStore";
 import { useGameStore } from "./stores/GameStore";
 import { processGameData } from "./lib/game";
@@ -221,4 +221,11 @@ export const useTelegramInitParams = (): TGInitParams | null => {
   }, []);
 
   return initParams;
+};
+
+export const useGames = (runImmediately = false, enableRetry = false) => {
+  return useQuery<GamesResponse, Error>(["games"], getGames, {
+    enabled: runImmediately,
+    retry: enableRetry,
+  });
 };

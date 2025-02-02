@@ -187,6 +187,12 @@ export type Player = {
   move_backwards: boolean;
 };
 
+export type CompactPlayer = {
+  id: number;
+  name: string;
+  color: string;
+};
+
 export type PlayerChip = Player & {
   x: number | undefined;
   y: number | undefined;
@@ -199,6 +205,7 @@ export type Game = {
   turn: number;
   status: GameStatus;
   created: string;
+  players: CompactPlayer[];
 };
 
 export type ChangeCardData = {
@@ -268,4 +275,10 @@ export type Ownership = {
   can_sell_house: boolean;
   calculate_rent: number;
   owns_entire_group: boolean;
+};
+
+export type GamesResponse = {
+  status: "ok" | "!ok";
+  games: Game[];
+  next_url: string | null;
 };

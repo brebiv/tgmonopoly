@@ -2,6 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { resolve } from "path";
 import path from "path";
+import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
 // import { fileURLToPath } from "url";
 
 // const __filename = fileURLToPath(import.meta.url);
@@ -9,7 +10,7 @@ import path from "path";
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), TanStackRouterVite({ enableRouteGeneration: false })],
   base: "/static/",
   build: {
     manifest: "manifest.json",

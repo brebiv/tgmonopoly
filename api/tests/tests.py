@@ -59,7 +59,7 @@ class BaseAPITestCase(TestCase):
         self.users = [self.tg_user_1, self.tg_user_2, self.tg_user_3]
         self.players: list[Player] = []
     
-    def _create_game(self, num_players: 2 | 3):
+    def _create_game(self, num_players: 2 | 3, auto_join: bool = True):
         if num_players != 2 and num_players != 3:
             raise ValueError("num_players must be 2 or 3")
         
@@ -80,15 +80,16 @@ class BaseAPITestCase(TestCase):
         self.game = Game.objects.get(uuid=game_uuid)
         self.players = []
 
-        for i in range(self.num_players - 1):
-            response = self.clients[i + 1].post(
-                reverse('join_game'),
-                data={
-                    'game_uuid': game_uuid
-                }
-            )
+        if auto_join:
+            for i in range(self.num_players - 1):
+                response = self.clients[i + 1].post(
+                    reverse('join_game'),
+                    data={
+                        'game_uuid': game_uuid
+                    }
+                )
 
-            self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.status_code, 200)
 
         self.players = list(self.game.players.all())
     
@@ -1422,3 +1423,93 @@ class GameListAPITest(BaseAPITestCase):
         self.assertIn('next_url', resp_data)
         self.assertIn('status=', resp_data['next_url'])
         self.assertIn('page=2', resp_data['next_url'])
+
+
+class JoinGameAPITest(BaseAPITestCase):
+    def setUp(self):
+        super().setUp()
+
+        self.enable_logging = False
+        self._create_game(2, auto_join=False)
+
+    def test_join_game(self):
+        self.assertEqual(self.game.players.count(), 1)
+
+        resp = self.client_2.post(
+            reverse('join_game'),
+            data={
+                'game_uuid': self.game.uuid
+            }
+        )
+        self.assertEqual(resp.status_code, 200)
+
+        self.players = self.game.players.all()
+        self.player_1, self.player_2 = self.players
+        self._refresh_game_and_players()
+
+        self.assertEqual(self.game.status, Game.WAITING)
+        self.assertEqual(self.game.players.count(), 2)
+    
+    def test_join_game_twice(self):
+        self.assertEqual(self.game.players.count(), 1)
+
+        resp = self.client_1.post(
+            reverse('join_game'),
+            data={
+                'game_uuid': self.game.uuid
+            }
+        )
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(resp.json()['error'], "You are already playing this game")
+        self.assertEqual(self.game.status, Game.WAITING)
+        self.assertEqual(self.game.players.count(), 1)
+
+    def test_join_game_full(self):
+        self.assertEqual(self.game.players.count(), 1)
+
+        resp = self.client_2.post(
+            reverse('join_game'),
+            data={
+                'game_uuid': self.game.uuid
+            }
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(self.game.status, Game.WAITING)
+        self.assertEqual(self.game.players.count(), 2)
+
+        resp = self.client_3.post(
+            reverse('join_game'),
+            data={
+                'game_uuid': self.game.uuid
+            }
+        )
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(resp.json()['error'], "Game is full")
+        self.assertEqual(self.game.status, Game.WAITING)
+        self.assertEqual(self.game.players.count(), 2)
+
+    def test_join_playing_game(self):
+        resp = self.client_2.post(
+            reverse('join_game'),
+            data={
+                'game_uuid': self.game.uuid
+            }
+        )
+        self.assertEqual(resp.status_code, 200)
+        self._refresh_game_and_players()
+        self.assertEqual(self.game.status, Game.WAITING)
+        self.assertEqual(self.game.players.count(), 2)
+
+        self._start_game()
+
+        resp = self.client_3.post(
+            reverse('join_game'),
+            data={
+                'game_uuid': self.game.uuid
+            }
+        )
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(resp.json()['error'], "Game is not in waiting state")
+        self._refresh_game_and_players()
+        self.assertEqual(self.game.status, Game.PLAYING)
+        self.assertEqual(self.game.players.count(), 2)

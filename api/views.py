@@ -1,5 +1,6 @@
 from django.http import HttpResponse, JsonResponse
 from django.core.paginator import Paginator
+from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
@@ -127,19 +128,14 @@ def join_game(request: CustomRequest):
             pass
             # return HttpResponse(status=400)
         
-        game = Game.objects.last()
+        # game = Game.objects.last()
+        game_uuid = request.data.get('game_uuid')
+        game = get_object_or_404(Game, uuid=game_uuid)
 
-        if game.status != Game.WAITING:
-            return JsonResponse({"status": "!ok", "error": "Game is not in waiting state"}, status=400)
-        
-        if game.max_players == game.players.count():
-            return JsonResponse({"status": "!ok", "error": "Game is full"}, status=400)
-
-        player = Player.objects.create(
-            user=request.telegram_user,
-            game=game,
-            color="green",
-        )
+        try:
+            GameService.join_game(game, request.telegram_user)
+        except GameException as e:
+            return JsonResponse({"status": "!ok", "error": str(e)}, status=400)
 
         response_data = {
             'status': 'ok',

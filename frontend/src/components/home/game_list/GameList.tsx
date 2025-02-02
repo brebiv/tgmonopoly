@@ -11,7 +11,11 @@ function GameList() {
     <div className="flex h-full w-full flex-1 flex-col gap-4">
       <div className="flex w-full">
         <h1 className="text-2xl">Games</h1>
-        <Button variant={"default"} className="ml-auto">
+        <Button
+          variant={"default"}
+          className="ml-auto"
+          onClick={() => (window.location.href = "/create_game")}
+        >
           Create game
         </Button>
       </div>

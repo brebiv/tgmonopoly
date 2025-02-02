@@ -15,10 +15,28 @@ from game.tasks import handle_game_effect_timeout
 from api.types import GameActionType, GameEventType, TradeData, AuctionData, WSEventType
 from api.serializers import GameEventSerializer, GameSerializer, PlayerSerializer, OwnershipSerializer
 from api.utils import is_running_tests
+from bot.models import TelegramUser
 
 class GameService:
 
     ROUND_TRIP_BONUS = 200
+
+    @staticmethod
+    def join_game(game: Game, telegram_user: TelegramUser):
+        if game.status != Game.WAITING:
+            raise GameException("Game is not in waiting state")
+        
+        if game.max_players == game.players.count():
+            raise GameException("Game is full")
+    
+        if Player.objects.filter(user=telegram_user, game=game).exists(): 
+            raise GameException("You are already playing this game")
+
+        player = Player.objects.create(
+            user=telegram_user,
+            game=game,
+            color="green",
+        )
 
     @staticmethod
     def calculate_next_player(game: Game, after_player: Player) -> Player:

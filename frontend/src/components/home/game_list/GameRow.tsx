@@ -4,6 +4,7 @@ import { useTheme } from "@/stores/ThemeContext";
 import { Game } from "@/types/api";
 import { Button } from "@/components/ui/button";
 import Separator from "@/components/game/Separator";
+import { joinGame } from "@/api";
 
 function GameRow({ game }: { game: Game }) {
   const { hintColor } = useTheme();
@@ -38,7 +39,16 @@ function GameRow({ game }: { game: Game }) {
           {/* </AvatarGroup> */}
         </div>
         <div className="flex w-1/4 items-center">
-          <Button variant={"default"} className="w-full font-semibold">
+          <Button
+            variant={"default"}
+            className="w-full font-semibold"
+            onClick={async () => {
+              let resp = await joinGame(game.uuid);
+              if (resp.status === "ok") {
+                window.location.href = resp.next_url;
+              }
+            }}
+          >
             Join
           </Button>
         </div>

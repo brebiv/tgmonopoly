@@ -54,7 +54,7 @@ function Game() {
   }
 
   if (game?.status === GameStatus.WAITING) {
-    return <GameLobby />;
+    return <GameLobby game={game!} />;
   }
 
   return (

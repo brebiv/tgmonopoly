@@ -131,8 +131,11 @@ def join_game(request: CustomRequest):
         game_uuid = request.data.get('game_uuid')
         game = get_object_or_404(Game, uuid=game_uuid)
 
+        channel_layer = get_channel_layer()
+        game_group_name = f"game_{game.uuid}"
+
         try:
-            GameService.join_game(game, request.telegram_user)
+            events = GameService.join_game(game, request.telegram_user)
         except GameException as e:
             return JsonResponse({"status": "!ok", "error": str(e)}, status=400)
 
@@ -140,6 +143,13 @@ def join_game(request: CustomRequest):
             'status': 'ok',
             'next_url': f'/game/{game.uuid}',
         }
+
+        game_frame = GameService.assemble_game_frame(game, events)
+
+        async_to_sync(channel_layer.group_send)(
+            game_group_name, game_frame
+        )
+
         return JsonResponse(response_data, status=200)
 
 

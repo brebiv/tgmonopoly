@@ -1,9 +1,9 @@
-import random
-import uuid
 from django.utils import timezone
 from django.db.models import QuerySet, Q
 from django.conf import settings
 from celery import current_app
+import random
+import uuid
 
 from game.models import (
     Game, Player, GameEffect, Tile, Ownership, 
@@ -22,7 +22,19 @@ class GameService:
     ROUND_TRIP_BONUS = 200
 
     @staticmethod
-    def join_game(game: Game, telegram_user: TelegramUser):
+    def join_game(game: Game, telegram_user: TelegramUser) -> list[dict]:
+        """
+        Adds a Telegram user to a game as a player
+
+        This function performs the following steps:
+        - Verifies that the game is in a waiting state.
+        - Checks that the game is not already full.
+        - Ensures the user is not already a player in the game.
+        - Creates a new player with a default color ("green") and associates it with the game.
+        - Appends an event indicating that the player has joined.
+        - If after adding the player, the game is full, starts the game.
+        """
+        events = []
         if game.status != Game.WAITING:
             raise GameException("Game is not in waiting state")
         
@@ -37,6 +49,20 @@ class GameService:
             game=game,
             color="green",
         )
+
+        events.append({
+            'type': 'game.service',
+            'action': GameEventType.PLAYER_JOINED,
+            'player': player.pk,
+        })
+
+        if config.ENABLE_AUTO_START_ON_JOIN:
+            game.refresh_from_db()
+            if game.max_players == game.players.count():
+                start_game_events = GameService.start_game(game, game.players.all().order_by('id').first())
+                events.extend(start_game_events)
+
+        return events
 
     @staticmethod
     def calculate_next_player(game: Game, after_player: Player) -> Player:

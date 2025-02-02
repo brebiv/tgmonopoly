@@ -21,6 +21,7 @@ class GameActionType:
 
 class GameEventType:
     START_GAME = 'start_game'
+    PLAYER_JOINED = 'player_joined'
     ROLL_DICE = 'roll_dice'
     MOVE_PLAYER = 'move_player'
     BUY_PROPERTY = 'buy_property'

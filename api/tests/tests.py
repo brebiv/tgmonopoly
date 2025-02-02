@@ -5,6 +5,7 @@ from django.http import HttpResponse
 from django.urls import reverse
 from asgiref.sync import sync_to_async
 from unittest.mock import patch
+import unittest
 import uuid
 import re
 
@@ -94,14 +95,18 @@ class BaseAPITestCase(TestCase):
         self.players = list(self.game.players.all())
     
     def _start_game(self):
-        response = self.client_1.post(
-            reverse('game_action'),
-            data={
-                'action': GameActionType.START_GAME,
-                'game_uuid': self.game.uuid,
-            }
-        )
-        self.assertEqual(response.status_code, 200)
+        """After adding auto-start on game join this function is no longer needed"""
+        if config.ENABLE_AUTO_START_ON_JOIN:
+            return
+        else:
+            response = self.client_1.post(
+                reverse('game_action'),
+                data={
+                    'action': GameActionType.START_GAME,
+                    'game_uuid': self.game.uuid,
+                }
+            )
+            self.assertEqual(response.status_code, 200)
 
     @patch('game.services.GameService._roll_dice_values')
     def _start_game_and_begin_auction_flow(self, mock_roll_dice_values):
@@ -1380,9 +1385,10 @@ class GameListAPITest(BaseAPITestCase):
         super().setUp()
 
         self.enable_logging = False
-        self._create_game(2)
-
-        self.player_1, self.player_2 = self.players
+        if config.ENABLE_AUTO_START_ON_JOIN:
+            self._create_game(2, False)
+        else:
+            self._create_game(2, True)
 
     def test_game_list(self):
         response = self.client_1.get(reverse('game_list'))
@@ -1410,9 +1416,22 @@ class GameListAPITest(BaseAPITestCase):
         self.assertEqual(response.json()['status'], 'ok')
         self.assertEqual(len(response.json()['games']), 1)
 
+        if config.ENABLE_AUTO_START_ON_JOIN:
+            self._create_game(2)
+
+            response = self.client_1.get(reverse('game_list'), {'status': 1})   # Playing
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json()['status'], 'ok')
+            self.assertEqual(len(response.json()['games']), 1)
+
+            response = self.client_1.get(reverse('game_list'), {'status': 0})   # Waiting
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json()['status'], 'ok')
+            self.assertEqual(len(response.json()['games']), 1)
+
     def test_game_list_pagination(self):
         for i in range(20):
-            self._create_game(2)
+            self._create_game(2, False)
         
         response = self.client_1.get(reverse('game_list'), {'status': 0})
         resp_data = response.json()
@@ -1432,7 +1451,8 @@ class JoinGameAPITest(BaseAPITestCase):
         self.enable_logging = False
         self._create_game(2, auto_join=False)
 
-    def test_join_game(self):
+    @unittest.skipIf(not config.ENABLE_AUTO_START_ON_JOIN, "if auto-start is not enabled skip it")
+    def test_join_game_and_auto_start(self):
         self.assertEqual(self.game.players.count(), 1)
 
         resp = self.client_2.post(
@@ -1447,7 +1467,7 @@ class JoinGameAPITest(BaseAPITestCase):
         self.player_1, self.player_2 = self.players
         self._refresh_game_and_players()
 
-        self.assertEqual(self.game.status, Game.WAITING)
+        self.assertEqual(self.game.status, Game.PLAYING)
         self.assertEqual(self.game.players.count(), 2)
     
     def test_join_game_twice(self):
@@ -1464,6 +1484,7 @@ class JoinGameAPITest(BaseAPITestCase):
         self.assertEqual(self.game.status, Game.WAITING)
         self.assertEqual(self.game.players.count(), 1)
 
+    @unittest.skipIf(config.ENABLE_AUTO_START_ON_JOIN, "Deprecated, because of auto-start on game join")
     def test_join_game_full(self):
         self.assertEqual(self.game.players.count(), 1)
 
@@ -1497,10 +1518,14 @@ class JoinGameAPITest(BaseAPITestCase):
         )
         self.assertEqual(resp.status_code, 200)
         self._refresh_game_and_players()
-        self.assertEqual(self.game.status, Game.WAITING)
         self.assertEqual(self.game.players.count(), 2)
 
-        self._start_game()
+        if config.ENABLE_AUTO_START_ON_JOIN:
+            self.assertEqual(self.game.status, Game.PLAYING)
+        else:
+            self.assertEqual(self.game.status, Game.WAITING)
+            self._start_game()
+
 
         resp = self.client_3.post(
             reverse('join_game'),

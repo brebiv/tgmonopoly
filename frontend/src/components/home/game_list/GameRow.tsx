@@ -15,12 +15,12 @@ function GameRow({ game }: { game: Game }) {
         <div className="flex w-3/4 gap-3 overflow-hidden">
           {/* <AvatarGroup> */}
           {game.players.map((player) => (
-            <div key={player.id} className="flex flex-col items-center">
+            <div key={player.id} className="flex flex-col items-center gap-1">
               <Avatar>
                 {/* <AvatarImage src={player.avatar} /> */}
-                <AvatarFallback>o_o</AvatarFallback>
+                <AvatarFallback>{player.name.charAt(0).toUpperCase()}</AvatarFallback>
               </Avatar>
-              {/* <p>Player1</p> */}
+              <p className="text-sm">{player.name}</p>
               {/* <p className="text-sm font-thin" style={{ color: hintColor }}>
                     14
                   </p> */}

@@ -330,3 +330,6 @@ def load_all_data():
     load_tiles()
     load_properties()
     load_utilities()
+
+
+TELEGRAM_WEB_URL_FOR_TESTING = 'https://web.telegram.org/a/?test=1'

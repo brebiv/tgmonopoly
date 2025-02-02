@@ -49,6 +49,10 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       setButtonTextColor(theme.button_text_color);
       setSectionSeparatorColor(theme.section_separator_color || theme.hint_color);
       setLinkColor(theme.link_color);
+
+      document
+        .querySelector("body")!
+        .style.setProperty("background-color", theme.secondary_bg_color);
     } else {
       setUsingTGTheme(false);
     }

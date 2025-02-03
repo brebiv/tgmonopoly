@@ -10,7 +10,7 @@ function GameRow({ game }: { game: Game }) {
   const { hintColor } = useTheme();
 
   return (
-    <Card className="flex min-h-20 w-full flex-1 flex-col gap-3 px-4 py-2">
+    <Card className="flex h-auto w-full flex-col gap-3 px-4 py-2">
       <div className="flex w-full gap-3">
         <div className="flex w-3/4 gap-3 overflow-hidden">
           {/* <AvatarGroup> */}

@@ -18,16 +18,19 @@ from game.services import GameService
 from game.exceptions import GameException
 from .utils import telegram_auth_required, CustomRequest
 from .types import GameActionType, TradeData
+from .services import check_user_can_create_game
 
 
 # Create your views here.
 @api_view(['GET',])
 @telegram_auth_required
 def me(request: CustomRequest):
-    # try:
-    #     player = Player.objects.get(user=request.telegram_user)
-    # except Player.DoesNotExist:
-    #     pass
+    permissions = {
+        "create_game": False
+    }
+
+    if check_user_can_create_game(request.telegram_user):
+        permissions['create_game'] = True
 
     me = {
         'id': request.telegram_user.user_id,
@@ -35,6 +38,7 @@ def me(request: CustomRequest):
         'first_name': request.telegram_user.first_name,
         'last_name': request.telegram_user.last_name,
         'language': request.telegram_user.language,
+        'permissions': permissions
         # 'player': PlayerSerializer(player).data if player else None,
     }
     return JsonResponse(me)
@@ -47,45 +51,44 @@ def create_game(request: CustomRequest):
         serializer = CreateGameSerializer(data=request.data)
         if serializer.is_valid():
             # Delete from here. It allows user to create to multiple games at the same time
-            game = Game.objects.create(
-                max_players=serializer.data['max_players'],
-            )
-            player = Player.objects.create(
-                user=request.telegram_user,
-                game=game,
-                color="red",
-            )
+            # game = Game.objects.create(
+            #     max_players=serializer.data['max_players'],
+            # )
+            # player = Player.objects.create(
+            #     user=request.telegram_user,
+            #     game=game,
+            #     color="red",
+            # )
 
-            response_data = {
-                'status': 'ok',
-                'next_url': f'/game/{game.uuid}',
-                'game_uuid': game.uuid,
-                # 'game': GameSerializer(game).data,
-                # 'players': [PlayerSerializer(player).data],
-            }
-            return JsonResponse(response_data, status=200)
+            # response_data = {
+            #     'status': 'ok',
+            #     'next_url': f'/game/{game.uuid}',
+            #     'game_uuid': game.uuid,
+            #     # 'game': GameSerializer(game).data,
+            #     # 'players': [PlayerSerializer(player).data],
+            # }
+            # return JsonResponse(response_data, status=200)
             # To here
-            # try:
-            #     player = Player.objects.get(user=request.telegram_user, game__status=Game.PLAYING)
-            #     return JsonResponse({'error': 'You are already playing a game'}, status=400)
-            # except Player.DoesNotExist:
-            #     game = Game.objects.create(
-            #         max_players=serializer.data['max_players'],
-            #     )
-            #     player = Player.objects.create(
-            #         user=request.telegram_user,
-            #         game=game,
-            #         color="red",
-            #     )
+            if Player.objects.filter(user=request.telegram_user, game__status=Game.PLAYING).exists():
+                return JsonResponse({'error': 'You are already playing a game'}, status=400)
+            else:
+                game = Game.objects.create(
+                    max_players=serializer.data['max_players'],
+                )
+                player = Player.objects.create(
+                    user=request.telegram_user,
+                    game=game,
+                    color="red",
+                )
 
-            #     response_data = {
-            #         'status': 'ok',
-            #         'next_url': f'/game/{game.uuid}',
-            #         'game_uuid': game.uuid,
-            #         # 'game': GameSerializer(game).data,
-            #         # 'players': [PlayerSerializer(player).data],
-            #     }
-            #     return JsonResponse(response_data, status=200)
+                response_data = {
+                    'status': 'ok',
+                    'next_url': f'/game/{game.uuid}',
+                    'game_uuid': game.uuid,
+                    # 'game': GameSerializer(game).data,
+                    # 'players': [PlayerSerializer(player).data],
+                }
+                return JsonResponse(response_data, status=200)
         else:
             return HttpResponse(status=400)
     else:
@@ -105,10 +108,16 @@ def game_list(request: CustomRequest):
     paginator = Paginator(games, 10)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
+
+    games_data = [GameSerializer(game).data for game in page_obj]
+
+    for game in games_data:
+        in_game = Player.objects.filter(game__uuid=game['uuid'], user=request.telegram_user).exists()
+        game['in_game'] = in_game
     
     resp_data = {
         'status': 'ok',
-        'games': [GameSerializer(game).data for game in page_obj],
+        'games': games_data,
     }
 
     if page_obj.has_next():
@@ -151,6 +160,31 @@ def join_game(request: CustomRequest):
         )
 
         return JsonResponse(response_data, status=200)
+
+
+@api_view(['GET',])
+@telegram_auth_required
+def leave_game(request: CustomRequest, game_uuid):
+    if request.method == 'GET':
+        # game = Game.objects.get(uuid=request.data['game_uuid'])
+        game = get_object_or_404(Game, uuid=game_uuid)
+        player = Player.objects.get(game=game, user=request.telegram_user)
+
+        try:
+            events = GameService.leave_game(game, player)
+        except GameException as e:
+            return JsonResponse({"status": "!ok", "error": str(e)}, status=400)
+
+        game_frame = GameService.assemble_game_frame(game, events)
+
+        channel_layer = get_channel_layer()
+        game_group_name = f"game_{game.uuid}"
+
+        async_to_sync(channel_layer.group_send)(
+            game_group_name, game_frame
+        )
+
+        return JsonResponse({"status": "ok",}, status=200)
 
 
 @api_view(['POST',])

@@ -94,11 +94,13 @@ class PlayerSerializer(serializers.ModelSerializer):
         model = Player
         fields = (
             'id', 'position', 'cash', 'color', 'in_jail', 'jail_turns', 'effects',
-            'name', 'status', 'move_backwards', 'rolled_double', 'dobule_count'
+            'name', 'status', 'move_backwards', 'rolled_double', 'dobule_count',
+            'permissions'
         )
     
     effects = GameEffectSerializer(many=True, read_only=True)
     name = serializers.SerializerMethodField()
+    permissions = serializers.SerializerMethodField()
     
     # def get_effects(self, obj):
     #     if obj.effects.count() > 0:
@@ -106,8 +108,23 @@ class PlayerSerializer(serializers.ModelSerializer):
     #     else:
     #         return []
     
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Remove the permissions field if it's not the first request
+        # if not self.context.get('include_permissions', False):
+        #     self.fields.pop('permissions')
+
     def get_name(self, obj):
         return obj.user.first_name
+
+    def get_permissions(self, obj):
+        permissions = {}
+        game = obj.game
+
+        if obj.id == game.created_by.id:
+            permissions['abort_game'] = True
+        
+        return permissions
 
 
 class CompactPlayerSerializer(serializers.ModelSerializer):

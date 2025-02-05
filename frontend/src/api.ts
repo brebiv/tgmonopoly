@@ -76,3 +76,9 @@ export const getGames = () => {
     return response.data;
   });
 };
+
+export const leaveGame = async (gameUUID: string) => {
+  return axios.get(`/api/leave_game/${gameUUID}/`).then((response) => {
+    return response.data;
+  });
+};

@@ -25,6 +25,10 @@ class Game(models.Model):
 
     created = models.DateTimeField(auto_now_add=True)
 
+    @property
+    def created_by(self) -> 'Player':
+        return self.players.first()
+
     def __str__(self):
         return str(self.uuid)
 

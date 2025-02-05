@@ -65,6 +65,25 @@ class GameService:
         return events
 
     @staticmethod
+    def leave_game(game: Game, player: Player) -> list[dict]:
+        events = []
+
+        if player.game != game:
+            raise GameException("You are not in this game")
+
+        player_pk = player.pk
+
+        player.delete()
+
+        events.append({
+            'type': 'game.service',
+            'action': GameEventType.PLAYER_LEFT,
+            'player': player_pk,
+        })
+
+        return events
+
+    @staticmethod
     def calculate_next_player(game: Game, after_player: Player) -> Player:
         game_players: list[Player] = game.players.filter(status=Player.PLAYING).order_by('created')
 

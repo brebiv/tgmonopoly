@@ -48,6 +48,8 @@ export enum GameEventType {
   REJECT_AUCTION = "reject_auction",
   ACCEPT_AUCTION = "accept_auction",
   WON_AUCTION = "won_auction",
+  PLAYER_JOINED = "player_joined",
+  PLAYER_LEFT = "player_left",
 }
 
 export enum GameActionType {
@@ -173,6 +175,10 @@ export type GameEffect = {
   effect_data: EffectData | null;
 };
 
+export type PlayerPermissions = {
+  abort_game: boolean | null;
+};
+
 export type Player = {
   id: number;
   position: number;
@@ -185,6 +191,7 @@ export type Player = {
   avatar: string;
   status: PlayerStatus;
   move_backwards: boolean;
+  permissions: PlayerPermissions | null;
 };
 
 export type CompactPlayer = {
@@ -206,6 +213,9 @@ export type Game = {
   status: GameStatus;
   created: string;
   players: CompactPlayer[];
+
+  // GameList stuff
+  in_game: boolean | null | undefined;
 };
 
 export type ChangeCardData = {
@@ -281,4 +291,18 @@ export type GamesResponse = {
   status: "ok" | "!ok";
   games: Game[];
   next_url: string | null;
+};
+
+export type UserPermissions = {
+  create_game: boolean;
+};
+
+export type AuthMe = {
+  first_name: string;
+  id: number;
+  language: string;
+  last_name: string;
+  permissions: UserPermissions;
+  create_game: boolean;
+  username: string;
 };

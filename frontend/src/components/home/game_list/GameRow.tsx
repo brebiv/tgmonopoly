@@ -39,18 +39,30 @@ function GameRow({ game }: { game: Game }) {
           {/* </AvatarGroup> */}
         </div>
         <div className="flex w-1/4 items-center">
-          <Button
-            variant={"default"}
-            className="w-full font-semibold"
-            onClick={async () => {
-              let resp = await joinGame(game.uuid);
-              if (resp.status === "ok") {
-                window.location.href = resp.next_url;
-              }
-            }}
-          >
-            Join
-          </Button>
+          {game.in_game ? (
+            <Button
+              variant={"default"}
+              className="w-full font-semibold"
+              onClick={() => {
+                window.location.href = "/game/" + game.uuid;
+              }}
+            >
+              Reconnect
+            </Button>
+          ) : (
+            <Button
+              variant={"default"}
+              className="w-full font-semibold"
+              onClick={async () => {
+                let resp = await joinGame(game.uuid);
+                if (resp.status === "ok") {
+                  window.location.href = resp.next_url;
+                }
+              }}
+            >
+              Join
+            </Button>
+          )}
         </div>
       </div>
       <Separator className="mt-2" style={{ backgroundColor: "rgb(100,100,100)" }} />

@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient, UseQueryResult } from "react-que
 import { createGame, getAuth, getGames, getTiles } from "./api";
 import { useEffect, useRef, useState } from "react";
 import { buildGameWebsocketUrl } from "./lib/utils";
-import { Game, GameFrame, GameEventScope, Ownership, GamesResponse } from "./types/api";
+import { Game, GameFrame, GameEventScope, Ownership, GamesResponse, AuthMe } from "./types/api";
 import { useEventStore } from "./stores/EventStore";
 import { useGameStore } from "./stores/GameStore";
 import { processGameData } from "./lib/game";
@@ -109,7 +109,7 @@ export const useTiles = () => {
 };
 
 export const useAuth = (runImmediately = false, enableRetry = false) => {
-  return useQuery(["me"], getAuth, {
+  return useQuery<AuthMe, Error>(["me"], getAuth, {
     enabled: runImmediately,
     retry: enableRetry,
   });

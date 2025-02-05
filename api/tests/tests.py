@@ -1538,3 +1538,33 @@ class JoinGameAPITest(BaseAPITestCase):
         self._refresh_game_and_players()
         self.assertEqual(self.game.status, Game.PLAYING)
         self.assertEqual(self.game.players.count(), 2)
+
+
+class LeaveGameAPITest(BaseAPITestCase):
+    def setUp(self):
+        super().setUp()
+
+        self.enable_logging = False
+        self._create_game(3, auto_join=False)
+    
+    def test_leave_game_in_waiting(self):
+        self.assertEqual(self.game.players.count(), 1)
+
+        resp = self.client_2.post(
+            reverse('join_game'),
+            data={
+                'game_uuid': self.game.uuid
+            }
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(self.game.status, Game.WAITING)
+        self.assertEqual(self.game.players.count(), 2)
+
+        resp = self.client_2.get(reverse('leave_game', kwargs={'game_uuid': self.game.uuid}))
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(self.game.status, Game.WAITING)
+        self.assertEqual(self.game.players.count(), 1)
+
+    @unittest.skip("Not implemented")
+    def test_leave_game_in_playing(self):
+        pass

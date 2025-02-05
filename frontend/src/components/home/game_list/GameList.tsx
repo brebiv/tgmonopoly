@@ -6,20 +6,31 @@ import { Button } from "@/components/ui/button";
 function GameList() {
   const { data: games, isLoading: isGamesLoading } = useGames(true, true);
   const { bgColor } = useTheme();
-  const { data: me } = useAuth();
+  const { data: authMe } = useAuth();
 
   return (
     <div className="flex h-full w-full flex-1 flex-col gap-4">
       <div className="flex w-full">
         <h1 className="text-2xl">Active games</h1>
-        <Button
-          variant={"default"}
-          className="ml-auto"
-          onClick={() => (window.location.href = "/create_game")}
-          disabled={me?.permissions.create_game == false}
-        >
-          Create game
-        </Button>
+        {authMe?.current_game_link ? (
+          <Button
+            variant={"default"}
+            className="ml-auto"
+            onClick={() => (window.location.href = authMe?.current_game_link!)}
+            // disabled={authMe?.permissions.create_game == false}
+          >
+            Reconnect
+          </Button>
+        ) : (
+          <Button
+            variant={"default"}
+            className="ml-auto"
+            onClick={() => (window.location.href = "/create_game")}
+            // disabled={authMe?.permissions.create_game == false}
+          >
+            Create game
+          </Button>
+        )}
       </div>
       <div
         className="flex h-full flex-1 flex-col gap-2 rounded-xl py-4"

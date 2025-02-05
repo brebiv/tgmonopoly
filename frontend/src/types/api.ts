@@ -305,4 +305,5 @@ export type AuthMe = {
   permissions: UserPermissions;
   create_game: boolean;
   username: string;
+  current_game_link: string | null;
 };

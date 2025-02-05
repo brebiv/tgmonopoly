@@ -14,7 +14,6 @@ function GameLobby({ game }: { game: Game }) {
   const players = useGameStore((state) => state.players);
   const { secondaryBGColor, textColor } = useTheme();
   const [dotMultiplier, setDotMultiplier] = useState(0);
-  const { me } = useGameStore();
 
   useEffect(() => {
     setDotMultiplier(0);
@@ -71,24 +70,18 @@ function GameLobby({ game }: { game: Game }) {
             ))}
           </div>
           <div className="flex w-full justify-between gap-4">
-            {me?.permissions?.abort_game === true ? (
-              <Button variant={"destructive"} className="text-md">
-                Abort game
-              </Button>
-            ) : (
-              <Button
-                variant={"destructive"}
-                className="text-md"
-                onClick={async () => {
-                  let resp = await leaveGame(game.uuid);
-                  if (resp.status === "ok") {
-                    window.location.href = "/";
-                  }
-                }}
-              >
-                Leave game
-              </Button>
-            )}
+            <Button
+              variant={"destructive"}
+              className="text-md"
+              onClick={async () => {
+                let resp = await leaveGame(game.uuid);
+                if (resp.status === "ok") {
+                  window.location.href = "/";
+                }
+              }}
+            >
+              Leave game
+            </Button>
             <Button variant={"default"} className="text-md flex-1 gap-2">
               <TelegramIcon className="h-5" />
               Invite a friend

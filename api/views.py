@@ -18,7 +18,7 @@ from game.services import GameService
 from game.exceptions import GameException
 from .utils import telegram_auth_required, CustomRequest
 from .types import GameActionType, TradeData
-from .services import check_user_can_create_game
+from .services import check_user_can_create_game, get_user_current_game
 
 
 # Create your views here.
@@ -32,13 +32,16 @@ def me(request: CustomRequest):
     if check_user_can_create_game(request.telegram_user):
         permissions['create_game'] = True
 
+    current_game = get_user_current_game(request.telegram_user)
+
     me = {
         'id': request.telegram_user.user_id,
         'username': request.telegram_user.username,
         'first_name': request.telegram_user.first_name,
         'last_name': request.telegram_user.last_name,
         'language': request.telegram_user.language,
-        'permissions': permissions
+        'permissions': permissions,
+        'current_game_link': f'/game/{current_game.uuid}' if current_game else None,
         # 'player': PlayerSerializer(player).data if player else None,
     }
     return JsonResponse(me)

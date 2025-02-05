@@ -16,10 +16,13 @@ class Game(models.Model):
     WAITING = 'WAITING'
     PLAYING = 'PLAYING'
     FINISHED = 'FINISHED'
+    ABANDONED = 'ABANDONED'
+
     STATUS_CHOICES = [
         (WAITING, 'Waiting'),
         (PLAYING, 'Playing'),
         (FINISHED, 'Finished'),
+        (ABANDONED, 'Abandoned'),
     ]
     status = models.CharField(max_length=16, choices=STATUS_CHOICES, default=WAITING)
 

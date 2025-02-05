@@ -73,6 +73,11 @@ class GameService:
 
         player_pk = player.pk
 
+        if game.players.count() == 1:
+            game.status = Game.ABANDONED
+            game.save()
+            return events
+
         player.delete()
 
         events.append({

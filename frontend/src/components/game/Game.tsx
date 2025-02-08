@@ -54,7 +54,11 @@ function Game() {
   }
 
   if (game?.status === GameStatus.WAITING) {
-    return <GameLobby game={game!} />;
+    return (
+      <GameLobby game={game!}>
+        <GameLobby.Actions game={game!}></GameLobby.Actions>
+      </GameLobby>
+    );
   }
 
   return (

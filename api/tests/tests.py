@@ -1,3 +1,4 @@
+import unittest.mock
 from channels.testing import WebsocketCommunicator
 from channels.db import database_sync_to_async
 from django.test import TestCase, Client
@@ -1400,6 +1401,7 @@ class GameListAPITest(BaseAPITestCase):
         self.assertEqual(game.max_players, 2)
         self.assertEqual(game.status, Game.WAITING)
 
+    @unittest.mock.patch('game.config.ALLOW_CREATING_MULTIPLE_GAMES', True)
     def test_game_list_filtered_by_status(self):
         response = self.client_1.get(reverse('game_list'), {'status': 1})   # Playing
         self.assertEqual(response.status_code, 200)
@@ -1429,6 +1431,7 @@ class GameListAPITest(BaseAPITestCase):
             self.assertEqual(response.json()['status'], 'ok')
             self.assertEqual(len(response.json()['games']), 1)
 
+    @unittest.mock.patch('game.config.ALLOW_CREATING_MULTIPLE_GAMES', True)
     def test_game_list_pagination(self):
         for i in range(20):
             self._create_game(2, False)

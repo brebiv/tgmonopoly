@@ -27,7 +27,7 @@ def game(request: HttpRequest, game_uuid: uuid.UUID):
     context = {
         'tiles': json.dumps(TileSerializer(tiles, many=True).data),
         'game': json.dumps(GameSerializer(game).data),
-        'players': json.dumps(PlayerSerializer(players, many=True).data),
+        # 'players': json.dumps(PlayerSerializer(players, many=True).data),
     }
 
     return render(request, 'game/game.html', context)

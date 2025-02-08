@@ -6,11 +6,19 @@ import { Button } from "@/components/ui/button";
 import Separator from "@/components/game/Separator";
 import { joinGame } from "@/api";
 
-function GameRow({ game }: { game: Game }) {
+function GameListRow({
+  game,
+  hideSeparator = false,
+  reconnect = false,
+}: {
+  game: Game;
+  hideSeparator?: boolean;
+  reconnect?: boolean;
+}) {
   const { hintColor } = useTheme();
 
   return (
-    <Card className="flex h-auto w-full flex-col gap-3 px-4 py-2">
+    <Card className="flex h-auto w-full flex-col gap-3 px-4 py-4">
       <div className="flex w-full gap-3">
         <div className="flex w-3/4 gap-3 overflow-hidden">
           {/* <AvatarGroup> */}
@@ -39,7 +47,7 @@ function GameRow({ game }: { game: Game }) {
           {/* </AvatarGroup> */}
         </div>
         <div className="flex w-1/4 items-center">
-          {game.in_game ? (
+          {game.in_game || reconnect ? (
             <Button
               variant={"default"}
               className="w-full font-semibold"
@@ -65,9 +73,12 @@ function GameRow({ game }: { game: Game }) {
           )}
         </div>
       </div>
-      <Separator className="mt-2" style={{ backgroundColor: "rgb(100,100,100)" }} />
+      {!hideSeparator && (
+        <Separator className="mt-2" style={{ backgroundColor: "rgb(100,100,100)" }} />
+      )}
+      {/* <Separator className="mt-2" style={{ backgroundColor: "rgb(100,100,100)" }} /> */}
     </Card>
   );
 }
 
-export default GameRow;
+export default GameListRow;

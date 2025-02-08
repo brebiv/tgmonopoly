@@ -53,10 +53,12 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       document
         .querySelector("body")!
         .style.setProperty("background-color", theme.secondary_bg_color);
-      // document.documentElement.style.setProperty(
-      //   "--bg-color",
-      //   theme.bg_color || "rgb(18, 17, 19)",
-      // );
+
+      document.documentElement.style.setProperty("--bg-color", theme.bg_color || "rgb(18, 17, 19)");
+      document.documentElement.style.setProperty(
+        "--secondary-bg-color",
+        theme.secondary_bg_color || "rgb(18, 17, 19)",
+      );
     } else {
       setUsingTGTheme(false);
     }

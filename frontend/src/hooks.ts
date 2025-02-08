@@ -2,7 +2,15 @@ import { useMutation, useQuery, useQueryClient, UseQueryResult } from "react-que
 import { createGame, getAuth, getGames, getTiles } from "./api";
 import { useEffect, useRef, useState } from "react";
 import { buildGameWebsocketUrl } from "./lib/utils";
-import { Game, GameFrame, GameEventScope, Ownership, GamesResponse, AuthMe } from "./types/api";
+import {
+  Game,
+  GameFrame,
+  GameEventScope,
+  Ownership,
+  GamesResponse,
+  AuthMe,
+  Player,
+} from "./types/api";
 import { useEventStore } from "./stores/EventStore";
 import { useGameStore } from "./stores/GameStore";
 import { processGameData } from "./lib/game";
@@ -130,7 +138,7 @@ export const useGame = () => {
 };
 
 export const usePlayers = () => {
-  return useQuery({
+  return useQuery<Player[], Error>({
     queryKey: ["players"],
     enabled: false,
     retry: false,

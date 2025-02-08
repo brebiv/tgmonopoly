@@ -1,5 +1,5 @@
 import { useAuth, useGames } from "@/hooks";
-import GameRow from "./GameRow";
+import GameListRow from "./GameListRow";
 import { useTheme } from "@/stores/ThemeContext";
 import { Button } from "@/components/ui/button";
 
@@ -33,7 +33,7 @@ function GameList() {
         )}
       </div>
       <div
-        className="flex h-full flex-1 flex-col gap-2 rounded-xl py-4"
+        className="flex h-full flex-1 flex-col gap-2 rounded-xl py-2"
         style={{ backgroundColor: bgColor }}
       >
         {isGamesLoading ? (
@@ -41,7 +41,7 @@ function GameList() {
         ) : (
           <>
             {games ? (
-              games.games.map((game) => <GameRow key={game.uuid} game={game} />)
+              games.games.map((game) => <GameListRow key={game.uuid} game={game} />)
             ) : (
               <div>No games found</div>
             )}

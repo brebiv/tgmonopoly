@@ -52,6 +52,7 @@ class GameEventType:
     ACCEPT_AUCTION = 'accept_auction'
     WON_AUCTION = 'won_auction'
     NEXT_TURN = 'next_turn'
+    GAME_DELETED = 'game_deleted'
 
 class WSEventType(Enum):
     GAME_CONNECTED = 'game.connected'

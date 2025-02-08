@@ -87,6 +87,26 @@ class GameService:
         })
 
         return events
+    
+    @staticmethod
+    def abandon_game(game: Game, player: Player) -> list[dict]:
+        events = []
+        if player.game != game:
+            raise GameException("You are not in this game")
+        
+        # if not settings.DEBUG:
+        #     raise GameException("You can't delete games in production")
+        
+        game.status = Game.ABANDONED
+        game.save()
+
+        events.append({
+            'type': 'game.service',
+            'action': GameEventType.GAME_DELETED,
+            'game': game.pk,
+        })
+
+        return events
 
     @staticmethod
     def calculate_next_player(game: Game, after_player: Player) -> Player:

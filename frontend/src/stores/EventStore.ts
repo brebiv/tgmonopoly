@@ -55,7 +55,12 @@ export const useEventStore = create<EventStore>((set, get) => ({
 
       const { setPlayers, setGame, myTurn, setShowTurnMenu, setMe, setOwnerships } =
         useGameStore.getState();
-      let players = queryClient.getQueriesData<Player[]>(["players"])[0][1];
+
+      let players = queryClient.getQueryData<Player[]>(["players"]);
+      if (!players) {
+        return;
+      }
+
       let game = queryClient.getQueriesData<Game>(["game"])[0][1];
       let ownerships = queryClient.getQueriesData<Ownership[]>(["ownerships"])[0][1];
 
@@ -93,7 +98,10 @@ export const useEventStore = create<EventStore>((set, get) => ({
   processGameFrame: (gameFrame: GameFrame) => {
     const { setShowTradeMenu, setTradeMenuData, setIsPreview } = useTradeStore.getState();
     if (gameFrame.type === GameScopeType.GAME_CONNECTED) {
-      let players = queryClient.getQueriesData<Player[]>(["players"])[0][1];
+      let players = queryClient.getQueryData<Player[]>(["players"]);
+      if (!players) {
+        return;
+      }
       let me = getMeFromPlayers(players);
       let lastEffect = me?.effects[0];
 

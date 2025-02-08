@@ -50,6 +50,7 @@ export enum GameEventType {
   WON_AUCTION = "won_auction",
   PLAYER_JOINED = "player_joined",
   PLAYER_LEFT = "player_left",
+  GAME_DELETED = "game_deleted",
 }
 
 export enum GameActionType {
@@ -252,7 +253,7 @@ export type GameFrame = {
   type: GameScopeType;
   action: GameActionType | null;
   game: Game | null;
-  players: Player[] | null;
+  players: Player[];
   events: GameEvent[] | null;
   me: Player | null;
   ownerships: Ownership[] | null;
@@ -306,4 +307,5 @@ export type AuthMe = {
   create_game: boolean;
   username: string;
   current_game_link: string | null;
+  current_game_info: Game | null;
 };

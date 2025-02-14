@@ -132,7 +132,7 @@ function GameLogRow({ event }: { event: GameEvent }) {
   }
 
   return (
-    <p>
+    <p className="font-thin">
       <PlayerNameSpan player={player!} />: {message}
     </p>
   );

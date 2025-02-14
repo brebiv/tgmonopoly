@@ -5,6 +5,7 @@ import Forbidden from "../Forbidden";
 import GameList from "./game_list/GameList";
 import { useTheme } from "@/stores/ThemeContext";
 import CurrentGame from "./game_list/CurrentGame";
+import HomeBanner from "./HomeBanner";
 
 function BrowseGames() {
   const { data: me, isLoading: isMeLoading, isError: isMeError } = useAuth(true);
@@ -22,15 +23,13 @@ function BrowseGames() {
 
   return (
     <div
-      className="flex min-h-screen flex-col items-center gap-40 px-4 py-2"
+      className="flex min-h-screen flex-col items-center gap-4 px-4 py-2 pb-4"
       style={{
         backgroundColor: secondaryBGColor,
         color: textColor,
       }}
     >
-      <div>
-        <h1>Welcome back!</h1>
-      </div>
+      <HomeBanner />
       {me.current_game_link ? <CurrentGame /> : <GameList />}
     </div>
   );

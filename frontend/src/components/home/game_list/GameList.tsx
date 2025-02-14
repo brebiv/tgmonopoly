@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 
 function GameList() {
   const { data: games, isLoading: isGamesLoading } = useGames(true, true);
-  const { bgColor } = useTheme();
+  const { bgColor, hintColor } = useTheme();
   const { data: authMe } = useAuth();
 
   return (
@@ -40,10 +40,17 @@ function GameList() {
           <h1>Loading...</h1>
         ) : (
           <>
-            {games ? (
+            {games && games.games.length > 0 ? (
               games.games.map((game) => <GameListRow key={game.uuid} game={game} />)
             ) : (
-              <div>No games found</div>
+              <div
+                className="flex w-full items-center justify-center pt-2"
+                style={{
+                  color: hintColor,
+                }}
+              >
+                No active games
+              </div>
             )}
           </>
         )}

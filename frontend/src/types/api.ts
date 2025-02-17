@@ -219,11 +219,15 @@ export type Game = {
   in_game: boolean | null | undefined;
 };
 
+export type ChanceCardDetails = {
+  amount: number;
+};
+
 export type ChangeCardData = {
   title: string;
   description: string;
   card_type: ChanceCardType;
-  details: string;
+  details: ChanceCardDetails;
 };
 
 export type AuctionData = {

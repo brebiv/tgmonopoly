@@ -12,7 +12,7 @@ import re
 
 from tgmonopoly.asgi import application as tgmonopoly_application
 from bot.models import TelegramUser
-from game.models import Game, Player, GameEffect, Property, Ownership
+from game.models import Game, Player, GameEffect, Property, Ownership, PropertyGroup
 from game import config
 from api.tests import data as test_data
 from api.types import GameActionType, AuctionData, WSEventType, GameEventType
@@ -1379,6 +1379,84 @@ class DiceRollAPITest(BaseAPITestCase):
         self.assertEqual(player_1_cash_before_tax - config.TAX_AMOUNT, self.player_1.cash)
         self.assertEqual(self.game.current_player, self.player_1)
         self.assertEqual(self.game.turn, 2)
+
+    @patch('game.services.GameService._roll_dice_values')
+    def test_langing_on_single_utility_2(self, mock_roll_dice_values):
+        dices_values = [6, 6]
+        mock_roll_dice_values.return_value = dices_values
+
+        ownership = Ownership.objects.create(
+            game=self.game,
+            player=self.player_2,
+            property = Property.objects.get(board_space__position=12),
+        )
+
+        self._post_game_action(self.client_1, GameActionType.ROLL_DICE)
+        self._refresh_game_and_players()
+
+        current_effect_1 = self.player_1.get_current_effect()
+
+        self.assertEqual(current_effect_1.name, GameEffect.PAY_RENT)
+        self.assertEqual(current_effect_1.effect_data['rent'], sum(dices_values) * ownership.property.rent)
+
+    @patch('game.services.GameService._roll_dice_values')
+    def test_langing_on_monopoly_utility_2(self, mock_roll_dice_values):
+        dices_values = [6, 6]
+        mock_roll_dice_values.return_value = dices_values
+
+        ownership = Ownership.objects.create(
+            game=self.game,
+            player=self.player_2,
+            property = Property.objects.get(board_space__position=12),
+        )
+
+        ownership = Ownership.objects.create(
+            game=self.game,
+            player=self.player_2,
+            property = Property.objects.get(board_space__position=28),
+        )
+
+        self._post_game_action(self.client_1, GameActionType.ROLL_DICE)
+        self._refresh_game_and_players()
+
+        current_effect_1 = self.player_1.get_current_effect()
+
+        self.assertEqual(current_effect_1.name, GameEffect.PAY_RENT)
+        self.assertEqual(current_effect_1.effect_data['rent'], sum(dices_values) * ownership.property.rent * 2)
+
+    @patch('game.services.GameService._roll_dice_values')
+    def _test_utility_1_roll(self, num_utilities: int, mock_roll_dice_values):
+        dices_values = [3, 2]
+        mock_roll_dice_values.return_value = dices_values
+
+        properties_to_buy = Property.objects.filter(group__name=PropertyGroup.UTILITIES_1)[:num_utilities]
+
+        for property in properties_to_buy:
+            ownership = Ownership.objects.create(
+                game=self.game,
+                player=self.player_2,
+                property = property,
+            )
+
+        self._post_game_action(self.client_1, GameActionType.ROLL_DICE)
+        self._refresh_game_and_players()
+
+        current_effect_1 = self.player_1.get_current_effect()
+
+        self.assertEqual(current_effect_1.name, GameEffect.PAY_RENT)
+        self.assertEqual(current_effect_1.effect_data['rent'], ownership.property.rent * num_utilities)
+
+    def test_langing_on_single_utility_1(self):
+        self._test_utility_1_roll(1)
+
+    def test_langing_on_double_utility_1(self):
+        self._test_utility_1_roll(2)
+
+    def test_langing_on_triple_utility_1(self):
+        self._test_utility_1_roll(3)
+
+    def test_langing_on_quatro_utility_1(self):
+        self._test_utility_1_roll(4)
 
 
 class GameListAPITest(BaseAPITestCase):

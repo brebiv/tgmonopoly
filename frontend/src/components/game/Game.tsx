@@ -20,7 +20,7 @@ import TradeMenu from "./TradeMenu/TradeMenu";
 import { useTradeStore } from "@/stores/TradeStore";
 import { useWebsocketStore } from "@/stores/WebsocketStore";
 import ConnectionError from "./ConnectionError";
-import { Button } from "../ui/button";
+// import TriggerDisconnectButton from "../debug/TriggerDisconnectButton";
 
 function Game() {
   useEffect(() => {
@@ -42,7 +42,7 @@ function Game() {
   const [boardLoaded, setBoardLoaded] = useState(false);
   const { game, players } = useGameStore((state) => state);
   const { tradeMenuData } = useTradeStore();
-  const { connected: websocketConnected, setConnected } = useWebsocketStore();
+  const { connected: websocketConnected } = useWebsocketStore();
 
   const { secondaryBGColor } = useTheme();
 
@@ -63,11 +63,9 @@ function Game() {
 
   return (
     <>
-      <div className="absolute z-50 mt-20 flex h-full w-full justify-center">
-        <Button variant={"default"} onClick={() => setConnected(false)}>
-          Trigger disconnect
-        </Button>
-      </div>
+      {/* <div className="absolute z-50 mt-20 flex h-full w-full justify-center">
+        <TriggerDisconnectButton />
+      </div> */}
       {isLoading && <LoadingScreen />}
 
       {!isLoading && <ConnectionError show={!websocketConnected} />}

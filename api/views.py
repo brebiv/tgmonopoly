@@ -611,6 +611,18 @@ def game_action(request: CustomRequest):
                     return JsonResponse({"status": "ok",}, status=200)
                 else:
                     return JsonResponse({"status": "!ok", "error": "Unknown action"}, status=400)
+            elif first_effect.name == GameEffect.PAY_BANK:
+                try:
+                    if action == GameActionType.PAY:
+                        events = GameService.pay_to_bank(game, player)
+                        game_frame = GameService.assemble_game_frame(game, events)
+
+                        async_to_sync(channel_layer.group_send)(
+                            game_group_name, game_frame
+                        )
+                        return JsonResponse({"status": "ok",}, status=200)
+                except GameException as e:
+                    return JsonResponse({"status": "!ok", "error": str(e)}, status=400)
             else:
                 return JsonResponse({"status": "!ok", "error": "Unknown action"}, status=400)
         else:

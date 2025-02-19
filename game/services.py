@@ -253,8 +253,8 @@ class GameService:
 
     @staticmethod
     def _roll_dice_values() -> list[int]:
-        return [random.randint(1, 6) for _ in range(2)]
-        # return [2, 1]
+        # return [random.randint(1, 6) for _ in range(2)]
+        return [3, 1]
     
     @staticmethod
     def roll_dice(game: Game, player: Player, override_dices: list[int] | None = None) -> list:
@@ -477,9 +477,13 @@ class GameService:
                 'amount': config.TAX_AMOUNT,
             })
 
-            player.cash -= config.TAX_AMOUNT
-            player.save()
-            events.extend(GameService.next_turn(game, player))
+            GameService.apply_effect(game, player, GameEffect.PAY_BANK, {
+                'amount': config.TAX_AMOUNT,
+            })
+
+            # player.cash -= config.TAX_AMOUNT
+            # player.save()
+            # events.extend(GameService.next_turn(game, player))
         else:
             GameService.next_turn(game, player)
 
@@ -766,13 +770,19 @@ class GameService:
         return events
     
     @staticmethod
-    def pay_to_bank(game: Game, player: Player, amount: int) -> list[dict]:
+    def pay_to_bank(game: Game, player: Player, amount: int | None = None) -> list[dict]:
         events = []
 
-        if player.cash < amount:
-            raise Exception("You don't have enough cash to pay")
+        current_effect = player.get_current_effect()
+        amount = current_effect.effect_data.get('amount')
 
-        GameService.remove_effect(game, player, GameEffect.PAY_REPAIRS)
+        if player.cash < amount:
+            raise GameException("You don't have enough cash to pay")
+
+        if current_effect.name == GameEffect.PAY_BANK:
+            GameService.remove_effect(game, player, GameEffect.PAY_BANK)
+        elif current_effect.name == GameEffect.PAY_REPAIRS:
+            GameService.remove_effect(game, player, GameEffect.PAY_REPAIRS)
 
         player.cash -= amount
         player.save()

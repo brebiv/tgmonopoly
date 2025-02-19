@@ -234,6 +234,14 @@ function MenuContent({ effects }: MenuContentProps) {
       setTitle(title);
       setHint(hint);
       setActions(actions);
+    } else if (firstEffect.name === GameEffectType.PAY_BANK) {
+      let amount = firstEffect.effect_data!.amount;
+      let title = `You have to pay to the bank`;
+      let hint = `You have to pay $${amount}`;
+
+      setTitle(title);
+      setHint(hint);
+      setActions([<PayButton key={0} gameUUID={gameUUID} />]);
     } else {
       setTitle("Unknown effect");
     }

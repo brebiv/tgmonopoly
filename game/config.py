@@ -6,6 +6,7 @@ class GameEffectTypes(models.TextChoices):
     ASK_BUY = 'ask_buy', 'Ask Buy'
     PAY_RENT = 'pay_rent', 'Pay Rent'
     PAY_REPAIRS = 'pay_repairs', 'Pay Repairs'
+    PAY_BANK = 'pay_bank', 'Pay Bank'
     IN_CASINO = 'in_casino', 'In Casino'
     IN_TRADE = 'in_trade', 'In Trade'
     IN_AUCTION = 'in_auction', 'In Auction'
@@ -24,6 +25,7 @@ EFFECTS_TIMEOUTS = {
     GameEffectTypes.ASK_BUY: 10,
     GameEffectTypes.PAY_RENT: 10,
     GameEffectTypes.PAY_REPAIRS: 10,
+    GameEffectTypes.PAY_BANK: 10,
     GameEffectTypes.IN_CASINO: 10,
     GameEffectTypes.IN_TRADE: 20,
     GameEffectTypes.IN_AUCTION: 20,

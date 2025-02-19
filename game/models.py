@@ -491,6 +491,7 @@ class GameEffect(models.Model):
     ASK_BUY = 'ask_buy'
     PAY_RENT = 'pay_rent'
     PAY_REPAIRS = 'pay_repairs'
+    PAY_BANK = 'pay_bank'
     IN_CASINO = 'in_casino'
     IN_TRADE = 'in_trade'
     IN_AUCTION = 'in_auction'

@@ -82,6 +82,7 @@ export enum GameEffectType {
   ASK_BUY = "ask_buy",
   PAY_RENT = "pay_rent",
   PAY_REPAIRS = "pay_repairs",
+  PAY_BANK = "pay_bank",
   IN_CASINO = "in_casino",
   IN_TRADE = "in_trade",
   IN_AUCTION = "in_auction",
@@ -169,6 +170,7 @@ export type EffectData = {
   current_auction_price: number;
   started_by: number;
   property: number;
+  amount: number;
 } & TradeMenuData;
 
 export type GameEffect = {

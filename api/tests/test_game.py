@@ -841,9 +841,37 @@ class DiceRollAPITest(BaseAPITestCase):
         self._post_game_action(self.client_1, GameActionType.ROLL_DICE)
         self._refresh_game_and_players()
 
+        current_effect_1 = self.player_1.get_current_effect()
+        self.assertEqual(current_effect_1.name, GameEffect.PAY_BANK)
+        self.assertEqual(current_effect_1.effect_data.get('amount'), config.TAX_AMOUNT)
+
+        self._post_game_action(self.client_1, GameActionType.PAY)
+        self._refresh_game_and_players()
+
         self.assertEqual(player_1_cash_before_tax - config.TAX_AMOUNT, self.player_1.cash)
         self.assertEqual(self.game.current_player, self.player_2)
         self.assertEqual(self.game.turn, 2)
+
+    @patch('game.services.GameService._roll_dice_values')
+    def test_landing_on_tax_not_enough_money(self, mock_roll_dice_values):
+        dices_values = [3, 1]
+        mock_roll_dice_values.return_value = dices_values
+
+        self.player_1.cash = config.TAX_AMOUNT - 1
+        self.player_1.save()
+
+        self._post_game_action(self.client_1, GameActionType.ROLL_DICE)
+        self._refresh_game_and_players()
+
+        current_effect_1 = self.player_1.get_current_effect()
+        self.assertEqual(current_effect_1.name, GameEffect.PAY_BANK)
+        self.assertEqual(current_effect_1.effect_data.get('amount'), config.TAX_AMOUNT)
+
+        self._post_game_action(self.client_1, GameActionType.PAY, 400, "!ok", "You don't have enough cash to pay")
+        self._refresh_game_and_players()
+
+        self.assertEqual(self.game.current_player, self.player_1)
+        self.assertEqual(self.game.turn, 1)
 
     @patch('game.services.GameService._roll_dice_values')
     def test_landing_on_tax_with_double(self, mock_roll_dice_values):
@@ -853,6 +881,13 @@ class DiceRollAPITest(BaseAPITestCase):
         player_1_cash_before_tax = self.players[0].cash
 
         self._post_game_action(self.client_1, GameActionType.ROLL_DICE)
+        self._refresh_game_and_players()
+
+        current_effect_1 = self.player_1.get_current_effect()
+        self.assertEqual(current_effect_1.name, GameEffect.PAY_BANK)
+        self.assertEqual(current_effect_1.effect_data.get('amount'), config.TAX_AMOUNT)
+
+        self._post_game_action(self.client_1, GameActionType.PAY)
         self._refresh_game_and_players()
 
         self.assertEqual(player_1_cash_before_tax - config.TAX_AMOUNT, self.player_1.cash)

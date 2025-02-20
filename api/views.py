@@ -237,13 +237,16 @@ def game_action(request: CustomRequest):
                         )
                         return JsonResponse({"status": "ok",}, status=200)
                     elif action == GameActionType.PAY_FOR_PRISON:
-                        events = GameService.pay_for_prison(game, player)
-                        game_frame = GameService.assemble_game_frame(game, events)
+                        try:
+                            events = GameService.pay_for_prison(game, player)
+                            game_frame = GameService.assemble_game_frame(game, events)
 
-                        async_to_sync(channel_layer.group_send)(
-                            game_group_name, game_frame
-                        )
-                        return JsonResponse({"status": "ok",}, status=200)
+                            async_to_sync(channel_layer.group_send)(
+                                game_group_name, game_frame
+                            )
+                            return JsonResponse({"status": "ok",}, status=200)
+                        except GameException as e:
+                            return JsonResponse({"status": "!ok", "error": str(e)}, status=400)
                     elif action == GameActionType.MORTAGE_PROPERTY:
                         extra_data_serializer = MortagePropertySerializer(data=extra_data)
                         if not extra_data_serializer.is_valid():
@@ -407,65 +410,68 @@ def game_action(request: CustomRequest):
                     else:
                         return JsonResponse({"status": "!ok", "error": "Unknown action"}, status=400)
             elif first_effect.name == GameEffect.ASK_BUY:
-                if action == GameActionType.BUY_PROPERTY:
-                    events = GameService.buy_property(game, player)
-                    game_frame = GameService.assemble_game_frame(game, events)
+                try:
+                    if action == GameActionType.BUY_PROPERTY:
+                        events = GameService.buy_property(game, player)
+                        game_frame = GameService.assemble_game_frame(game, events)
 
-                    async_to_sync(channel_layer.group_send)(
-                        game_group_name, game_frame
-                    )
-                    return JsonResponse({"status": "ok",}, status=200)
-                elif action == GameActionType.MORTAGE_PROPERTY:
-                    extra_data_serializer = MortagePropertySerializer(data=extra_data)
-                    if not extra_data_serializer.is_valid():
-                        return JsonResponse({"status": "!ok", "error": "Invalid extra data"}, status=400)
+                        async_to_sync(channel_layer.group_send)(
+                            game_group_name, game_frame
+                        )
+                        return JsonResponse({"status": "ok",}, status=200)
+                    elif action == GameActionType.MORTAGE_PROPERTY:
+                        extra_data_serializer = MortagePropertySerializer(data=extra_data)
+                        if not extra_data_serializer.is_valid():
+                            return JsonResponse({"status": "!ok", "error": "Invalid extra data"}, status=400)
 
-                    property_id = extra_data_serializer.data['property_id']
+                        property_id = extra_data_serializer.data['property_id']
 
-                    events = GameService.mortage_property(game, player, property_id)
-                    game_frame = GameService.assemble_game_frame(game, events)
+                        events = GameService.mortage_property(game, player, property_id)
+                        game_frame = GameService.assemble_game_frame(game, events)
 
-                    async_to_sync(channel_layer.group_send)(
-                        game_group_name, game_frame
-                    )
-                    return JsonResponse({"status": "ok",}, status=200)
-                elif action == GameActionType.BUYOUT_PROPERTY:
-                    extra_data_serializer = MortagePropertySerializer(data=extra_data)
-                    if not extra_data_serializer.is_valid():
-                        return JsonResponse({"status": "!ok", "error": "Invalid extra data"}, status=400)
+                        async_to_sync(channel_layer.group_send)(
+                            game_group_name, game_frame
+                        )
+                        return JsonResponse({"status": "ok",}, status=200)
+                    elif action == GameActionType.BUYOUT_PROPERTY:
+                        extra_data_serializer = MortagePropertySerializer(data=extra_data)
+                        if not extra_data_serializer.is_valid():
+                            return JsonResponse({"status": "!ok", "error": "Invalid extra data"}, status=400)
 
-                    property_id = extra_data_serializer.data['property_id']
+                        property_id = extra_data_serializer.data['property_id']
 
-                    events = GameService.buyouy_property(game, player, property_id)
-                    game_frame = GameService.assemble_game_frame(game, events)
+                        events = GameService.buyouy_property(game, player, property_id)
+                        game_frame = GameService.assemble_game_frame(game, events)
 
-                    async_to_sync(channel_layer.group_send)(
-                        game_group_name, game_frame
-                    )
-                elif action == GameActionType.SELL_HOUSE:
-                    extra_data_serializer = MortagePropertySerializer(data=extra_data)
-                    if not extra_data_serializer.is_valid():
-                        return JsonResponse({"status": "!ok", "error": "Invalid extra data"}, status=400)
+                        async_to_sync(channel_layer.group_send)(
+                            game_group_name, game_frame
+                        )
+                    elif action == GameActionType.SELL_HOUSE:
+                        extra_data_serializer = MortagePropertySerializer(data=extra_data)
+                        if not extra_data_serializer.is_valid():
+                            return JsonResponse({"status": "!ok", "error": "Invalid extra data"}, status=400)
 
-                    property_id = extra_data_serializer.data['property_id']
+                        property_id = extra_data_serializer.data['property_id']
 
-                    events = GameService.sell_house(game, player, property_id)
-                    game_frame = GameService.assemble_game_frame(game, events)
+                        events = GameService.sell_house(game, player, property_id)
+                        game_frame = GameService.assemble_game_frame(game, events)
 
-                    async_to_sync(channel_layer.group_send)(
-                        game_group_name, game_frame
-                    )
-                    return JsonResponse({"status": "ok",}, status=200)
-                elif action == GameActionType.START_AUCTION:
-                    events = GameService.start_auction(game, player)
-                    game_frame = GameService.assemble_game_frame(game, events)
+                        async_to_sync(channel_layer.group_send)(
+                            game_group_name, game_frame
+                        )
+                        return JsonResponse({"status": "ok",}, status=200)
+                    elif action == GameActionType.START_AUCTION:
+                        events = GameService.start_auction(game, player)
+                        game_frame = GameService.assemble_game_frame(game, events)
 
-                    async_to_sync(channel_layer.group_send)(
-                        game_group_name, game_frame
-                    )
-                    return JsonResponse({"status": "ok",}, status=200)
-                else:
-                    return JsonResponse({"status": "!ok", "error": "Unknown action"}, status=400)
+                        async_to_sync(channel_layer.group_send)(
+                            game_group_name, game_frame
+                        )
+                        return JsonResponse({"status": "ok",}, status=200)
+                    else:
+                        return JsonResponse({"status": "!ok", "error": "Unknown action"}, status=400)
+                except GameException as e:
+                    return JsonResponse({"status": "!ok", "error": str(e)}, status=400)
             elif first_effect.name == GameEffect.PAY_RENT:
                 if action == GameActionType.PAY_RENT:
                     events = GameService.pay_rent(game, player)
@@ -546,30 +552,33 @@ def game_action(request: CustomRequest):
                 else:
                     return JsonResponse({"status": "!ok", "error": "Unknown action"}, status=400)
             elif first_effect.name == GameEffect.IN_CASINO:
-                if action == GameActionType.REJECT:
-                    events = GameService.reject_casino(game, player)
-                    game_frame = GameService.assemble_game_frame(game, events)
+                try:
+                    if action == GameActionType.REJECT:
+                        events = GameService.reject_casino(game, player)
+                        game_frame = GameService.assemble_game_frame(game, events)
 
-                    async_to_sync(channel_layer.group_send)(
-                        game_group_name, game_frame
-                    )
-                    return JsonResponse({"status": "ok",}, status=200)
-                elif action == GameActionType.ACCEPT:
-                    extra_data_serializer = ExtraDataSerializer(data=extra_data)
-                    if not extra_data_serializer.is_valid():
-                        return JsonResponse({"status": "!ok", "error": "Invalid extra data"}, status=400)
-                    
-                    bet = extra_data_serializer.data['bet_amount']
-    
-                    events = GameService.play_casino(game, player, bet)
-                    game_frame = GameService.assemble_game_frame(game, events)
+                        async_to_sync(channel_layer.group_send)(
+                            game_group_name, game_frame
+                        )
+                        return JsonResponse({"status": "ok",}, status=200)
+                    elif action == GameActionType.ACCEPT:
+                        extra_data_serializer = ExtraDataSerializer(data=extra_data)
+                        if not extra_data_serializer.is_valid():
+                            return JsonResponse({"status": "!ok", "error": "Invalid extra data"}, status=400)
+                        
+                        bet = extra_data_serializer.data['bet_amount']
+        
+                        events = GameService.play_casino(game, player, bet)
+                        game_frame = GameService.assemble_game_frame(game, events)
 
-                    async_to_sync(channel_layer.group_send)(
-                        game_group_name, game_frame
-                    )
-                    return JsonResponse({"status": "ok",}, status=200)
-                else:
-                    return JsonResponse({"status": "!ok", "error": "Unknown action"}, status=400)
+                        async_to_sync(channel_layer.group_send)(
+                            game_group_name, game_frame
+                        )
+                        return JsonResponse({"status": "ok",}, status=200)
+                    else:
+                        return JsonResponse({"status": "!ok", "error": "Unknown action"}, status=400)
+                except GameException as e:
+                    return JsonResponse({"status": "!ok", "error": str(e)}, status=400)
             elif first_effect.name == GameEffect.IN_TRADE:
                 if action == GameActionType.REJECT:
                     events = GameService.reject_trade(game, player)

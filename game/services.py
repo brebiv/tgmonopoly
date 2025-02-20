@@ -254,7 +254,11 @@ class GameService:
     @staticmethod
     def _roll_dice_values() -> list[int]:
         # return [random.randint(1, 6) for _ in range(2)]
-        return [3, 1]
+        return [2, 2]
+
+    @staticmethod
+    def _flip_coin_value():
+        return random.choice([True, False])
     
     @staticmethod
     def roll_dice(game: Game, player: Player, override_dices: list[int] | None = None) -> list:
@@ -526,36 +530,42 @@ class GameService:
         events = []
         tile = Tile.objects.get(position=player.position)
 
-        if tile.type == Tile.PROPERTY:
-            try:
-                ownership = Ownership.objects.get(player=player, property=tile.property)
-                if ownership.player == player:
-                    raise Exception("You already own this property")
-                else:
-                    raise Exception("You are not the owner of this property")
-            except Ownership.DoesNotExist:
-                ownership = Ownership.objects.create(
-                    game=game,
-                    player=player,
-                    property=tile.property,
-                )
-                player.cash -= tile.property.price
-                player.save()
-                
-                tile.property.owner = player
-                tile.property.save()
+        if tile.type != Tile.PROPERTY:
+            raise GameException("You can't buy a non-property tile")
 
-                GameService.remove_effect(game, player, GameEffect.ASK_BUY)
+        try:
+            ownership = Ownership.objects.get(player=player, property=tile.property)
+            if ownership.player == player:
+                raise GameException("You already own this property")
+            else:
+                raise GameException("You are not the owner of this property")
+        except Ownership.DoesNotExist:
+            if player.cash < tile.property.price:
+                raise GameException("You don't have enough cash to buy this property")
 
-                events.append({
-                    'type': 'game.action',
-                    'action': GameEventType.BUY_PROPERTY,
-                    'player': player.pk,
-                    'tile': tile.pk,
-                })
+            ownership = Ownership.objects.create(
+                game=game,
+                player=player,
+                property=tile.property,
+            )
+            player.cash -= tile.property.price
+            player.save()
+            
+            tile.property.owner = player
+            tile.property.save()
 
-                # If double add roll dice effect to current player else to the next one
-                GameService.next_turn(game, player)
+            GameService.remove_effect(game, player, GameEffect.ASK_BUY)
+
+            events.append({
+                'type': 'game.action',
+                'action': GameEventType.BUY_PROPERTY,
+                'player': player.pk,
+                'tile': tile.pk,
+            })
+
+            # If double add roll dice effect to current player else to the next one
+            GameService.next_turn(game, player)
+
         return events
     
     @staticmethod
@@ -619,7 +629,7 @@ class GameService:
         events = []
 
         if player.cash < config.PRISON_PAY_AMOUNT:
-            raise Exception("You don't have enough cash to pay for prison")
+            raise GameException("You don't have enough cash to pay for prison")
         
         GameService.remove_effect(game, player, GameEffect.ROLL_DICE)
 
@@ -821,11 +831,14 @@ class GameService:
         effect = GameEffect.objects.filter(player=player, name=GameEffect.IN_CASINO).last()
 
         if bet not in effect.effect_data['available_bets']:
-            raise Exception("You can't bet that much")
+            raise GameException("You can't bet that much")
+        
+        if player.cash < bet:
+            raise GameException("You don't have enough cash")
 
         GameService.remove_effect(game, player, GameEffect.IN_CASINO)
 
-        flip_result = random.choice([True, False])
+        flip_result = GameService._flip_coin_value()
 
         if flip_result:
             events.append({
@@ -1016,7 +1029,7 @@ class GameService:
 
         if players_participating_in_auction.count() == 0:
             # Passing auction because there are no players participating
-            raise Exception("There are no players participating in auction")
+            raise GameException("There are no players participating in auction")
         
         GameService.remove_effect(game, player, GameEffect.ASK_BUY)
 

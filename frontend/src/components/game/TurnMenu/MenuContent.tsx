@@ -127,8 +127,9 @@ function MenuContent({ effects }: MenuContentProps) {
       setHint(hint);
       setActions(actions);
     } else if (firstEffect.name === GameEffectType.ASK_BUY) {
+      let canBuy = me.cash >= firstEffect.effect_data!.price;
       let actions = [
-        <BuyPropertyButton key={0} gameUUID={gameUUID} />,
+        <BuyPropertyButton key={0} gameUUID={gameUUID} disabled={!canBuy} />,
         <Button
           key={1}
           variant={"destructive"}
@@ -141,8 +142,14 @@ function MenuContent({ effects }: MenuContentProps) {
           {"Auction"}
         </Button>,
       ];
+
+      let hint: React.ReactNode | string = `It would cost $${firstEffect.effect_data?.price}`;
+      if (!canBuy) {
+        hint = `You don't have enough money to buy this property. It costs $${firstEffect.effect_data?.price}`;
+      }
+
       setTitle(`Do you want to buy ${currentTile?.name}?`);
-      setHint(`It would cost $${firstEffect.effect_data?.price}`);
+      setHint(hint);
       setActions(actions);
     } else if (firstEffect.name === GameEffectType.PAY_RENT) {
       let actions = [<PayRentButton key={0} gameUUID={gameUUID} />];
@@ -241,7 +248,7 @@ function MenuContent({ effects }: MenuContentProps) {
 
       setTitle(title);
       setHint(hint);
-      setActions([<PayButton key={0} gameUUID={gameUUID} />]);
+      setActions([<PayButton key={0} gameUUID={gameUUID} player={me} amount={amount} />]);
     } else {
       setTitle("Unknown effect");
     }

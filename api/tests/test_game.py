@@ -971,3 +971,355 @@ class DiceRollAPITest(BaseAPITestCase):
 
     def test_langing_on_quatro_utility_1(self):
         self._test_utility_1_roll(4)
+
+    @patch('game.services.GameService._roll_dice_values')
+    def test_ask_buy(self, mock_roll_dice_values):
+        dices_values = [1, 2]
+        mock_roll_dice_values.return_value = dices_values
+
+        player_1_money_befor_ask_buy = self.player_1.cash
+
+        self._post_game_action(self.client_1, GameActionType.ROLL_DICE)
+        self._refresh_game_and_players()
+
+        current_effect_1 = self.player_1.get_current_effect()
+
+        self.assertEqual(current_effect_1.name, GameEffect.ASK_BUY)
+
+        self._post_game_action(self.client_1, GameActionType.BUY_PROPERTY)
+        self._refresh_game_and_players()
+
+        current_effect_1 = self.player_1.get_current_effect()
+        current_effect_2 = self.player_2.get_current_effect()
+
+        self.assertIsNone(current_effect_1)
+        self.assertEqual(current_effect_2.name, GameEffect.ROLL_DICE)
+        self.assertEqual(self.player_1.owned_properties.count(), 1)
+        self.assertEqual(self.player_1.cash, player_1_money_befor_ask_buy - self.player_1.owned_properties.first().property.price)
+
+
+    @patch('game.services.GameService._roll_dice_values')
+    def test_ask_buy_not_enough_money(self, mock_roll_dice_values):
+        dices_values = [1, 2]
+        mock_roll_dice_values.return_value = dices_values
+
+        self.player_1.cash = Property.objects.get(board_space__position=sum(dices_values)).price - 1
+        self.player_1.save()
+
+        self._post_game_action(self.client_1, GameActionType.ROLL_DICE)
+        self._refresh_game_and_players()
+
+        current_effect_1 = self.player_1.get_current_effect()
+
+        self.assertEqual(current_effect_1.name, GameEffect.ASK_BUY)
+
+        self._post_game_action(self.client_1, GameActionType.BUY_PROPERTY, 400, "!ok", "You don't have enough cash to buy this property")
+        self._refresh_game_and_players()
+
+        current_effect_1 = self.player_1.get_current_effect()
+
+        self.assertEqual(current_effect_1.name, GameEffect.ASK_BUY)
+        self.assertEqual(self.player_1.owned_properties.count(), 0)
+
+    @patch('game.services.GameService._roll_dice_values')
+    def test_ask_buy_with_double(self, mock_roll_dice_values):
+        dices_values = [3, 3]
+        mock_roll_dice_values.return_value = dices_values
+
+        player_1_money_befor_ask_buy = self.player_1.cash
+
+        self._post_game_action(self.client_1, GameActionType.ROLL_DICE)
+        self._refresh_game_and_players()
+
+        current_effect_1 = self.player_1.get_current_effect()
+
+        self.assertEqual(current_effect_1.name, GameEffect.ASK_BUY)
+
+        self._post_game_action(self.client_1, GameActionType.BUY_PROPERTY)
+        self._refresh_game_and_players()
+
+        current_effect_1 = self.player_1.get_current_effect()
+
+        self.assertEqual(current_effect_1.name, GameEffect.ROLL_DICE)
+        self.assertEqual(self.player_1.owned_properties.count(), 1)
+        self.assertEqual(self.player_1.cash, player_1_money_befor_ask_buy - self.player_1.owned_properties.first().property.price)
+
+
+class CasinoAPITest(BaseAPITestCase):
+    def setUp(self):
+        super().setUp()
+
+        self.enable_logging = False
+        self._create_game(2)
+
+        self.player_1, self.player_2 = self.players
+
+        self._start_game()
+        self._refresh_game_and_players()
+
+    @patch('game.services.GameService._roll_dice_values')
+    def test_not_enough_money_for_casino(self, mock_roll_dice_values):
+        dices_values = [10, 10]
+        mock_roll_dice_values.return_value = dices_values
+
+        self.player_1.cash = 1
+        self.player_1.save()
+
+        self._post_game_action(self.client_1, GameActionType.ROLL_DICE)
+        self._refresh_game_and_players()
+
+        self.assertEqual(self.player_1.get_current_effect().name, GameEffect.IN_CASINO)
+
+        extra_data = {
+            'bet_amount': 10
+        }
+        
+        self._post_game_action(self.client_1, GameActionType.ACCEPT, 400, "!ok", "You don't have enough cash", extra_data=extra_data)
+        self._refresh_game_and_players()
+
+    @patch('game.services.GameService._roll_dice_values')
+    def test_winning_casino(self, mock_roll_dice_values):
+        dices_values = [9, 11]
+        mock_roll_dice_values.return_value = dices_values
+
+        starting_cash = 50
+        bet_amount = 10
+
+
+        self.player_1.cash = starting_cash
+        self.player_1.save()
+
+        self._post_game_action(self.client_1, GameActionType.ROLL_DICE)
+        self._refresh_game_and_players()
+
+        self.assertEqual(self.player_1.get_current_effect().name, GameEffect.IN_CASINO)
+
+        extra_data = {
+            'bet_amount': bet_amount
+        }
+        
+        with patch('game.services.GameService._flip_coin_value', return_value=True):
+            self._post_game_action(self.client_1, GameActionType.ACCEPT, extra_data=extra_data)
+        
+        self._refresh_game_and_players()
+
+        self.assertEqual(self.player_1.cash, starting_cash + bet_amount)
+        self.assertIsNone(self.player_1.get_current_effect())
+        self.assertEqual(self.player_2.get_current_effect().name, GameEffect.ROLL_DICE)
+
+    @patch('game.services.GameService._roll_dice_values')
+    def test_winning_casino_with_dobule(self, mock_roll_dice_values):
+        dices_values = [10, 10]
+        mock_roll_dice_values.return_value = dices_values
+
+        starting_cash = 50
+        bet_amount = 10
+
+        self.player_1.cash = starting_cash
+        self.player_1.save()
+
+        self._post_game_action(self.client_1, GameActionType.ROLL_DICE)
+        self._refresh_game_and_players()
+
+        self.assertEqual(self.player_1.get_current_effect().name, GameEffect.IN_CASINO)
+
+        extra_data = {
+            'bet_amount': bet_amount
+        }
+        
+        with patch('game.services.GameService._flip_coin_value', return_value=True):
+            self._post_game_action(self.client_1, GameActionType.ACCEPT, extra_data=extra_data)
+        
+        self._refresh_game_and_players()
+
+        self.assertEqual(self.player_1.cash, starting_cash + bet_amount)
+        self.assertEqual(self.player_1.get_current_effect().name, GameEffect.ROLL_DICE)
+
+    @patch('game.services.GameService._roll_dice_values')
+    def test_losing_casino(self, mock_roll_dice_values):
+        dices_values = [9, 11]
+        mock_roll_dice_values.return_value = dices_values
+
+        starting_cash = 50
+        bet_amount = 10
+
+        self.player_1.cash = starting_cash
+        self.player_1.save()
+
+        self._post_game_action(self.client_1, GameActionType.ROLL_DICE)
+        self._refresh_game_and_players()
+
+        self.assertEqual(self.player_1.get_current_effect().name, GameEffect.IN_CASINO)
+
+        extra_data = {
+            'bet_amount': bet_amount
+        }
+        
+        with patch('game.services.GameService._flip_coin_value', return_value=False):
+            self._post_game_action(self.client_1, GameActionType.ACCEPT, extra_data=extra_data)
+        
+        self._refresh_game_and_players()
+
+        self.assertEqual(self.player_1.cash, starting_cash - bet_amount)
+        self.assertIsNone(self.player_1.get_current_effect())
+        self.assertEqual(self.player_2.get_current_effect().name, GameEffect.ROLL_DICE)
+        
+    @patch('game.services.GameService._roll_dice_values')
+    def test_losing_casino_with_double(self, mock_roll_dice_values):
+        dices_values = [10, 10]
+        mock_roll_dice_values.return_value = dices_values
+
+        starting_cash = 50
+        bet_amount = 10
+
+        self.player_1.cash = starting_cash
+        self.player_1.save()
+
+        self._post_game_action(self.client_1, GameActionType.ROLL_DICE)
+        self._refresh_game_and_players()
+
+        self.assertEqual(self.player_1.get_current_effect().name, GameEffect.IN_CASINO)
+
+        extra_data = {
+            'bet_amount': bet_amount
+        }
+        
+        with patch('game.services.GameService._flip_coin_value', return_value=False):
+            self._post_game_action(self.client_1, GameActionType.ACCEPT, extra_data=extra_data)
+        
+        self._refresh_game_and_players()
+
+        self.assertEqual(self.player_1.cash, starting_cash - bet_amount)
+        self.assertEqual(self.player_1.get_current_effect().name, GameEffect.ROLL_DICE)
+
+    @patch('game.services.GameService._roll_dice_values')
+    def test_reject_casino(self, mock_roll_dice_values):
+        dices_values = [9, 11]
+        mock_roll_dice_values.return_value = dices_values
+
+        starting_cash = 50
+
+        self.player_1.cash = starting_cash
+        self.player_1.save()
+
+        self._post_game_action(self.client_1, GameActionType.ROLL_DICE)
+        self._refresh_game_and_players()
+
+        self.assertEqual(self.player_1.get_current_effect().name, GameEffect.IN_CASINO)
+
+        
+        self._post_game_action(self.client_1, GameActionType.REJECT)
+        self._refresh_game_and_players()
+
+        self.assertIsNone(self.player_1.get_current_effect())
+        self.assertEqual(self.player_2.get_current_effect().name, GameEffect.ROLL_DICE)
+
+    @patch('game.services.GameService._roll_dice_values')
+    def test_reject_casino_with_double(self, mock_roll_dice_values):
+        dices_values = [10, 10]
+        mock_roll_dice_values.return_value = dices_values
+
+        starting_cash = 50
+
+        self.player_1.cash = starting_cash
+        self.player_1.save()
+
+        self._post_game_action(self.client_1, GameActionType.ROLL_DICE)
+        self._refresh_game_and_players()
+
+        self.assertEqual(self.player_1.get_current_effect().name, GameEffect.IN_CASINO)
+        
+        self._post_game_action(self.client_1, GameActionType.REJECT)
+        
+        self._refresh_game_and_players()
+
+        self.assertEqual(self.player_1.get_current_effect().name, GameEffect.ROLL_DICE)
+
+
+class JailAPITest(BaseAPITestCase):
+    def setUp(self):
+        super().setUp()
+
+        self.enable_logging = False
+        self._create_game(2)
+
+        self.player_1, self.player_2 = self.players
+
+        self._start_game()
+        self._refresh_game_and_players()
+
+
+        # Getting player 1 into jail
+        with patch('game.services.GameService._roll_dice_values', return_value=[9, 1]):
+            self._post_game_action(self.client_1, GameActionType.ROLL_DICE)
+            self._refresh_game_and_players()
+
+            self.assertEqual(self.player_1.in_jail, True)
+            self.assertEqual(self.player_1.jail_turns, 0)
+            self.assertEqual(self.player_2.get_current_effect().name, GameEffect.ROLL_DICE)
+        
+        # Player 2 will just go from start to start
+        with patch('game.services.GameService._roll_dice_values', return_value=[39, 1]):
+            self._post_game_action(self.client_2, GameActionType.ROLL_DICE)
+
+    @patch('game.services.GameService._roll_dice_values')
+    def test_getting_out_by_throwing_dice(self, mock_roll_dice_values):
+        dices_values = [10, 10]
+        mock_roll_dice_values.return_value = dices_values
+
+        with patch('game.services.GameService._roll_dice_values', return_value=[9, 1]):
+            self._post_game_action(self.client_1, GameActionType.ROLL_DICE)
+        
+        self._refresh_game_and_players()
+        self.assertEqual(self.player_1.in_jail, True)
+        self.assertEqual(self.player_1.jail_turns, 1)
+        
+        # Moving player 2 to start
+        with patch('game.services.GameService._roll_dice_values', return_value=[39, 1]):
+            self._post_game_action(self.client_2, GameActionType.ROLL_DICE)
+        
+        with patch('game.services.GameService._roll_dice_values', return_value=[2, 2]):
+            self._post_game_action(self.client_1, GameActionType.ROLL_DICE)        
+            
+        self._refresh_game_and_players()
+        self.assertEqual(self.player_1.in_jail, False)
+        self.assertEqual(self.player_1.jail_turns, 0)
+        self.assertEqual(self.player_1.get_current_effect().name, GameEffect.ROLL_DICE)
+
+    @patch('game.services.GameService._roll_dice_values')
+    def test_getting_out_by_losing_all_attempts_and_paying_for_jail(self, mock_roll_dice_values):
+        dices_values = [10, 10]
+        mock_roll_dice_values.return_value = dices_values
+
+        for i in range(config.MAXIMUM_JAIL_TURNS):
+            with patch('game.services.GameService._roll_dice_values', return_value=[9, 1]):
+                self._post_game_action(self.client_1, GameActionType.ROLL_DICE)
+            
+            self._refresh_game_and_players()
+            self.assertEqual(self.player_1.in_jail, True)
+            self.assertEqual(self.player_1.jail_turns, i + 1)
+            
+            # Moving player 2 to start
+            with patch('game.services.GameService._roll_dice_values', return_value=[39, 1]):
+                self._post_game_action(self.client_2, GameActionType.ROLL_DICE)
+        
+        self._post_game_action(self.client_1, GameActionType.ROLL_DICE, 400, "!ok", "You can't roll dice anymore")
+        self._post_game_action(self.client_1, GameActionType.PAY_FOR_PRISON)
+
+        self._refresh_game_and_players()
+        self.assertEqual(self.player_1.in_jail, False)
+        self.assertEqual(self.player_1.jail_turns, 0)
+        self.assertEqual(self.player_1.get_current_effect().name, GameEffect.ROLL_DICE)
+
+    @patch('game.services.GameService._roll_dice_values')
+    def test_not_enough_money_to_pay_for_jail(self, mock_roll_dice_values):
+        dices_values = [10, 10]
+        mock_roll_dice_values.return_value = dices_values
+
+        self.player_1.cash = config.PRISON_PAY_AMOUNT - 1
+        self.player_1.save()
+        
+        self._post_game_action(self.client_1, GameActionType.PAY_FOR_PRISON, 400, "!ok", "You don't have enough cash to pay for prison")
+
+        self._refresh_game_and_players()
+        self.assertEqual(self.player_1.in_jail, True)

@@ -1,9 +1,22 @@
 import { sendGameAction } from "@/api";
 import { Button } from "@/components/ui/button";
-import { GameActionType } from "@/types/api";
+import { GameActionType, Player } from "@/types/api";
 import { Banknote } from "lucide-react";
 
-function PayButton({ gameUUID }: { gameUUID: string }) {
+function PayButton({
+  gameUUID,
+  player,
+  amount,
+}: {
+  gameUUID: string;
+  player?: Player;
+  amount?: number;
+}) {
+  let disabled = false;
+  if (player && amount) {
+    disabled = player.cash < amount;
+  }
+
   return (
     <Button
       variant={"destructive"}
@@ -11,6 +24,7 @@ function PayButton({ gameUUID }: { gameUUID: string }) {
         sendGameAction({ action: GameActionType.PAY, game_uuid: gameUUID });
       }}
       className="w-full gap-2 py-6 text-lg font-semibold"
+      disabled={disabled}
     >
       <Banknote />
       Pay

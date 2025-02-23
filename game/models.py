@@ -591,6 +591,7 @@ class ChanceCard(models.Model):
     description = models.TextField()
     card_type = models.CharField(max_length=16, choices=CARD_TYPE_CHOICES)
     details = models.JSONField(default=dict, blank=True)
+    active = models.BooleanField(default=True)
 
     @staticmethod
     def get_random_card() -> 'ChanceCard':

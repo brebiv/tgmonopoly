@@ -75,6 +75,8 @@ function GameLogRow({ event }: { event: GameEvent }) {
         message = `Stepped on chance card, he will go to jail`;
       } else if (event.chance_card_data!.card_type == ChanceCardType.MONEY) {
         message = `${event.chance_card_data!.description}. He will receive $${event.chance_card_data!.details.amount}`;
+      } else if (event.chance_card_data!.card_type == ChanceCardType.MOVE) {
+        message = `${event.chance_card_data!.description}.`;
       } else {
         message = "Unknown chance card action";
       }

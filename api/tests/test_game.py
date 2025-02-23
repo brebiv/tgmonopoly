@@ -1,8 +1,9 @@
 from django.http import HttpResponse
 from django.urls import reverse
 from unittest.mock import patch
+from copy import copy
 
-from game.models import Player, GameEffect, Property, Ownership, PropertyGroup
+from game.models import Player, GameEffect, Property, Ownership, PropertyGroup, ChanceCard, Tile
 from game import config
 from api.types import GameActionType, AuctionData, WSEventType, GameEventType
 from api.serializers import PlayerSerializer
@@ -1323,3 +1324,160 @@ class JailAPITest(BaseAPITestCase):
 
         self._refresh_game_and_players()
         self.assertEqual(self.player_1.in_jail, True)
+
+class ChanceCardsAPITest(BaseAPITestCase):
+    def setUp(self):
+        super().setUp()
+
+        self.enable_logging = False
+        self._create_game(2)
+
+        self.player_1, self.player_2 = self.players
+
+        self._start_game()
+        self._refresh_game_and_players()
+
+    @patch('game.services.GameService._roll_dice_values')
+    def test_move(self, mock_roll_dice_values):
+        dices_values = [0, 2]
+        mock_roll_dice_values.return_value = dices_values
+
+        target_chance_card = ChanceCard.objects.get(title="Advance to Shell")
+
+        with patch('game.models.ChanceCard.get_random_card', return_value=target_chance_card):
+            self._post_game_action(self.client_1, GameActionType.ROLL_DICE)
+
+        self._refresh_game_and_players()
+
+        current_effect_1 = self.player_1.get_current_effect()
+        target_tile = Tile.objects.get(position=target_chance_card.details['position'])
+
+        self.assertEqual(current_effect_1.name, GameEffect.ASK_BUY)
+        self.assertEqual(self.player_1.position, target_tile.position)
+
+    @patch('game.services.GameService._roll_dice_values')
+    def test_move_with_extra_money(self, mock_roll_dice_values):
+        dices_values = [0, 2]
+        mock_roll_dice_values.return_value = dices_values
+
+        target_chance_card = ChanceCard.objects.get(title="Advance to Go")
+        player_1_before = copy(self.player_1)
+
+        with patch('game.models.ChanceCard.get_random_card', return_value=target_chance_card):
+            self._post_game_action(self.client_1, GameActionType.ROLL_DICE)
+
+        self._refresh_game_and_players()
+
+        current_effect_1 = self.player_1.get_current_effect()
+        target_tile = Tile.objects.get(position=target_chance_card.details['position'])
+
+        self.assertIsNone(current_effect_1)
+        self.assertEqual(self.player_1.position, target_tile.position)
+        self.assertEqual(self.player_1.cash, player_1_before.cash + target_chance_card.details['amount'])
+
+    @patch('game.services.GameService._roll_dice_values')
+    def test_money_gain(self, mock_roll_dice_values):
+        dices_values = [0, 2]
+        mock_roll_dice_values.return_value = dices_values
+
+        target_chance_card = ChanceCard.objects.get(title="You won beauty contest")
+        player_1_before = copy(self.player_1)
+
+        with patch('game.models.ChanceCard.get_random_card', return_value=target_chance_card):
+            self._post_game_action(self.client_1, GameActionType.ROLL_DICE)
+
+        self._refresh_game_and_players()
+
+        self.assertIsNone(self.player_1.get_current_effect())
+        self.assertEqual(self.player_1.cash, player_1_before.cash + target_chance_card.details['amount'])
+
+    @patch('game.services.GameService._roll_dice_values')
+    def test_go_to_jail(self, mock_roll_dice_values):
+        dice_values = [0, 2]
+        mock_roll_dice_values.return_value = dice_values
+
+        target_chance_card = ChanceCard.objects.get(title="Go to Jail")
+
+        with patch('game.models.ChanceCard.get_random_card', return_value=target_chance_card):
+            self._post_game_action(self.client_1, GameActionType.ROLL_DICE)
+        
+        self._refresh_game_and_players()
+
+        current_effect_1 = self.player_1.get_current_effect()
+        self.assertIsNone(current_effect_1)
+        self.assertEqual(self.player_1.in_jail, True)
+        self.assertEqual(self.player_1.jail_turns, 0)
+
+    @patch('game.services.GameService._roll_dice_values')
+    def test_move_backwards(self, mock_roll_dice_values):
+        dice_values = [0, 2]
+        mock_roll_dice_values.return_value = dice_values
+
+        target_chance_card = ChanceCard.objects.get(title="Move backwards")
+
+        with patch('game.models.ChanceCard.get_random_card', return_value=target_chance_card):
+            self._post_game_action(self.client_1, GameActionType.ROLL_DICE)
+        
+        self._refresh_game_and_players()
+
+        # Moving player 2 to start
+        with patch('game.services.GameService._roll_dice_values', return_value=[39, 1]):
+            self._post_game_action(self.client_2, GameActionType.ROLL_DICE)
+        
+        self._refresh_game_and_players()
+
+        player_1_before_move_backwards = copy(self.player_1)
+        self.assertEqual(self.player_1.get_current_effect().name, GameEffect.ROLL_DICE)
+        self.assertEqual(self.player_1.move_backwards, True)
+        self.assertEqual(self.player_1.jail_turns, 0)
+
+        self._post_game_action(self.client_1, GameActionType.ROLL_DICE)
+        self._refresh_game_and_players()
+
+        self.assertIsNone(self.player_1.get_current_effect())
+        self.assertEqual(self.player_1.move_backwards, False)
+        self.assertEqual(self.player_1.position, player_1_before_move_backwards.position - sum(dice_values))
+
+    @patch('game.services.GameService._roll_dice_values')
+    def test_repairs(self, mock_roll_dice_values):
+        dice_values = [0, 2]
+        mock_roll_dice_values.return_value = dice_values
+
+        target_chance_card = ChanceCard.objects.get(card_type=ChanceCard.REPAIRS)
+        target_property_group_1 = PropertyGroup.objects.get(name=PropertyGroup.CLOTH)
+        ownerships: list[Ownership] = []
+
+        for property in Property.objects.filter(group=target_property_group_1):
+            o = Ownership.objects.create(
+                game=self.game,
+                player=self.player_1,
+                property=property,
+            )
+            ownerships.append(o)
+
+        for i in range(len(ownerships)):
+            if i == 0:
+                ownerships[i].houses = 2
+            else:
+                ownerships[i].houses = 1
+            ownerships[i].save()
+
+        with patch('game.models.ChanceCard.get_random_card', return_value=target_chance_card):
+            self._post_game_action(self.client_1, GameActionType.ROLL_DICE)
+        
+        self._refresh_game_and_players()
+
+        current_effect_1 = self.player_1.get_current_effect()
+        effect_data = current_effect_1.effect_data
+        player_1_before_pay = copy(self.player_1)
+
+        self.assertEqual(current_effect_1.name, GameEffect.PAY_REPAIRS)
+        self.assertEqual(effect_data['repair_cost'], 3 * target_chance_card.details['house_repair_cost'])
+        self.assertEqual(effect_data['number_of_houses'], 3)
+        self.assertEqual(effect_data['house_repair_cost'], target_chance_card.details['house_repair_cost'])
+
+        self._post_game_action(self.client_1, GameActionType.PAY)
+
+        self._refresh_game_and_players()
+        self.assertEqual(self.player_1.cash, player_1_before_pay.cash - effect_data['repair_cost'])
+        self.assertIsNone(self.player_1.get_current_effect())

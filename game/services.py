@@ -254,7 +254,7 @@ class GameService:
     @staticmethod
     def _roll_dice_values() -> list[int]:
         # return [random.randint(1, 6) for _ in range(2)]
-        return [2, 2]
+        return [0, 2]
 
     @staticmethod
     def _flip_coin_value():
@@ -398,7 +398,7 @@ class GameService:
             GameService.next_turn(game, player)
         elif tile.type == Tile.CHANCE:
             card = ChanceCard.get_random_card()
-            # card = ChanceCard.objects.filter(card_type=ChanceCard.MOVE_BACKWARDS).first()
+            # card = ChanceCard.objects.filter(title="Move backwards").first()
 
             events.append({
                 'type': 'game.action',
@@ -452,6 +452,24 @@ class GameService:
                     'number_of_houses': houses_owned,
                     'house_repair_cost': house_repair_cost,
                 })
+            elif card.card_type == ChanceCard.MOVE:
+                # Some notes about this case:
+                # Next turn is called in _handle_normal_roll so don't worry about it
+
+                new_position = card.details.get('position')
+                target_tile = Tile.objects.get(position=new_position)
+                current_player_position = player.position
+
+                # If there is extra money bonus or penalty
+                amount = card.details.get('amount')
+                if amount:
+                    player.cash += amount
+
+                player.save()
+
+                # i now it looks terrible, but it works
+                mock_dice_values = [target_tile.position - current_player_position, 0]
+                GameService._handle_normal_roll(game, player, mock_dice_values)
         elif tile.type == Tile.CASINO:
             events.append({
                 'type': 'game.action',
@@ -784,7 +802,7 @@ class GameService:
         events = []
 
         current_effect = player.get_current_effect()
-        amount = current_effect.effect_data.get('amount')
+        amount = amount or current_effect.effect_data.get('amount')
 
         if player.cash < amount:
             raise GameException("You don't have enough cash to pay")

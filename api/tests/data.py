@@ -10,7 +10,9 @@ from game.models import (
     Tile,
     Property,
     Utility,
+    ChanceCard,
 )
+
 
 RANDOM_TG_USER_1_DICT = {
     "user_id": randint(1000000000, 9999999999),
@@ -324,12 +326,71 @@ def load_utilities():
         Utility.objects.create(pk=5, board_space=Tile.objects.get(pk=13), price=150, mortgage_value=75,  type="UTILITY_2", group_id=10, icon="properties/NASA-Logo-Large.png")
         Utility.objects.create(pk=6, board_space=Tile.objects.get(pk=29), price=150, mortgage_value=75,  type="UTILITY_2", group_id=10, icon="properties/spacex_logo_icon_144865.webp")
 
+def load_chance_cards():
+    with transaction.atomic():
+        ChanceCard.objects.create(
+            pk=1,
+            title="Move backwards",
+            description="Next turn you will move backwards",
+            card_type="MOVE_BACKWARDS",
+            details={}
+        )
+        ChanceCard.objects.create(
+            pk=2,
+            title="Go to Jail",
+            description="Go to Jail",
+            card_type="GO_TO_JAIL",
+            details={}
+        )
+        ChanceCard.objects.create(
+            pk=3,
+            title="All players share 50 with you",
+            description="It's your birthday, all players share 50 with you",
+            card_type="MONEY_TO_PLAYER",
+            details={"from": "all", "amount": 50}
+        )
+        ChanceCard.objects.create(
+            pk=4,
+            title="You won beauty contest",
+            description="You won beauty contest",
+            card_type="MONEY",
+            details={"amount": 100}
+        )
+        ChanceCard.objects.create(
+            pk=5,
+            title="You have to repair all you properties",
+            description="You have to repair all you properties",
+            card_type="REPAIRS",
+            details={"house_repair_cost": 25}
+        )
+        ChanceCard.objects.create(
+            pk=6,
+            title="Advance to Go",
+            description="Move to start and collect $200",
+            card_type="MOVE",
+            details={"position": 0, "amount": 200}
+        )
+        ChanceCard.objects.create(
+            pk=7,
+            title="Advance to Shell",
+            description="You have to refill your gas tank",
+            card_type="MOVE",
+            details={"position": 23}
+        )
+        ChanceCard.objects.create(
+            pk=8,
+            title="Advance to AT&T",
+            description="Why not to visit AT&T?",
+            card_type="MOVE",
+            details={"position": 11}
+        )
 
 def load_all_data():
     load_property_groups()
     load_tiles()
     load_properties()
     load_utilities()
+    load_chance_cards()
 
 
 TELEGRAM_WEB_URL_FOR_TESTING = 'https://web.telegram.org/a/?test=1'

@@ -74,7 +74,7 @@ class TransactionAdmin(admin.ModelAdmin):
 
 @admin.register(ChanceCard)
 class ChanceCardAdmin(admin.ModelAdmin):
-    list_display = ('title', 'card_type', 'details')
+    list_display = ('title', 'card_type', 'details', 'active')
     search_fields = ('title', 'details')
 
 # @admin.register(Trade)

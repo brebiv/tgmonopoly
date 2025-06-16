@@ -1,0 +1,35 @@
+# Python stuff
+*/__pycache__/
+*.pyc
+*.py[cod]
+venv/
+
+# Django stuff
+static/
+media/
+db.sqlite3
+*.sqlite3
+
+# Node modules
+node_modules/
+
+# Frontend stuff
+frontend/assets/
+
+# OS stuff
+.DS_Store
+
+# Temp
+property_data
+
+# Frontend
+frontend/.env*
+
+# Dev stuff
+dev_env/
+
+# Local stuff
+.local/
+
+# Vim .swp files
+.swp

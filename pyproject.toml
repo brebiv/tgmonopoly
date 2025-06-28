@@ -4,9 +4,17 @@ version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
     "django>=5.2.3",
+    "django-extensions>=4.1",
+    "django-stubs[compatible-mypy]>=5.2.1",
     "django-vite>=3.1.0",
     "djangorestframework>=3.16.0",
+    "djangorestframework-stubs>=3.16.0",
+    "mypy>=1.16.1",
+    "pillow>=11.2.1",
+    "pydantic>=2.11.7",
+    "pydantic-extra-types>=2.10.5",
     "pytelegrambotapi>=4.27.0",
+    "python-dotenv>=1.1.0",
 ]
 
 [dependency-groups]

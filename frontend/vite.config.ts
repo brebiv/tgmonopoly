@@ -25,6 +25,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         home: resolve("./src/pages/home/index.tsx"),
+        game: resolve("./src/pages/game/index.tsx"),
       },
     },
   },

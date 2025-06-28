@@ -1,1 +1,49 @@
 @import "tailwindcss";
+
+@theme {
+    --color-background: var(--tg-theme-bg-color);
+    --color-secondary-background: var(--tg-theme-secondary-bg-color);
+    --color-primary: var(--tg-theme-text-color);
+    --color-hint: var(--tg-theme-hint-color);
+    --color-link: var(--tg-theme-link-color);
+    --color-button: var(--tg-theme-button-color);
+    --color-button-text: var(--tg-theme-button-text-color);
+}
+
+@layer base {
+    html[data-theme="tg"] {
+        --color-background: var(--tg-theme-bg-color);
+        --color-secondary-background: var(--tg-theme-secondary-bg-color);
+        --color-primary: var(--tg-theme-text-color);
+        --color-hint: var(--tg-theme-hint-color);
+        --color-link: var(--tg-theme-link-color);
+
+        p {
+            color: var(--color-primary);
+            @apply text-base;
+        }
+
+        div {
+            color: var(--color-primary);
+            background-color: var(--tg-theme-bg-color);
+        }
+
+        button {
+            color: var(--color-button-text);
+            background-color: var(--color-button);
+            @apply text-base;
+        }
+    }
+
+    html[data-theme="default"] {
+        --color-background: black;
+        --color-primary: red;
+    }
+
+    h1 {
+        font-size: 24px;
+    }
+    h2 {
+        font-size: 18px;
+    }
+}

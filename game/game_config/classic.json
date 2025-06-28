@@ -1,0 +1,880 @@
+{
+  "propertyGroups": [
+    {
+      "id": 1,
+      "name": "CLOTH",
+      "color": "#cc5351"
+    },
+    {
+      "id": 2,
+      "name": "FOOD",
+      "color": "#cc8c66"
+    },
+    {
+      "id": 3,
+      "name": "COMMUNICATION",
+      "color": "#c6c25f"
+    },
+    {
+      "id": 4,
+      "name": "AUTOMOBILE",
+      "color": "#339f7e"
+    },
+    {
+      "id": 5,
+      "name": "OIL",
+      "color": "#069aa3"
+    },
+    {
+      "id": 6,
+      "name": "MEDECINE",
+      "color": "#4785c2"
+    },
+    {
+      "id": 7,
+      "name": "FINANCE",
+      "color": "#796fcf"
+    },
+    {
+      "id": 8,
+      "name": "TECH",
+      "color": "#9c63b6"
+    },
+    {
+      "id": 9,
+      "name": "UTILITIES_1",
+      "color": "#8f0d0d"
+    },
+    {
+      "id": 10,
+      "name": "UTILITIES_2",
+      "color": "#3D36B6"
+    }
+  ],
+  "tiles": [
+    {
+      "id": 1,
+      "position": 0,
+      "name": "Go",
+      "type": "START"
+    },
+    {
+      "id": 2,
+      "position": 1,
+      "name": "Adidas",
+      "type": "PROPERTY",
+      "propertyData": {
+        "id": 1,
+        "price": 60,
+        "mortgage_value": 30,
+        "house_price": 50,
+        "rent": 2,
+        "rent_with_1_house": 10,
+        "rent_with_2_houses": 30,
+        "rent_with_3_houses": 90,
+        "rent_with_4_houses": 160,
+        "rent_with_5_houses": 250,
+        "group_id": 1,
+        "group_color": "#cc5351",
+        "icon": "properties/adidas_logo.png",
+        "buyout_price": null,
+        "svg_icon": null,
+        "group_name": "CLOTH"
+      }
+    },
+    {
+      "id": 3,
+      "position": 2,
+      "name": "Chance",
+      "type": "CHANCE"
+    },
+    {
+      "id": 4,
+      "position": 3,
+      "name": "Nike",
+      "type": "PROPERTY",
+      "propertyData": {
+        "id": 2,
+        "price": 60,
+        "mortgage_value": 30,
+        "house_price": 50,
+        "rent": 4,
+        "rent_with_1_house": 20,
+        "rent_with_2_houses": 60,
+        "rent_with_3_houses": 180,
+        "rent_with_4_houses": 320,
+        "rent_with_5_houses": 450,
+        "group_id": 1,
+        "group_color": "#cc5351",
+        "icon": "properties/nike_icon.png",
+        "buyout_price": null,
+        "svg_icon": null,
+        "group_name": "CLOTH"
+      }
+    },
+    {
+      "id": 5,
+      "position": 4,
+      "name": "Tax",
+      "type": "TAX"
+    },
+    {
+      "id": 6,
+      "position": 5,
+      "name": "Wind",
+      "type": "PROPERTY",
+      "propertyData": {
+        "id": 23,
+        "price": 200,
+        "mortgage_value": 100,
+        "house_price": null,
+        "rent": 200,
+        "rent_with_1_house": null,
+        "rent_with_2_houses": null,
+        "rent_with_3_houses": null,
+        "rent_with_4_houses": null,
+        "rent_with_5_houses": null,
+        "group_id": 9,
+        "group_color": "#8f0d0d",
+        "icon": "",
+        "buyout_price": null,
+        "svg_icon": "WIND_POWER",
+        "group_name": "UTILITIES_1"
+      }
+    },
+    {
+      "id": 7,
+      "position": 6,
+      "name": "Pepsi",
+      "type": "PROPERTY",
+      "propertyData": {
+        "id": 3,
+        "price": 100,
+        "mortgage_value": 50,
+        "house_price": 50,
+        "rent": 6,
+        "rent_with_1_house": 30,
+        "rent_with_2_houses": 90,
+        "rent_with_3_houses": 270,
+        "rent_with_4_houses": 400,
+        "rent_with_5_houses": 550,
+        "group_id": 2,
+        "group_color": "#cc8c66",
+        "icon": "properties/pepsi_logo.png",
+        "buyout_price": null,
+        "svg_icon": null,
+        "group_name": "FOOD"
+      }
+    },
+    {
+      "id": 8,
+      "position": 7,
+      "name": "Chance",
+      "type": "CHANCE"
+    },
+    {
+      "id": 9,
+      "position": 8,
+      "name": "Coca-Cola",
+      "type": "PROPERTY",
+      "propertyData": {
+        "id": 4,
+        "price": 120,
+        "mortgage_value": 60,
+        "house_price": 50,
+        "rent": 8,
+        "rent_with_1_house": 40,
+        "rent_with_2_houses": 100,
+        "rent_with_3_houses": 300,
+        "rent_with_4_houses": 450,
+        "rent_with_5_houses": 600,
+        "group_id": 2,
+        "group_color": "#cc8c66",
+        "icon": "properties/Coca-Cola_logo.png",
+        "buyout_price": null,
+        "svg_icon": null,
+        "group_name": "FOOD"
+      }
+    },
+    {
+      "id": 10,
+      "position": 9,
+      "name": "Nestle",
+      "type": "PROPERTY",
+      "propertyData": {
+        "id": 5,
+        "price": 120,
+        "mortgage_value": 60,
+        "house_price": 50,
+        "rent": 8,
+        "rent_with_1_house": 40,
+        "rent_with_2_houses": 100,
+        "rent_with_3_houses": 300,
+        "rent_with_4_houses": 450,
+        "rent_with_5_houses": 600,
+        "group_id": 2,
+        "group_color": "#cc8c66",
+        "icon": "properties/Nestle-Logo_tUC6jj9.png",
+        "buyout_price": null,
+        "svg_icon": null,
+        "group_name": "FOOD"
+      }
+    },
+    {
+      "id": 11,
+      "position": 10,
+      "name": "Jail",
+      "type": "JAIL"
+    },
+    {
+      "id": 12,
+      "position": 11,
+      "name": "AT&T",
+      "type": "PROPERTY",
+      "propertyData": {
+        "id": 6,
+        "price": 140,
+        "mortgage_value": 70,
+        "house_price": 100,
+        "rent": 10,
+        "rent_with_1_house": 50,
+        "rent_with_2_houses": 150,
+        "rent_with_3_houses": 450,
+        "rent_with_4_houses": 625,
+        "rent_with_5_houses": 750,
+        "group_id": 3,
+        "group_color": "#c6c25f",
+        "icon": "properties/att-logo-transparent.png",
+        "buyout_price": null,
+        "svg_icon": null,
+        "group_name": "COMMUNICATION"
+      }
+    },
+    {
+      "id": 13,
+      "position": 12,
+      "name": "NASA",
+      "type": "PROPERTY",
+      "propertyData": {
+        "id": 24,
+        "price": 150,
+        "mortgage_value": 75,
+        "house_price": null,
+        "rent": 10,
+        "rent_with_1_house": null,
+        "rent_with_2_houses": null,
+        "rent_with_3_houses": null,
+        "rent_with_4_houses": null,
+        "rent_with_5_houses": null,
+        "group_id": 10,
+        "group_color": "#3D36B6",
+        "icon": "properties/NASA-Logo-Large_lv1zNQ4.png",
+        "buyout_price": null,
+        "svg_icon": null,
+        "group_name": "UTILITIES_2"
+      }
+    },
+    {
+      "id": 14,
+      "position": 13,
+      "name": "Verizon",
+      "type": "PROPERTY",
+      "propertyData": {
+        "id": 7,
+        "price": 140,
+        "mortgage_value": 70,
+        "house_price": 100,
+        "rent": 10,
+        "rent_with_1_house": 50,
+        "rent_with_2_houses": 150,
+        "rent_with_3_houses": 450,
+        "rent_with_4_houses": 625,
+        "rent_with_5_houses": 750,
+        "group_id": 3,
+        "group_color": "#c6c25f",
+        "icon": "properties/Verizon-Logo.png",
+        "buyout_price": null,
+        "svg_icon": null,
+        "group_name": "COMMUNICATION"
+      }
+    },
+    {
+      "id": 15,
+      "position": 14,
+      "name": "Chine Mobile",
+      "type": "PROPERTY",
+      "propertyData": {
+        "id": 8,
+        "price": 160,
+        "mortgage_value": 80,
+        "house_price": 100,
+        "rent": 12,
+        "rent_with_1_house": 60,
+        "rent_with_2_houses": 180,
+        "rent_with_3_houses": 500,
+        "rent_with_4_houses": 700,
+        "rent_with_5_houses": 900,
+        "group_id": 3,
+        "group_color": "#c6c25f",
+        "icon": "properties/chine_mobile_logo.png",
+        "buyout_price": null,
+        "svg_icon": null,
+        "group_name": "COMMUNICATION"
+      }
+    },
+    {
+      "id": 16,
+      "position": 15,
+      "name": "Dam",
+      "type": "PROPERTY",
+      "propertyData": {
+        "id": 25,
+        "price": 200,
+        "mortgage_value": 100,
+        "house_price": null,
+        "rent": 200,
+        "rent_with_1_house": null,
+        "rent_with_2_houses": null,
+        "rent_with_3_houses": null,
+        "rent_with_4_houses": null,
+        "rent_with_5_houses": null,
+        "group_id": 9,
+        "group_color": "#8f0d0d",
+        "icon": "",
+        "buyout_price": null,
+        "svg_icon": "DAM",
+        "group_name": "UTILITIES_1"
+      }
+    },
+    {
+      "id": 17,
+      "position": 16,
+      "name": "Toyota",
+      "type": "PROPERTY",
+      "propertyData": {
+        "id": 9,
+        "price": 180,
+        "mortgage_value": 90,
+        "house_price": 100,
+        "rent": 14,
+        "rent_with_1_house": 70,
+        "rent_with_2_houses": 200,
+        "rent_with_3_houses": 550,
+        "rent_with_4_houses": 750,
+        "rent_with_5_houses": 950,
+        "group_id": 4,
+        "group_color": "#339f7e",
+        "icon": "properties/Toyota-Logo.png",
+        "buyout_price": null,
+        "svg_icon": null,
+        "group_name": "AUTOMOBILE"
+      }
+    },
+    {
+      "id": 18,
+      "position": 17,
+      "name": "Chance",
+      "type": "CHANCE"
+    },
+    {
+      "id": 19,
+      "position": 18,
+      "name": "Audi",
+      "type": "PROPERTY",
+      "propertyData": {
+        "id": 10,
+        "price": 180,
+        "mortgage_value": 90,
+        "house_price": 100,
+        "rent": 14,
+        "rent_with_1_house": 70,
+        "rent_with_2_houses": 200,
+        "rent_with_3_houses": 550,
+        "rent_with_4_houses": 750,
+        "rent_with_5_houses": 950,
+        "group_id": 4,
+        "group_color": "#339f7e",
+        "icon": "properties/Audi-Logo.png",
+        "buyout_price": null,
+        "svg_icon": null,
+        "group_name": "AUTOMOBILE"
+      }
+    },
+    {
+      "id": 20,
+      "position": 19,
+      "name": "Tesla",
+      "type": "PROPERTY",
+      "propertyData": {
+        "id": 11,
+        "price": 200,
+        "mortgage_value": 100,
+        "house_price": 100,
+        "rent": 16,
+        "rent_with_1_house": 80,
+        "rent_with_2_houses": 220,
+        "rent_with_3_houses": 600,
+        "rent_with_4_houses": 800,
+        "rent_with_5_houses": 1000,
+        "group_id": 4,
+        "group_color": "#339f7e",
+        "icon": "properties/Tesla-Logo.png",
+        "buyout_price": null,
+        "svg_icon": null,
+        "group_name": "AUTOMOBILE"
+      }
+    },
+    {
+      "id": 21,
+      "position": 20,
+      "name": "Casino",
+      "type": "CASINO"
+    },
+    {
+      "id": 22,
+      "position": 21,
+      "name": "BP",
+      "type": "PROPERTY",
+      "propertyData": {
+        "id": 12,
+        "price": 220,
+        "mortgage_value": 110,
+        "house_price": 150,
+        "rent": 18,
+        "rent_with_1_house": 90,
+        "rent_with_2_houses": 250,
+        "rent_with_3_houses": 700,
+        "rent_with_4_houses": 875,
+        "rent_with_5_houses": 1050,
+        "group_id": 5,
+        "group_color": "#069aa3",
+        "icon": "properties/bp-logo.png",
+        "buyout_price": null,
+        "svg_icon": null,
+        "group_name": "OIL"
+      }
+    },
+    {
+      "id": 23,
+      "position": 22,
+      "name": "Chance",
+      "type": "CHANCE"
+    },
+    {
+      "id": 24,
+      "position": 23,
+      "name": "Shell",
+      "type": "PROPERTY",
+      "propertyData": {
+        "id": 13,
+        "price": 220,
+        "mortgage_value": 110,
+        "house_price": 150,
+        "rent": 18,
+        "rent_with_1_house": 90,
+        "rent_with_2_houses": 250,
+        "rent_with_3_houses": 700,
+        "rent_with_4_houses": 875,
+        "rent_with_5_houses": 1050,
+        "group_id": 5,
+        "group_color": "#069aa3",
+        "icon": "properties/Shell-Logo.png",
+        "buyout_price": null,
+        "svg_icon": null,
+        "group_name": "OIL"
+      }
+    },
+    {
+      "id": 25,
+      "position": 24,
+      "name": "Chevron",
+      "type": "PROPERTY",
+      "propertyData": {
+        "id": 14,
+        "price": 240,
+        "mortgage_value": 120,
+        "house_price": 150,
+        "rent": 20,
+        "rent_with_1_house": 100,
+        "rent_with_2_houses": 300,
+        "rent_with_3_houses": 750,
+        "rent_with_4_houses": 925,
+        "rent_with_5_houses": 1100,
+        "group_id": 5,
+        "group_color": "#069aa3",
+        "icon": "properties/Chevron-Logo.png",
+        "buyout_price": null,
+        "svg_icon": null,
+        "group_name": "OIL"
+      }
+    },
+    {
+      "id": 26,
+      "position": 25,
+      "name": "Solar",
+      "type": "PROPERTY",
+      "propertyData": {
+        "id": 26,
+        "price": 200,
+        "mortgage_value": 100,
+        "house_price": null,
+        "rent": 200,
+        "rent_with_1_house": null,
+        "rent_with_2_houses": null,
+        "rent_with_3_houses": null,
+        "rent_with_4_houses": null,
+        "rent_with_5_houses": null,
+        "group_id": 9,
+        "group_color": "#8f0d0d",
+        "icon": "",
+        "buyout_price": null,
+        "svg_icon": "SOLAR_POWER",
+        "group_name": "UTILITIES_1"
+      }
+    },
+    {
+      "id": 27,
+      "position": 26,
+      "name": "Moderna",
+      "type": "PROPERTY",
+      "propertyData": {
+        "id": 15,
+        "price": 260,
+        "mortgage_value": 130,
+        "house_price": 150,
+        "rent": 22,
+        "rent_with_1_house": 110,
+        "rent_with_2_houses": 330,
+        "rent_with_3_houses": 800,
+        "rent_with_4_houses": 975,
+        "rent_with_5_houses": 1150,
+        "group_id": 6,
+        "group_color": "#4785c2",
+        "icon": "properties/Moderna_logo.png",
+        "buyout_price": null,
+        "svg_icon": null,
+        "group_name": "MEDECINE"
+      }
+    },
+    {
+      "id": 28,
+      "position": 27,
+      "name": "Durex",
+      "type": "PROPERTY",
+      "propertyData": {
+        "id": 16,
+        "price": 260,
+        "mortgage_value": 130,
+        "house_price": 150,
+        "rent": 22,
+        "rent_with_1_house": 110,
+        "rent_with_2_houses": 330,
+        "rent_with_3_houses": 800,
+        "rent_with_4_houses": 975,
+        "rent_with_5_houses": 1150,
+        "group_id": 6,
+        "group_color": "#4785c2",
+        "icon": "properties/Durex-Logo.png",
+        "buyout_price": null,
+        "svg_icon": null,
+        "group_name": "MEDECINE"
+      }
+    },
+    {
+      "id": 29,
+      "position": 28,
+      "name": "SpaceX",
+      "type": "PROPERTY",
+      "propertyData": {
+        "id": 27,
+        "price": 150,
+        "mortgage_value": 75,
+        "house_price": null,
+        "rent": 10,
+        "rent_with_1_house": null,
+        "rent_with_2_houses": null,
+        "rent_with_3_houses": null,
+        "rent_with_4_houses": null,
+        "rent_with_5_houses": null,
+        "group_id": 10,
+        "group_color": "#3D36B6",
+        "icon": "properties/spacex_logo_icon_144865_0eDOETd.webp",
+        "buyout_price": null,
+        "svg_icon": null,
+        "group_name": "UTILITIES_2"
+      }
+    },
+    {
+      "id": 30,
+      "position": 29,
+      "name": "Pfizer",
+      "type": "PROPERTY",
+      "propertyData": {
+        "id": 17,
+        "price": 280,
+        "mortgage_value": 140,
+        "house_price": 150,
+        "rent": 24,
+        "rent_with_1_house": 120,
+        "rent_with_2_houses": 360,
+        "rent_with_3_houses": 850,
+        "rent_with_4_houses": 1025,
+        "rent_with_5_houses": 1200,
+        "group_id": 6,
+        "group_color": "#4785c2",
+        "icon": "properties/Pfizer_logo.png",
+        "buyout_price": null,
+        "svg_icon": null,
+        "group_name": "MEDECINE"
+      }
+    },
+    {
+      "id": 31,
+      "position": 30,
+      "name": "Police",
+      "type": "POLICE"
+    },
+    {
+      "id": 32,
+      "position": 31,
+      "name": "Citigroup",
+      "type": "PROPERTY",
+      "propertyData": {
+        "id": 18,
+        "price": 300,
+        "mortgage_value": 150,
+        "house_price": 200,
+        "rent": 26,
+        "rent_with_1_house": 130,
+        "rent_with_2_houses": 390,
+        "rent_with_3_houses": 900,
+        "rent_with_4_houses": 1100,
+        "rent_with_5_houses": 1275,
+        "group_id": 7,
+        "group_color": "#796fcf",
+        "icon": "properties/Citigroup-Logo.png",
+        "buyout_price": null,
+        "svg_icon": null,
+        "group_name": "FINANCE"
+      }
+    },
+    {
+      "id": 33,
+      "position": 32,
+      "name": "Goldman Sachs",
+      "type": "PROPERTY",
+      "propertyData": {
+        "id": 19,
+        "price": 300,
+        "mortgage_value": 150,
+        "house_price": 200,
+        "rent": 26,
+        "rent_with_1_house": 130,
+        "rent_with_2_houses": 390,
+        "rent_with_3_houses": 900,
+        "rent_with_4_houses": 1100,
+        "rent_with_5_houses": 1275,
+        "group_id": 7,
+        "group_color": "#796fcf",
+        "icon": "properties/Goldman-Sachs-Logo.png",
+        "buyout_price": null,
+        "svg_icon": null,
+        "group_name": "FINANCE"
+      }
+    },
+    {
+      "id": 34,
+      "position": 33,
+      "name": "Chance",
+      "type": "CHANCE"
+    },
+    {
+      "id": 35,
+      "position": 34,
+      "name": "JPMorgan Chase",
+      "type": "PROPERTY",
+      "propertyData": {
+        "id": 20,
+        "price": 320,
+        "mortgage_value": 160,
+        "house_price": 200,
+        "rent": 28,
+        "rent_with_1_house": 150,
+        "rent_with_2_houses": 450,
+        "rent_with_3_houses": 1000,
+        "rent_with_4_houses": 1200,
+        "rent_with_5_houses": 1400,
+        "group_id": 7,
+        "group_color": "#796fcf",
+        "icon": "properties/JP-Morgan-Chase-Emblem.png",
+        "buyout_price": null,
+        "svg_icon": null,
+        "group_name": "FINANCE"
+      }
+    },
+    {
+      "id": 36,
+      "position": 35,
+      "name": "Nuke",
+      "type": "PROPERTY",
+      "propertyData": {
+        "id": 28,
+        "price": 200,
+        "mortgage_value": 100,
+        "house_price": null,
+        "rent": 200,
+        "rent_with_1_house": null,
+        "rent_with_2_houses": null,
+        "rent_with_3_houses": null,
+        "rent_with_4_houses": null,
+        "rent_with_5_houses": null,
+        "group_id": 9,
+        "group_color": "#8f0d0d",
+        "icon": "",
+        "buyout_price": null,
+        "svg_icon": "NUKE",
+        "group_name": "UTILITIES_1"
+      }
+    },
+    {
+      "id": 37,
+      "position": 36,
+      "name": "Chance",
+      "type": "CHANCE"
+    },
+    {
+      "id": 38,
+      "position": 37,
+      "name": "TikTok",
+      "type": "PROPERTY",
+      "propertyData": {
+        "id": 21,
+        "price": 350,
+        "mortgage_value": 175,
+        "house_price": 200,
+        "rent": 35,
+        "rent_with_1_house": 175,
+        "rent_with_2_houses": 500,
+        "rent_with_3_houses": 1100,
+        "rent_with_4_houses": 1300,
+        "rent_with_5_houses": 1500,
+        "group_id": 8,
+        "group_color": "#9c63b6",
+        "icon": "properties/tiktok-logo-tiktok-logo-transparent-tiktok-icon-transparent-free-free-png.webp",
+        "buyout_price": null,
+        "svg_icon": null,
+        "group_name": "TECH"
+      }
+    },
+    {
+      "id": 39,
+      "position": 38,
+      "name": "Tax",
+      "type": "TAX"
+    },
+    {
+      "id": 40,
+      "position": 39,
+      "name": "Telegram",
+      "type": "PROPERTY",
+      "propertyData": {
+        "id": 22,
+        "price": 400,
+        "mortgage_value": 200,
+        "house_price": 200,
+        "rent": 50,
+        "rent_with_1_house": 200,
+        "rent_with_2_houses": 600,
+        "rent_with_3_houses": 1400,
+        "rent_with_4_houses": 1700,
+        "rent_with_5_houses": 2000,
+        "group_id": 8,
+        "group_color": "#9c63b6",
+        "icon": "properties/Telegram_logo.png",
+        "buyout_price": null,
+        "svg_icon": null,
+        "group_name": "TECH"
+      }
+    }
+  ],
+  "chanceCards": [
+    {
+      "id": 1,
+      "title": "Move backwards",
+      "description": "Next turn you will move backwards",
+      "card_type": "MOVE_BACKWARDS",
+      "details": {},
+      "active": true
+    },
+    {
+      "id": 2,
+      "title": "Go to Jail",
+      "description": "Go to Jail",
+      "card_type": "GO_TO_JAIL",
+      "details": {},
+      "active": true
+    },
+    {
+      "id": 3,
+      "title": "All players share 50 with you",
+      "description": "It's your birthday, all players share 50 with you\r\n\r\n!!!It now forces all players to pay without asking!!!",
+      "card_type": "MONEY_TO_PLAYER",
+      "details": {
+        "from": "all",
+        "amount": 50
+      },
+      "active": false
+    },
+    {
+      "id": 4,
+      "title": "You won beauty contest",
+      "description": "You won beauty contest",
+      "card_type": "MONEY",
+      "details": {
+        "amount": 100
+      },
+      "active": true
+    },
+    {
+      "id": 5,
+      "title": "You have to repair all you properties",
+      "description": "You have to repair all you properties",
+      "card_type": "REPAIRS",
+      "details": {
+        "house_repair_cost": 25
+      },
+      "active": true
+    },
+    {
+      "id": 6,
+      "title": "Advance to Go",
+      "description": "Move to start and collect $200",
+      "card_type": "MOVE",
+      "details": {
+        "position": 0,
+        "amount": 200
+      },
+      "active": true
+    },
+    {
+      "id": 7,
+      "title": "Advance to Shell",
+      "description": "You have to refill your gas tank",
+      "card_type": "MOVE",
+      "details": {
+        "position": 23
+      },
+      "active": true
+    },
+    {
+      "id": 8,
+      "title": "Advance to AT&T",
+      "description": "Why not to visit AT&T?",
+      "card_type": "MOVE",
+      "details": {
+        "position": 11
+      },
+      "active": true
+    }
+  ]
+}

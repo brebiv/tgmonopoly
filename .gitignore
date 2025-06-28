@@ -27,9 +27,13 @@ frontend/.env*
 
 # Dev stuff
 dev_env/
+kool_thing
 
 # Local stuff
 .local/
 
 # Vim .swp files
 .swp
+
+# .env's
+.env

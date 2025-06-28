@@ -28,7 +28,10 @@
       "@shared/*": ["./src/shared/*"],
       "@components/*": ["./src/components/*"],
       "@pages/*": ["./src/pages/*"]
-    }
+    },
+    "types": [
+      "./node_modules/telegram-webapps"
+    ]
   },
   "include": ["src"]
 }

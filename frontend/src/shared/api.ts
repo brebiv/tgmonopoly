@@ -1,8 +1,7 @@
 import axios from "axios";
 
 function assembleAuthHeader() {
-  // @ts-ignore
-  return `TWA ${window.Telegram.WebApp.initData}`;
+  return `TWA ${Telegram.WebApp.initData}`;
 }
 
 // function getCsrfToken() {

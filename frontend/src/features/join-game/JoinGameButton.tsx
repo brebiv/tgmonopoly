@@ -16,7 +16,7 @@ export const JoinGameButton: React.FC<JoinGameButtonProps> = ({
         console.log("Joining game:", gameUUID);
       }}
     >
-      <p className="text-lg w-12">{text}</p>
+      <p className="text-lg w-12 text-button-text">{text}</p>
     </Button>
   );
 };

@@ -66,7 +66,14 @@ const SelectGroupItem: React.FC<SelectGroupItemProps> = ({
           }
         )}
       ></div>
-      <p className="z-10">{value}</p>
+      <p
+        className={cn("z-10", {
+          "text-button-text": selected,
+          "text-primary": !selected,
+        })}
+      >
+        {value}
+      </p>
     </button>
   );
 };

@@ -25,9 +25,9 @@ class TgUserPayload(BaseModel):
     allows_write_to_pm: Optional[bool] = None
 
 
-def update_or_create_telegram_user(raw: dict) -> TelegramUser:
+def update_or_create_telegram_user(data: dict) -> TelegramUser:
     try:
-        payload = TgUserPayload.model_validate(raw)
+        payload = TgUserPayload.model_validate(data)
     except PydanticValidationError as e:
         raise e
 

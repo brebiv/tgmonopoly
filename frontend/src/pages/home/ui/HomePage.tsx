@@ -36,7 +36,7 @@ export const HomePage = () => {
             }}
           />
           <NavButton
-            disabled={true}
+            disabled={me.current_game != null}
             active={activeTab == "create"}
             text="Create game"
             onClick={() => {

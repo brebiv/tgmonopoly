@@ -1,5 +1,5 @@
 from urllib.parse import parse_qs
-from typing import Optional
+from typing import Optional, Tuple
 import hashlib
 import hmac
 import json
@@ -35,29 +35,42 @@ class IsTelegramAuthenticated(BasePermission):
 
 class TelegramWebAppAuthentication(BaseAuthentication):
     header_prefix = "TWA"
+    bot_token: str
 
-    def verify_telegram_init_data(self, init_data: dict, bot_token: str) -> bool:
+    def __init__(self):
+        self.bot_token = bot_utils.get_token()
+        super().__init__()
+
+    def verify_telegram_init_data(self, init_data_raw: str) -> Tuple[bool, dict]:
         """
         Value in the Authorization header is expected to be coming from `window.Telegram.WebApp.initData` in the frontend
 
         docs: https://core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app
         """
 
-        try:
-            hash = init_data.pop("hash")
-        except KeyError:
-            return False
+        auth_data_dict = {k: v[0] for k, v in parse_qs(init_data_raw).items()}
 
-        data_check = sorted([f"{key}={value}" for key, value in init_data.items()])
+        try:
+            hash = auth_data_dict.pop("hash")
+        except KeyError:
+            return (False, {})
+
+        data_check = sorted([f"{key}={value}" for key, value in auth_data_dict.items()])
         data_check_string = "\n".join(data_check)
         secret_key = hmac.new(
-            "WebAppData".encode(), bot_token.encode(), hashlib.sha256
+            "WebAppData".encode(), self.bot_token.encode(), hashlib.sha256
         ).digest()
         verification_hash = hmac.new(
             secret_key, data_check_string.encode(), hashlib.sha256
         ).hexdigest()
 
-        return hmac.compare_digest(verification_hash, hash)
+        data_is_valid = hmac.compare_digest(verification_hash, hash)
+        validated_data = auth_data_dict if data_is_valid else {}
+
+        if validated_data.get("user"):
+            validated_data["user"] = json.loads(validated_data["user"])
+
+        return (data_is_valid, validated_data)
 
     def authenticate(self, request):
         auth_header = request.headers.get("Authorization")
@@ -74,11 +87,12 @@ class TelegramWebAppAuthentication(BaseAuthentication):
         if auth_type != self.header_prefix:
             return None
 
-        auth_data_dict = {k: v[0] for k, v in parse_qs(auth_data).items()}
-        if not self.verify_telegram_init_data(auth_data_dict, bot_utils.get_token()):
+        data_is_valid, validated_data = self.verify_telegram_init_data(auth_data)
+
+        if not data_is_valid:
             raise AuthenticationFailed("Invalid Telegram auth data")
 
-        user_data = json.loads(auth_data_dict["user"])
+        user_data = validated_data["user"]
         user = update_or_create_telegram_user(user_data)
         if user.ban:
             raise PermissionDenied("User is banned")

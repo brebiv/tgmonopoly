@@ -3,6 +3,8 @@ name = "tgmonopoly"
 version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
+    "channels-redis>=4.2.1",
+    "channels[daphne]>=4.2.2",
     "django>=5.2.3",
     "django-extensions>=4.1",
     "django-stubs[compatible-mypy]>=5.2.1",

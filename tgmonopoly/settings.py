@@ -36,6 +36,7 @@ ALLOWED_HOSTS = ["*"]
 # Application definition
 
 INSTALLED_APPS = [
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -156,3 +157,15 @@ TG_USE_TEST_ENV = os.getenv("TG_USE_TEST_ENV")
 TG_USE_TEST_ENV_HTTPS = os.getenv("TG_USE_TEST_ENV_HTTPS")
 TG_WEBAPP_ORIGIN = os.getenv("TG_WEBAPP_ORIGIN")
 TG_UPDATE_USER_ON_EACH_REQUEST = False if DEBUG else True
+
+# Channels
+ASGI_APPLICATION = "tgmonopoly.asgi.application"
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [(os.getenv("CHANNELS_HOST"), os.getenv("CHANNELS_PORT"))],
+        },
+    },
+}

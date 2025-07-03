@@ -53,3 +53,23 @@ export type Game = {
   turn: number;
   uuid: string;
 };
+
+export const GameEventTypes = {
+  PLAYER_JOINED: "player.joined",
+  PLAYER_ACTION: "player.action",
+} as const;
+export type GameEventTypes =
+  (typeof GameEventTypes)[keyof typeof GameEventTypes];
+
+export type GameEvent = {
+  event_type: GameEventTypes;
+  action: string;
+  player: number;
+};
+
+export type GameFrame = {
+  events: GameEvent[];
+  game: Game;
+  players: Player[];
+  type: string;
+};

@@ -1,30 +1,54 @@
+from uuid import UUID
 from abc import ABC, abstractmethod
-from django.db import transaction
+from typing import List, Tuple
+
+from django.db import transaction, IntegrityError
 
 from bot.models import TelegramUser
-from game.models import BoardConfig, Game, Player
+from game.models import BoardConfig, Game, Player, GameEvent
 from game.game_config import BaseMonopolyConfig, ClassicMonopolyConfig
 from game.exceptions import GameException
+from game.serializers import GameEventSerializer, GameSerializer, PlayerSerializer
 
 
-class BaseMonopolyService(ABC):
+class BaseMonopoly(ABC):
     config: BaseMonopolyConfig
 
-    @abstractmethod
-    def assemble_game_frame(self, game: Game, events, type: str) -> dict: ...
+    def assemble_game_frame(
+        self,
+        game: Game,
+        events: List[GameEvent],
+        game_frame_type: str = "game.event",
+    ) -> dict:
+        game_event_serailizer = GameEventSerializer(events, many=True)
+        game_serializer = GameSerializer(game)
+        players = [PlayerSerializer(player).data for player in game.players.all()]
+
+        return {
+            # "type": type.value,
+            "type": game_frame_type,
+            "game": game_serializer.data,
+            "players": players,
+            "events": game_event_serailizer.data,
+        }
 
     @abstractmethod
     def create_game(self, owner: TelegramUser, max_players: int) -> Game: ...
 
+    @abstractmethod
+    def join_game(
+        self, game_uuid: UUID, telegram_user: TelegramUser
+    ) -> Tuple[Player, list[GameEvent]]: ...
 
-class ClassicMonopolyService(BaseMonopolyService):
+    @abstractmethod
+    def leave_game(self, player: Player) -> list[GameEvent]: ...
+
+
+class ClassicMonopolyService(BaseMonopoly):
     def __init__(self):
         self.config = ClassicMonopolyConfig()
 
-    def assemble_game_frame(self, game: Game, events, type: str) -> dict:
-        return {}
-
-    def create_game(self, owner: TelegramUser, max_players: int) -> Game:
+    def create_game(self, user: TelegramUser, max_players: int) -> Game:
         if max_players < self.config.MIN_PLAYERS:
             raise GameException(
                 f"max_players should be greater than or equal {self.config.MIN_PLAYERS}"
@@ -33,31 +57,92 @@ class ClassicMonopolyService(BaseMonopolyService):
             raise GameException(
                 f"max_players should be less than or equal {self.config.MAX_PLAYERS}"
             )
-        # Check if user already in game
-        if Player.objects.filter(
-            user=owner, status__in=Player.ACTIVE_STATUSES
-        ).exists():
-            raise GameException("You can't create new game while being in another game")
-
-        board_config = BoardConfig.objects.get(name=BoardConfig.Names.CLASSIC)
 
         with transaction.atomic():
+            # Check if user already in game
+            if Player.objects.filter(
+                user=user, status__in=Player.ACTIVE_STATUSES
+            ).exists():
+                raise GameException(
+                    "You can't create new game while being in another game"
+                )
+
+            board_config = BoardConfig.objects.get(name=BoardConfig.Names.CLASSIC)
+
             game = Game.objects.create(
                 board_config=board_config, max_players=max_players
             )
-            Player.objects.create(user=owner, game=game, color=Player.Color.BLUE)
+            Player.objects.create(user=user, game=game, color=Player.Color.BLUE)
 
         return game
 
+    @transaction.atomic
+    def join_game(self, game_uuid, telegram_user):
+        events = []
 
-_SERVICES: dict[str, type[BaseMonopolyService]] = {
+        game = (
+            Game.objects.select_for_update()
+            .prefetch_related("players")
+            .get(pk=game_uuid)
+        )
+
+        if game.status != game.Status.WAITING:
+            raise GameException("Game is not in waiting state")
+
+        if game.max_players == game.players.count():
+            raise GameException("Game is full")
+
+        try:
+            player = Player.objects.create(
+                user=telegram_user,
+                game=game,
+            )
+        except IntegrityError:
+            raise GameException("You are already playing this game")
+
+        ge = GameEvent.objects.create(
+            event_type=GameEvent.Types.PLAYER_JOINED, extra_data={"player": player.pk}
+        )
+
+        events.append(ge)
+
+        return player, events
+
+    def leave_game(self, player) -> list[GameEvent]:
+        events = []
+
+        with transaction.atomic():
+            game = player.game
+            player.delete()
+
+            game_event = GameEvent.objects.create(
+                event_type=GameEvent.Types.PLAYER_LEAVE,
+                extra_data={"player": player.pk},
+            )
+            events.append(game_event)
+
+            if game.players.count() == 0:
+                game.status = Game.Status.ABANDONED
+                game.save()
+                # events.append()
+
+        return events
+
+
+_STRATEGIES: dict[str, type[BaseMonopoly]] = {
     BoardConfig.Names.CLASSIC.value: ClassicMonopolyService,
-    # ...
 }
 
 
-def get_monopoly_service(config: str) -> BaseMonopolyService:
+def get_service_by_game(game: Game) -> BaseMonopoly:
     try:
-        return _SERVICES[config]()
+        return _STRATEGIES[game.board_config.name]()
     except KeyError:
-        raise ValueError("Could not find specified game config")
+        raise GameException("There is no such board config")
+
+
+def get_service_by_name(config_name: str) -> BaseMonopoly:
+    try:
+        return _STRATEGIES[config_name]()
+    except KeyError:
+        raise GameException("There is no such board config")

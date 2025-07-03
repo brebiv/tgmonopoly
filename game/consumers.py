@@ -6,6 +6,7 @@ from asgiref.sync import async_to_sync
 from .auth import TelegramWebAppAuthentication
 from .utils import update_or_create_telegram_user
 from .models import Game, Player
+from .services import get_service_by_game
 
 
 class GameConsumer(JsonWebsocketConsumer):
@@ -35,7 +36,7 @@ class GameConsumer(JsonWebsocketConsumer):
             game_uuid_raw = self.scope["url_route"]["kwargs"]["game_uuid"]
             game_uuid = UUID(game_uuid_raw)
             game = Game.objects.get(uuid=game_uuid)
-            player = Player.objects.get(game=game, user=tg_user)
+            Player.objects.get(game=game, user=tg_user)
         except KeyError:
             print("something was wrong with self.scope keys")
             self.close()
@@ -57,6 +58,11 @@ class GameConsumer(JsonWebsocketConsumer):
             self.close()
             return
 
+        self.scope["auth_completed"] = True
+
+        monopoly_service = get_service_by_game(game)
+        game_frame = monopoly_service.assemble_game_frame(game, [])
+
         self.game_id = game.pk
         self.game_group_name = f"game_{game.uuid}"
 
@@ -65,14 +71,19 @@ class GameConsumer(JsonWebsocketConsumer):
         )
 
         self.accept()
-
-        # game_frame = assamble_game_frame()
-        # self.send()
+        self.send_json(game_frame)
 
     def disconnect(self, code):
-        async_to_sync(self.channel_layer.group_discard)(
-            self.game_group_name, self.channel_name
-        )
+        if self.scope.get("auth_completed"):
+            async_to_sync(self.channel_layer.group_discard)(
+                self.game_group_name, self.channel_name
+            )
+
+    def receive_json(self, content):
+        pass
 
     def receive(self, text_data):
-        print(text_data)
+        pass
+
+    def game_event(self, event):
+        self.send_json(event)

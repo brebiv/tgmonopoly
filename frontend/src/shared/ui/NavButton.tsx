@@ -23,7 +23,7 @@ export const NavButton: React.FC<NavButtonProps> = ({
         if (!disabled) onClick();
       }}
       className={cn(
-        "relative border-[1px] bg-transparent border-hint rounded-lg px-2 py-1 flex justify-center focus:outline-none",
+        "relative border-[1px] bg-background border-hint rounded-lg px-2 py-1 flex justify-center focus:outline-none",
         className
       )}
       {...props}

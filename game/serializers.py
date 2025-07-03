@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.core.validators import MinValueValidator
 
 from bot.models import TelegramUser
-from game.models import Game, Player
+from game.models import Game, Player, GameEvent
 
 
 class TelegramUserSerializer(serializers.ModelSerializer):
@@ -60,3 +60,9 @@ class GameSerializer(serializers.ModelSerializer):
             "status",
             "players",
         )
+
+
+class GameEventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GameEvent
+        fields = ("event_type", "extra_data")

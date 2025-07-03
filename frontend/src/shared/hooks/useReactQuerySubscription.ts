@@ -1,4 +1,6 @@
+import { useGameStore } from "@/entities/gameStore";
 import { useEffect, useRef } from "react";
+// import { useQueryClient } from "@tanstack/react-query";
 
 const buildGameWebsocketUrl = (gameUUID: string) => {
   const path = "ws/game/" + gameUUID;
@@ -9,6 +11,8 @@ const buildGameWebsocketUrl = (gameUUID: string) => {
 
 export const useReactQuerySubscription = (gameUUID: string) => {
   const websocketRef = useRef<WebSocket | null>(null);
+  const { processGameFrame } = useGameStore();
+  // const queryClient = useQueryClient();
 
   useEffect(() => {
     const websocket = new WebSocket(buildGameWebsocketUrl(gameUUID));
@@ -19,7 +23,12 @@ export const useReactQuerySubscription = (gameUUID: string) => {
     };
 
     websocket.onmessage = (message) => {
-      console.log(message.data);
+      const data = JSON.parse(message.data);
+      console.log(data);
+
+      processGameFrame(data);
+      // const queryKey =
+      // queryClient.setQueryData(["gameFrame"], () => data);
     };
 
     websocket.onclose = () => {
@@ -34,5 +43,9 @@ export const useReactQuerySubscription = (gameUUID: string) => {
   const send = (text: string) => {
     websocketRef.current?.send(text);
   };
-  return { send };
+  const sendJSON = (object: object) => {
+    let encoded_object = JSON.stringify(object);
+    websocketRef.current?.send(encoded_object);
+  };
+  return { send, sendJSON };
 };

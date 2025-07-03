@@ -1,19 +1,67 @@
+import { useGameStore } from "@/entities/gameStore";
+import { LeaveGameButton } from "@/features/leave-game/LeaveGameButton";
 import { useReactQuerySubscription } from "@/shared/hooks/useReactQuerySubscription";
-import { Button } from "@/shared/ui/Button";
+import { Card } from "@/shared/ui/Card";
+import { PlayerCard } from "@/shared/ui/PlayerCard";
+import { useEffect } from "react";
 
 export const Lobby = () => {
-  const { send } = useReactQuerySubscription(
-    "87462c62-2c01-499d-bbc9-26eea8b38c78"
-  );
+  const pathname = URL.parse(location.href)?.pathname;
+  const gameUUID = pathname?.split("/").pop();
+  // const gameFrame = useGameFrame();
+
+  /////// ADD AUTH HERE, move auth logic from HomePage to context provider so that it will become reusable
+
+  const { eventQueue, players, game } = useGameStore();
+
+  useEffect(() => {
+    console.log("Event queue updated", eventQueue);
+  }, [eventQueue]);
+
+  if (!gameUUID) {
+    console.error("Could not get UUID from url");
+    return;
+  }
+
+  // useEffect(() => {
+  //   // Do I really need react query for this?
+  //   console.log("Got gameFrame", gameFrame);
+  // }, [gameFrame]);
+
+  useReactQuerySubscription(gameUUID);
+
   return (
-    <div>
-      <Button
+    <div className="relative flex flex-col gap-4 w-full h-screen pt-2 items-center px-8">
+      <h1>Game lobby</h1>
+      <Card className="w-full">
+        <h2>Players</h2>
+        <div className="flex flex-col w-full gap-2">
+          {players &&
+            players.map((player, i) => <PlayerCard key={i} player={player} />)}
+          {game &&
+            players &&
+            Array.from({ length: game.max_players - players.length }).map(
+              (_, i) => <PlayerCard key={i} />
+            )}
+        </div>
+      </Card>
+      <div className="w-full">
+        <LeaveGameButton gameUUID={gameUUID} />
+      </div>
+      {/* <Button
         onClick={() => {
           send("hello");
         }}
       >
-        Lobby
+        send text
       </Button>
+      <Button
+        onClick={() => {
+          sendJSON({ command: "fuck me" });
+        }}
+      >
+        send json
+      </Button> */}
     </div>
   );
 };

@@ -130,7 +130,7 @@ class Game(models.Model):
 
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4)
     board_config = models.ForeignKey(
-        to=BoardConfig, related_name="games", on_delete=models.SET_NULL, null=True
+        to=BoardConfig, related_name="games", on_delete=models.DO_NOTHING
     )
 
     max_players = models.IntegerField(
@@ -260,3 +260,13 @@ class Ownership(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
+
+
+class GameEvent(models.Model):
+    class Types(models.TextChoices):
+        PLAYER_JOINED = "player.joined"
+        PLAYER_ACTION = "player.action"
+        PLAYER_LEAVE = "player.leave"
+
+    event_type = models.CharField(max_length=32, choices=Types.choices)
+    extra_data = models.JSONField(default=dict)

@@ -1,4 +1,6 @@
+import { joinGame } from "@/shared/api";
 import { Button } from "@/shared/ui/Button";
+import { navigateToGame } from "@/shared/utils";
 import type React from "react";
 
 interface JoinGameButtonProps {
@@ -12,8 +14,9 @@ export const JoinGameButton: React.FC<JoinGameButtonProps> = ({
 }) => {
   return (
     <Button
-      onClick={() => {
-        console.log("Joining game:", gameUUID);
+      onClick={async () => {
+        const resp_data = await joinGame(gameUUID);
+        navigateToGame(resp_data.game_uuid);
       }}
     >
       <p className="text-lg w-12 text-button-text">{text}</p>

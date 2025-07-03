@@ -1,4 +1,5 @@
 import axios from "axios";
+import type { CreateGameResponse, JoinGameResponse } from "./api.types";
 
 function assembleAuthHeader() {
   return `TWA ${Telegram.WebApp.initData}`;
@@ -13,11 +14,20 @@ function assembleAuthHeader() {
 // }
 
 // axios.defaults.headers.common["X-CSRFToken"] = getCsrfToken();
-axios.defaults.headers.common["Authorization"] = assembleAuthHeader();
-axios.defaults.headers.common["Content-Type"] = "application/json";
+// axios.defaults.headers.common["Authorization"] = assembleAuthHeader();
+// axios.defaults.headers.common["Content-Type"] = "application/json";
+
+export const api = axios.create({
+  // baseURL: "feffw",
+  // timeout: 1000,
+  headers: {
+    Authorization: assembleAuthHeader(),
+    "Content-Type": "application/json",
+  },
+});
 
 export const getAuth = () => {
-  return axios
+  return api
     .get("/api/me")
     .then((response) => {
       return response.data;
@@ -27,11 +37,9 @@ export const getAuth = () => {
     });
 };
 
-export const createGame = (max_players: number) => {
-  return axios
-    .post("/api/games", {
-      max_players: max_players,
-    })
+export const getGames = () => {
+  return api
+    .get("/api/games")
     .then((response) => {
       return response.data;
     })
@@ -40,13 +48,46 @@ export const createGame = (max_players: number) => {
     });
 };
 
-export const getGames = () => {
-  return axios
-    .get("/api/games")
-    .then((response) => {
-      return response.data.games;
-    })
-    .catch((error) => {
-      return error.response.data;
+export const createGame = async (
+  max_players: number,
+  config = "classic"
+): Promise<CreateGameResponse> => {
+  try {
+    const response = await api.post("/api/games/", {
+      max_players: max_players,
+      config: config,
     });
+    return response.data;
+  } catch (err: any) {
+    if (err.response) {
+      return Promise.reject(err.response.data);
+    }
+    return Promise.reject({ message: "Unknown error occurred" });
+  }
+};
+
+export const joinGame = async (gameUUID: string): Promise<JoinGameResponse> => {
+  try {
+    const response = await api.post(`/api/games/${gameUUID}/join/`);
+    return response.data;
+  } catch (err: any) {
+    if (err.response) {
+      return Promise.reject(err.response.data);
+    }
+    return Promise.reject({ message: "Unknown error occurred" });
+  }
+};
+
+export const leaveGame = async (
+  gameUUID: string
+): Promise<JoinGameResponse> => {
+  try {
+    const response = await api.post(`/api/games/${gameUUID}/leave/`);
+    return response.data;
+  } catch (err: any) {
+    if (err.response) {
+      return Promise.reject(err.response.data);
+    }
+    return Promise.reject({ message: "Unknown error occurred" });
+  }
 };

@@ -1,30 +1,63 @@
-import { createGame } from "@/shared/api";
+import { useCreateGame } from "@/shared/hooks/useCreateGame";
 import { Button } from "@/shared/ui/Button";
 import { SelectGroup } from "@/shared/ui/SelectGroup";
+import { navigateToGame } from "@/shared/utils";
 import { useState } from "react";
 
 export const CreateGame = () => {
   const [numPlayers, setNumPlayers] = useState(2);
-  const handleCreateGame = () => {
-    createGame(numPlayers);
+
+  const createGameMutation = useCreateGame();
+
+  const handleCreateGame = async () => {
+    createGameMutation.mutate(numPlayers, {
+      onSuccess: async (data) => {
+        const gameUUID = data.game_uuid;
+        navigateToGame(gameUUID);
+      },
+    });
   };
 
   return (
     <div className="flex flex-col gap-4">
-      <form className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
-          <p>Number of players</p>
-          <SelectGroup defaultValue={2} onChange={setNumPlayers}>
-            <SelectGroup.Item value={2} />
-            <SelectGroup.Item value={3} />
-            <SelectGroup.Item value={100} />
-          </SelectGroup>
+          <div className="grid grid-cols-2">
+            <div className="flex flex-col gap-2">
+              <p>Number of players</p>
+              <SelectGroup defaultValue={2} onChange={setNumPlayers}>
+                <SelectGroup.Item value={2} />
+                <SelectGroup.Item value={3} />
+                <SelectGroup.Item value={100} />
+              </SelectGroup>
+            </div>
+            <div className="flex flex-col gap-2">
+              <p>Game mode</p>
+              <select
+                name="game_config"
+                className="bg-background rounded-md border-[1px] border-hint focus:outline-button px-2 h-full"
+              >
+                <option value={"classic"}>Classic</option>
+              </select>
+            </div>
+          </div>
         </div>
 
         {numPlayers}
 
-        <Button onClick={handleCreateGame}>Create</Button>
-      </form>
+        <Button
+          onClick={handleCreateGame}
+          disabled={createGameMutation.isPending}
+        >
+          {createGameMutation.isPending ? "Creating…" : "Create"}
+        </Button>
+
+        {createGameMutation.isError && (
+          <p className="text-red-600">
+            {JSON.stringify(createGameMutation.error)}
+          </p>
+        )}
+      </div>
     </div>
   );
 };

@@ -31,6 +31,7 @@ SECRET_KEY = "django-insecure-0z3ccocymv5+3cow)t)*=rfw&l)xgv31_n7p0781b776b&i&^^
 DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
+CORS_ALLOW_ALL_ORIGINS = True
 
 
 # Application definition
@@ -48,6 +49,7 @@ INSTALLED_APPS = [
     "django_vite",
     # "polymorphic",
     "django_extensions",
+    "corsheaders",
     # local
     "game",
     "bot",
@@ -56,6 +58,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",

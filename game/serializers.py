@@ -8,7 +8,7 @@ from game.models import Game, Player, GameEvent
 class TelegramUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = TelegramUser
-        fields = ("id", "username", "first_name", "last_name", "photo_url")
+        fields = ("user_id", "username", "first_name", "last_name", "photo_url")
 
 
 class CreateGameInputSerializer(serializers.Serializer):

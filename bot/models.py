@@ -14,7 +14,7 @@ class TelegramUser(models.Model):
     allows_write_to_pm = models.BooleanField(null=True, blank=True)
     photo_url = models.URLField(max_length=256, blank=True, null=True)
 
-    lang_code = models.CharField(max_length=8, blank=True, null=True)
+    language_code = models.CharField(max_length=8, blank=True, null=True)
 
     ban = models.BooleanField(default=False)
 

@@ -41,9 +41,7 @@ def me(request: CustomRequest):
 
     return Response(
         {
-            "status": "ok",
             "user": user_data,
-            "auth": str(request.is_telegram_authenticated),
             "current_game": GameSerializer(current_game).data if current_game else None,
         }
     )

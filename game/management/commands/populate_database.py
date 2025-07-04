@@ -19,7 +19,7 @@ from game.models import (
 class Command(BaseCommand):
     help = "Populates database with predefined monopoly config"
 
-    def handle(self, *args, **options):
+    def populate(self):
         # fmt: off
         with transaction.atomic():
             board_config = BoardConfig.objects.create(name=BoardConfig.Names.CLASSIC)
@@ -78,6 +78,8 @@ class Command(BaseCommand):
             Property.objects.create(board_config=board_config, position=37, name="TikTok", price=350, mortgage_value=175, house_price=200, rent=35, rent_with_1_house=175, rent_with_2_houses=500, rent_with_3_houses=1100, rent_with_4_houses=1300, rent_with_5_houses=1500, group=tech, icon="properties/tiktok-logo.png")
             Tax.objects.create(board_config=board_config, position=38, name="Tax")
             Property.objects.create(board_config=board_config, position=39, name="Telegram", price=400, mortgage_value=200, house_price=200, rent=50, rent_with_1_house=200, rent_with_2_houses=600, rent_with_3_houses=1400, rent_with_4_houses=1700, rent_with_5_houses=2000, group=tech, icon="properties/Telegram_logo.png")
-
         # fmt: on
+
+    def handle(self, *args, **options):
+        self.populate()
         self.stdout.write(self.style.SUCCESS("Successfully populated database"))

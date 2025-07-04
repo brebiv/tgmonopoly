@@ -16,7 +16,7 @@ class BoardConfig(models.Model):
         CLASSIC = "classic"
 
     name = models.CharField(choices=Names.choices, max_length=32, unique=True)
-    is_actibe = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=True)
     created = models.DateTimeField(auto_now_add=True)
 
 

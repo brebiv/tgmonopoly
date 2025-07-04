@@ -3,33 +3,15 @@ from uuid import UUID
 from channels.generic.websocket import JsonWebsocketConsumer
 from asgiref.sync import async_to_sync
 
-from game.auth import TelegramWebAppAuthentication
-from game.utils import update_or_create_telegram_user
 from game.models import Game, Player
 from game.services import get_service_by_game
+from .mixinis import AuthMixin
 
 
-class GameConsumer(JsonWebsocketConsumer):
+class GameConsumer(JsonWebsocketConsumer, AuthMixin):
     def connect(self):
-        # Verifying Telegram auth
-        init_data_raw = self.scope.get("query_string", None)
-        if not init_data_raw:
-            self.close()
-            return
-
-        init_data = init_data_raw.decode()
-
-        data_is_valid, validated_data = (
-            TelegramWebAppAuthentication().verify_telegram_init_data(init_data)
-        )
-
-        if not data_is_valid:
-            self.close()
-            return
-
-        tg_user_data = validated_data.get("user")
-        tg_user = update_or_create_telegram_user(tg_user_data)
-        self.scope["telegram_user"] = tg_user
+        self.authenticate()
+        tg_user = self.scope.get("telegram_user")
 
         # Verifying game uuid
         try:
@@ -58,7 +40,7 @@ class GameConsumer(JsonWebsocketConsumer):
             self.close()
             return
 
-        self.scope["auth_completed"] = True
+        self.scope["game_found"] = True
 
         monopoly_service = get_service_by_game(game)
         game_frame = monopoly_service.assemble_game_frame(game, [])
@@ -74,7 +56,7 @@ class GameConsumer(JsonWebsocketConsumer):
         self.send_json(game_frame)
 
     def disconnect(self, code):
-        if self.scope.get("auth_completed"):
+        if self.scope.get("game_found"):
             async_to_sync(self.channel_layer.group_discard)(
                 self.game_group_name, self.channel_name
             )

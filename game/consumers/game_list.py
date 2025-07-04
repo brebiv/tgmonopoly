@@ -1,35 +1,10 @@
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
-from channels.db import database_sync_to_async
-
-from game.auth import TelegramWebAppAuthentication
-from game.utils import update_or_create_telegram_user
-from game.consumers.mixinis import AsyncORMMixin
+from game.consumers.mixinis import AsyncORMMixin, AuthMixin
 
 
-class GameListConsumer(AsyncJsonWebsocketConsumer, AsyncORMMixin):
+class GameListConsumer(AsyncJsonWebsocketConsumer, AsyncORMMixin, AuthMixin):
     async def connect(self):
-        # Verifying Telegram auth
-        init_data_raw = self.scope.get("query_string", None)
-        if not init_data_raw:
-            await self.close()
-            return
-
-        init_data = init_data_raw.decode()
-
-        data_is_valid, validated_data = (
-            TelegramWebAppAuthentication().verify_telegram_init_data(init_data)
-        )
-
-        if not data_is_valid:
-            await self.close()
-            return
-
-        tg_user_data = validated_data.get("user")
-        tg_user = await database_sync_to_async(update_or_create_telegram_user)(
-            tg_user_data
-        )
-        self.scope["telegram_user"] = tg_user
-        self.scope["auth_completed"] = True
+        await self.authenticate_async()
 
         self.group_name = "game_list"
 
@@ -44,7 +19,8 @@ class GameListConsumer(AsyncJsonWebsocketConsumer, AsyncORMMixin):
         # await self.send(str(self.groups))
 
     async def disconnect(self, code):
-        pass
+        if self.scope.get("telegram_user") is not None:
+            await self.channel_layer.group_discard(self.group_name, self.channel_name)
 
     async def receive_json(self, content):
         pass

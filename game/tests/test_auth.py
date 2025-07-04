@@ -1,9 +1,15 @@
 from django.test import TestCase, Client, override_settings
 from django.urls import reverse
+from channels.testing import WebsocketCommunicator
 
+from tgmonopoly.asgi import application
 from . import test_data
 from .mixins import TelegramAuthMixin
 from bot.models import TelegramUser
+from game.models import Game, BoardConfig, Player
+from game.management.commands.populate_database import (
+    Command as PopulateDatabaseCommand,
+)
 
 
 # Create your tests here.
@@ -68,3 +74,62 @@ class AuthTest(TestCase, TelegramAuthMixin):
         headers = self.generate_auth_headers("random_data")
         resp = self.client.get(url, headers=headers)
         self.assertEqual(resp.status_code, 403)
+
+
+class WebSocketAuthTest(TestCase):
+    def setUp(self):
+        PopulateDatabaseCommand().populate()
+
+        board_config = BoardConfig.objects.get()
+        game = Game.objects.create(board_config=board_config)
+        created_users = test_data.create_telegram_users(limit=1)
+        player = Player.objects.create(game=game, user=created_users[0])
+
+        self.game = game
+
+    async def test_game_list_auth_forbidden(self):
+        ws_url = "/ws/games/"
+        communicator = WebsocketCommunicator(application, ws_url)
+        connected, subprotocol = await communicator.connect()
+
+        self.assertFalse(connected)
+
+    async def test_game_list_auth_forbidden_wrong_data(self):
+        ws_url = "/ws/games/?query_id=124124"
+        communicator = WebsocketCommunicator(application, ws_url)
+        connected, subprotocol = await communicator.connect()
+
+        self.assertFalse(connected)
+
+    async def test_game_list_auth_success(self):
+        ws_url = "/ws/games/?" + test_data.TG_INIT_DATA_RAW_LIST[0]
+        communicator = WebsocketCommunicator(application, ws_url)
+        connected, subprotocol = await communicator.connect()
+
+        self.assertTrue(connected)
+
+        message = await communicator.receive_json_from()
+        games = message["games"]
+
+        self.assertEqual(len(games), 1)
+        self.assertEqual(games[0]["uuid"], str(self.game.uuid))
+
+    async def test_game_detail_auth_forbidden(self):
+        ws_url = "/ws/game/412414214214/?query_id=test"
+        communicator = WebsocketCommunicator(application, ws_url)
+        connected, subprotocol = await communicator.connect()
+
+        self.assertFalse(connected)
+
+    async def test_game_detail_auth_success(self):
+        ws_url = f"/ws/game/{self.game.uuid}/?" + test_data.TG_INIT_DATA_RAW_LIST[0]
+        communicator = WebsocketCommunicator(application, ws_url)
+        connected, subprotocol = await communicator.connect()
+
+        self.assertTrue(connected)
+
+        message = await communicator.receive_json_from()
+        self.assertIsNotNone(message.get("type"))
+        self.assertIsNotNone(message.get("game"))
+        self.assertIsNotNone(message.get("players"))
+        self.assertIsNotNone(message.get("events"))

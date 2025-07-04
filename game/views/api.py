@@ -69,6 +69,19 @@ class GameViewSet(viewsets.ReadOnlyModelViewSet):
         assert request.telegram_user
         game = monopoly_service.create_game(request.telegram_user, max_players)
 
+        channel_layer = get_channel_layer()
+        game_list_group_name = "game_list"
+        async_to_sync(channel_layer.group_send)(
+            game_list_group_name,
+            {
+                "type": "game.created",
+                "game": GameSerializer(game).data,
+                "games": GameSerializer(
+                    Game.objects.filter(status=Game.Status.WAITING), many=True
+                ).data,
+            },
+        )
+
         return Response(
             {"status": "ok", "game_uuid": game.uuid}, status.HTTP_201_CREATED
         )
@@ -82,7 +95,6 @@ class GameViewSet(viewsets.ReadOnlyModelViewSet):
         monopoly_service = get_service_by_game(game)
         _, events = monopoly_service.join_game(game.uuid, request.telegram_user)
 
-        # because we did not call fetch_related, game.players is going to recalculated
         game.refresh_from_db()
         game_frame = monopoly_service.assemble_game_frame(game, events)
 

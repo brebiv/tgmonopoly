@@ -7,12 +7,10 @@ import { LoadingScreen } from "./LoadingScreen";
 import { useState } from "react";
 import { CreateGame } from "@/features/create-game/CreateGame";
 import { CurrentGameCard } from "./components/CurrentGameCard";
-import { useGames } from "@/shared/hooks/useGames";
 
 export const HomePage = () => {
   const [activeTab, setActiveTab] = useState<"list" | "create">("list");
   const { isPending, isError, data: me } = useAuth(true, true);
-  const { data: games } = useGames(true, true);
 
   if (isPending) {
     return <LoadingScreen />;
@@ -44,7 +42,7 @@ export const HomePage = () => {
             }}
           />
         </div>
-        {activeTab == "list" && <GameList games={games} />}
+        {activeTab == "list" && <GameList />}
         {activeTab == "create" && <CreateGame />}
       </div>
     </div>

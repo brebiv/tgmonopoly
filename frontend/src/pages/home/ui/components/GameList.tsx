@@ -1,13 +1,15 @@
-import type { Game } from "@/entities/types";
+import { useGameListStore } from "@/entities/gameListStore";
 import { GameCard } from "./GameCard";
-import type React from "react";
+import { useWebsocketSubscription } from "@/shared/hooks/useWebsocketSubscription";
 
-interface GameListProps {
-  games?: Game[];
-}
+export const GameList = () => {
+  const { games, setGames } = useGameListStore();
+  const handleGamesStreamEvent = (data: any) => {
+    console.log("Received event:", data);
+    setGames(data.games);
+  };
 
-export const GameList: React.FC<GameListProps> = ({ games }) => {
-  console.log("gams", games);
+  useWebsocketSubscription("/ws/games/", handleGamesStreamEvent);
 
   return (
     <div className="flex flex-col w-full gap-3">

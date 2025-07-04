@@ -3,10 +3,10 @@ from uuid import UUID
 from channels.generic.websocket import JsonWebsocketConsumer
 from asgiref.sync import async_to_sync
 
-from .auth import TelegramWebAppAuthentication
-from .utils import update_or_create_telegram_user
-from .models import Game, Player
-from .services import get_service_by_game
+from game.auth import TelegramWebAppAuthentication
+from game.utils import update_or_create_telegram_user
+from game.models import Game, Player
+from game.services import get_service_by_game
 
 
 class GameConsumer(JsonWebsocketConsumer):

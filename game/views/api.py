@@ -22,9 +22,11 @@ from game.serializers import (
     TelegramUserSerializer,
     CreateGameInputSerializer,
     GameSerializer,
+    BoardConfigOverviewSerializer,
+    BoardConfigDetailSerializer,
 )
 from game.services import get_service_by_game, get_service_by_name
-from game.models import Game, Player
+from game.models import Game, Player, BoardConfig
 
 
 @api_view(["GET"])  # type: ignore[arg-type] # I don't want to call request = cast(CustomRequest, request)
@@ -52,7 +54,7 @@ class GameViewSet(viewsets.ReadOnlyModelViewSet):
     # permission_classes = (IsTelegramAuthenticated,)
     queryset = Game.objects.filter(status=Game.Status.WAITING)
     serializer_class = GameSerializer
-    lookup_field = "game_uuid"
+    lookup_field = "uuid"
     lookup_value_converter = "uuid"
 
     def create(self, request: CustomRequest):
@@ -72,8 +74,8 @@ class GameViewSet(viewsets.ReadOnlyModelViewSet):
         )
 
     @action(detail=True, methods=["post"])
-    def join(self, request: CustomRequest, game_uuid: UUID):
-        game = get_object_or_404(Game, pk=game_uuid)
+    def join(self, request: CustomRequest, uuid: UUID):
+        game = get_object_or_404(Game, pk=uuid)
 
         assert request.telegram_user
 
@@ -81,6 +83,7 @@ class GameViewSet(viewsets.ReadOnlyModelViewSet):
         _, events = monopoly_service.join_game(game.uuid, request.telegram_user)
 
         # because we did not call fetch_related, game.players is going to recalculated
+        game.refresh_from_db()
         game_frame = monopoly_service.assemble_game_frame(game, events)
 
         channel_layer = get_channel_layer()
@@ -95,8 +98,8 @@ class GameViewSet(viewsets.ReadOnlyModelViewSet):
         )
 
     @action(detail=True, methods=["post"])
-    def leave(self, request: CustomRequest, game_uuid: UUID):
-        game = get_object_or_404(Game, pk=game_uuid)
+    def leave(self, request: CustomRequest, uuid: UUID):
+        game = get_object_or_404(Game, pk=uuid)
         assert request.telegram_user
 
         player = game.players.get(user=request.telegram_user)
@@ -111,3 +114,15 @@ class GameViewSet(viewsets.ReadOnlyModelViewSet):
         async_to_sync(channel_layer.group_send)(game_group_name, game_frame)
 
         return Response({"detail": "You left the game"})
+
+
+class BoardConfigViewSet(viewsets.ReadOnlyModelViewSet):
+    authentication_classes = (TelegramWebAppAuthentication,)
+    # permission_classes = (IsTelegramAuthenticated,)
+    queryset = BoardConfig.objects.filter(is_active=True)
+    lookup_field = "name"
+
+    def get_serializer_class(self):
+        if self.action == "retrieve":
+            return BoardConfigDetailSerializer
+        return BoardConfigOverviewSerializer

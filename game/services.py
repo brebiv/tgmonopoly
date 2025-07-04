@@ -43,6 +43,9 @@ class BaseMonopoly(ABC):
     @abstractmethod
     def leave_game(self, player: Player) -> list[GameEvent]: ...
 
+    @abstractmethod
+    def start_game(self, game: Game, player: Player) -> list[GameEvent]: ...
+
 
 class ClassicMonopolyService(BaseMonopoly):
     def __init__(self):
@@ -100,11 +103,15 @@ class ClassicMonopolyService(BaseMonopoly):
         except IntegrityError:
             raise GameException("You are already playing this game")
 
-        ge = GameEvent.objects.create(
+        game_event = GameEvent.objects.create(
             event_type=GameEvent.Types.PLAYER_JOINED, extra_data={"player": player.pk}
         )
 
-        events.append(ge)
+        events.append(game_event)
+
+        if game.max_players == game.players.count() + 1:
+            start_game_event = self.start_game(game, player)
+            events.extend(start_game_event)
 
         return player, events
 
@@ -125,6 +132,26 @@ class ClassicMonopolyService(BaseMonopoly):
                 game.status = Game.Status.ABANDONED
                 game.save()
                 # events.append()
+
+        return events
+
+    def start_game(self, game, player):
+        events = []
+
+        with transaction.atomic():
+            game.players.update(status=Player.Status.PLAYING)
+
+            game.turn += 1
+            game.current_player = player
+            game.status = Game.Status.PLAYING
+            game.save()
+
+            game_event = GameEvent.objects.create(
+                event_type=GameEvent.Types.GAME_STARTED,
+                extra_data={"player": player.pk},
+            )
+
+            events.append(game_event)
 
         return events
 

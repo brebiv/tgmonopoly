@@ -9,7 +9,7 @@ export type User = {
 
 export type Me = {
   user: User;
-  current_game: Object | null;
+  current_game: Game | null;
 };
 
 export const PlayerStatus = {

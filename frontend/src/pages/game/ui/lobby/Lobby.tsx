@@ -1,6 +1,5 @@
 import { useGameStore } from "@/entities/gameStore";
 import { LeaveGameButton } from "@/features/leave-game/LeaveGameButton";
-import { useReactQuerySubscription } from "@/shared/hooks/useReactQuerySubscription";
 import { Card } from "@/shared/ui/Card";
 import { PlayerCard } from "@/shared/ui/PlayerCard";
 import { useEffect } from "react";
@@ -27,8 +26,6 @@ export const Lobby = () => {
   //   // Do I really need react query for this?
   //   console.log("Got gameFrame", gameFrame);
   // }, [gameFrame]);
-
-  useReactQuerySubscription(gameUUID);
 
   return (
     <div className="relative flex flex-col gap-4 w-full h-screen pt-2 items-center px-8">

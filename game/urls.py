@@ -5,7 +5,8 @@ from game.views import api
 from game.views import web
 
 router = DefaultRouter(use_regex_path=False)
-router.register(r"games", api.GameViewSet, "game")
+router.register(r"games", api.GameViewSet, "games")
+router.register(r"board_configs", api.BoardConfigViewSet, "board_configs")
 
 urlpatterns = [
     # api

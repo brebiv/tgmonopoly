@@ -26,7 +26,7 @@ export const HomePage = () => {
     <div className="relative flex flex-col gap-4 w-full h-screen pt-2">
       <Header />
       <div className="px-8 flex flex-col gap-6">
-        {me.current_game && <CurrentGameCard />}
+        {me.current_game && <CurrentGameCard game={me.current_game} />}
         <div className="grid grid-cols-2 gap-4 justify-evenly">
           <NavButton
             active={activeTab == "list"}

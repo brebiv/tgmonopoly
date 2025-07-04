@@ -9,13 +9,13 @@ import "@shared/styles/tailwind.css";
 
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "../../shared/queryClient";
-import { Lobby } from "./ui/Lobby";
+import { Main } from "./ui/Main";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       {/* <ReactQueryDevtools initialIsOpen={false} /> */}
-      <Lobby />
+      <Main />
     </QueryClientProvider>
   </StrictMode>
 );

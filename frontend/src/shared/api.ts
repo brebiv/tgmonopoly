@@ -29,7 +29,7 @@ export const api = axios.create({
 
 export const getAuth = () => {
   return api
-    .get("/api/me")
+    .get("/api/me/")
     .then((response) => {
       return response.data;
     })
@@ -40,7 +40,7 @@ export const getAuth = () => {
 
 export const getGames = () => {
   return api
-    .get("/api/games")
+    .get("/api/games/")
     .then((response) => {
       return response.data;
     })
@@ -51,7 +51,7 @@ export const getGames = () => {
 
 export const createGame = async (
   max_players: number,
-  config = "classic"
+  config = "classic",
 ): Promise<CreateGameResponse> => {
   try {
     const response = await api.post("/api/games/", {
@@ -80,7 +80,7 @@ export const joinGame = async (gameUUID: string): Promise<JoinGameResponse> => {
 };
 
 export const leaveGame = async (
-  gameUUID: string
+  gameUUID: string,
 ): Promise<JoinGameResponse> => {
   try {
     const response = await api.post(`/api/games/${gameUUID}/leave/`);

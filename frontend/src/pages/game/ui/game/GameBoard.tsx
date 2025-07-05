@@ -1,9 +1,22 @@
+import { useGameStore } from "@/entities/gameStore";
+import { useBoardConfig } from "@/shared/hooks/useBoardConfig";
+import { TileRenderer } from "./TileRenderer";
+
 export const GameBoard = () => {
+  const { game } = useGameStore();
+  const { data: boardConfig, isLoading: boardConfigLoading } = useBoardConfig(
+    game.board_config,
+    true,
+    true,
+  );
+
+  if (boardConfigLoading || !boardConfig) {
+    return <h1>Loading</h1>;
+  }
+
   return (
-    <div className="w-full aspect-square">
-      <div className="w-full h-full flex items-center justify-center bg-background">
-        <h1>Game board</h1>
-      </div>
+    <div className="aspect-square w-full bg-amber-200">
+      <TileRenderer tiles={boardConfig?.tiles} />
     </div>
   );
 };

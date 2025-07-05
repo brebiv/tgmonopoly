@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
-import type { Game, GameEvent, GameFrame, Player } from "./types";
+import type { BoardConfig, Game, GameEvent, GameFrame, Player } from "./types";
 
 type GameState = {
   eventQueue: GameEvent[];
@@ -8,6 +8,7 @@ type GameState = {
   isProcessingGameEvent: boolean;
   players: Player[];
   game: Game;
+  board_config: BoardConfig;
   processGameFrame: (gameFrame: GameFrame) => void;
   addEvents: (events: GameEvent[]) => void;
   processNextEvent: () => void;
@@ -31,18 +32,3 @@ export const useGameStore = create<GameState>()(
     processNextEvent: () => {},
   }))
 );
-
-// export const useGameStore = create<GameState>((set, get) => ({
-//   eventQueue: [],
-//   eventLog: [],
-//   isProcessingGameEvent: false,
-//   processGameFrame: (gameFrame) => {
-//     console.log("Processing game frame", gameFrame);
-//   },
-//   addEvents: (events) => {
-//     set((state) => ({
-//       eventQueue: [...state.eventQueue, ...events],
-//     }));
-//   },
-//   processNextEvent: () => {},
-// }));

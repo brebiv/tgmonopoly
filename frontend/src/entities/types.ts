@@ -73,3 +73,62 @@ export type GameFrame = {
   players: Player[];
   type: string;
 };
+
+export type PropertyGroup = {
+  name: string;
+  color: string;
+};
+
+export type UtilityGroup = {
+  type: string;
+  name: string;
+  color: string;
+};
+
+const TileTypes = {
+  START: "start",
+  TAX: "tax",
+  CHANCE: "chance",
+  JAIL: "jail",
+  POLICE: "police",
+  CASINO: "casino",
+  PROPERTY: "property",
+  UTILITY: "utility",
+} as const;
+export type TileTypes = (typeof TileTypes)[keyof typeof TileTypes];
+
+type Property = {
+  price: number;
+  mortgage_value: number;
+  house_price: number;
+  rent: number;
+  rent_with_1_house: number;
+  rent_with_2_houses: number;
+  rent_with_3_houses: number;
+  rent_with_4_houses: number;
+  rent_with_5_houses: number;
+  group: number;
+  icon: string;
+  mortgage_buyback_price: number;
+};
+
+type Utility = {
+  price: number;
+  mortgage_value: number;
+  group: string;
+  icon: string;
+};
+
+type BaseTile = {
+  position: number;
+  tile_type: TileTypes;
+};
+
+export type Tile = BaseTile & Property & Utility;
+
+export type BoardConfig = {
+  name: string;
+  property_groups: PropertyGroup[];
+  utility_groups: UtilityGroup[];
+  tiles: Tile[];
+};

@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 
 const addAuthToWSUrl = (path: string) => {
   const protocol = import.meta.env.VITE_USE_WSS == "True" ? "wss" : "ws";
-  return `${protocol}://${window.location.host}${path}/?${Telegram.WebApp.initData}`;
+  return `${protocol}://${window.location.host}${path}?${Telegram.WebApp.initData}`;
 };
 
 export const useWebsocketSubscription = (

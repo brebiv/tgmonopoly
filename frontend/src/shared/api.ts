@@ -29,7 +29,7 @@ export const api = axios.create({
 
 export const getAuth = () => {
   return api
-    .get("/api/me/")
+    .get("/api/me")
     .then((response) => {
       return response.data;
     })

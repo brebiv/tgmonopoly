@@ -5,12 +5,13 @@ import { getBoardConfig } from "../api";
 export const useBoardConfig = (
   name: string,
   runImmediately = false,
-  enableRetry = false
+  enableRetry = false,
 ) => {
   return useQuery<BoardConfig, Error>({
     queryKey: ["boardConfig"],
     queryFn: () => getBoardConfig(name),
     enabled: runImmediately,
     retry: enableRetry,
+    refetchOnWindowFocus: false,
   });
 };

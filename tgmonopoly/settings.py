@@ -28,7 +28,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = "django-insecure-0z3ccocymv5+3cow)t)*=rfw&l)xgv31_n7p0781b776b&i&^^"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# DEBUG = True
+DEBUG = True if os.getenv("DEBUG") == "True" else False
 
 ALLOWED_HOSTS = ["*"]
 CORS_ALLOW_ALL_ORIGINS = True
@@ -156,8 +157,8 @@ GAME_CONFIG = os.getenv("GAME_CONFIG")
 
 # Telegram settings
 TG_BOT_TOKEN = os.getenv("TG_BOT_TOKEN")
-TG_USE_TEST_ENV = os.getenv("TG_USE_TEST_ENV")
-TG_USE_TEST_ENV_HTTPS = os.getenv("TG_USE_TEST_ENV_HTTPS")
+TG_USE_TEST_ENV = True if os.getenv("TG_USE_TEST_ENV") == "True" else False
+TG_USE_TEST_ENV_HTTPS = True if os.getenv("TG_USE_TEST_ENV_HTTPS") else False
 TG_WEBAPP_ORIGIN = os.getenv("TG_WEBAPP_ORIGIN")
 TG_UPDATE_USER_ON_EACH_REQUEST = False if DEBUG else True
 

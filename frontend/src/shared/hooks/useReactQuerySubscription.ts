@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 
 const buildGameWebsocketUrl = (gameUUID: string) => {
   const path = "ws/game/" + gameUUID;
-  const protocol = "ws";
+  const protocol = import.meta.env.VITE_USE_WSS == "True" ? "wss" : "ws";
 
   return `${protocol}://${window.location.host}/${path}/?${Telegram.WebApp.initData}`;
 };

@@ -75,11 +75,13 @@ export type GameFrame = {
 };
 
 export type PropertyGroup = {
+  id: number;
   name: string;
   color: string;
 };
 
 export type UtilityGroup = {
+  id: number;
   type: string;
   name: string;
   color: string;
@@ -120,6 +122,7 @@ type Utility = {
 };
 
 type BaseTile = {
+  name: string;
   position: number;
   tile_type: TileTypes;
 };

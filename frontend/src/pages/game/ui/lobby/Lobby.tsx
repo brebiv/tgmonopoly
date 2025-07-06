@@ -28,17 +28,17 @@ export const Lobby = () => {
   // }, [gameFrame]);
 
   return (
-    <div className="relative flex flex-col gap-4 w-full h-screen pt-2 items-center px-8">
+    <div className="bg-secondary-background relative flex h-screen w-full flex-col items-center gap-4 px-8 pt-2">
       <h1>Game lobby</h1>
       <Card className="w-full">
         <h2>Players</h2>
-        <div className="flex flex-col w-full gap-2">
+        <div className="flex w-full flex-col gap-2">
           {players &&
             players.map((player, i) => <PlayerCard key={i} player={player} />)}
           {game &&
             players &&
             Array.from({ length: game.max_players - players.length }).map(
-              (_, i) => <PlayerCard key={i} />
+              (_, i) => <PlayerCard key={i} />,
             )}
         </div>
       </Card>

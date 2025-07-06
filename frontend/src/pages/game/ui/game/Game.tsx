@@ -6,7 +6,7 @@ export const Game = () => {
   const { players } = useGameStore();
 
   return (
-    <div className="flex flex-col gap-2 h-screen">
+    <div className="bg-secondary-background flex h-screen flex-col gap-2">
       <GameBoard />
       <PlayersSection players={players} />
     </div>

@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *)); */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
     --color-background: var(--tg-theme-bg-color);
     --color-secondary-background: var(--tg-theme-secondary-bg-color);
@@ -25,7 +28,7 @@
 
         div {
             color: var(--color-primary);
-            background-color: var(--color-secondary-background);
+            /* background-color: var(--color-secondary-background); */
         }
 
         button {

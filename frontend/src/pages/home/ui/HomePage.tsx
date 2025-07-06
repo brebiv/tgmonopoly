@@ -21,11 +21,11 @@ export const HomePage = () => {
   }
 
   return (
-    <div className="relative flex flex-col gap-4 w-full h-screen pt-2">
+    <div className="bg-secondary-background relative flex h-screen w-full flex-col gap-4 pt-2">
       <Header />
-      <div className="px-8 flex flex-col gap-6">
+      <div className="flex flex-col gap-6 px-8">
         {me.current_game && <CurrentGameCard game={me.current_game} />}
-        <div className="grid grid-cols-2 gap-4 justify-evenly">
+        <div className="grid grid-cols-2 justify-evenly gap-4">
           <NavButton
             active={activeTab == "list"}
             text="Game list"

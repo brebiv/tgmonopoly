@@ -80,7 +80,7 @@ class GameEventSerializer(serializers.ModelSerializer):
 class PropertyGroupSerializer(serializers.ModelSerializer):
     class Meta:
         model = PropertyGroup
-        fields = ("name", "color")
+        fields = ("id", "name", "color")
 
 
 class UtilityGroupSerializer(serializers.ModelSerializer):

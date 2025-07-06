@@ -30,5 +30,5 @@ export const useGameStore = create<GameState>()(
       }));
     },
     processNextEvent: () => {},
-  }))
+  })),
 );

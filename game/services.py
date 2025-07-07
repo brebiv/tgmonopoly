@@ -96,9 +96,16 @@ class ClassicMonopolyService(BaseMonopoly):
             raise GameException("Game is full")
 
         try:
+            existing_colors = game.players.values_list("color", flat=True).all()
+            available_colors = [
+                color for color in Player.Color.values if color not in existing_colors
+            ]
+            color = available_colors.pop(0)
+
             player = Player.objects.create(
                 user=telegram_user,
                 game=game,
+                color=color,
             )
         except IntegrityError:
             raise GameException("You are already playing this game")

@@ -183,9 +183,7 @@ class Player(models.Model):
 
     position = models.PositiveSmallIntegerField(default=0)
     cash = models.IntegerField(default=get_config().STARTING_CASH)
-    color = models.CharField(
-        max_length=12, choices=Color.choices, null=True, blank=True
-    )
+    color = models.CharField(max_length=12, choices=Color.choices)
     rolled_double = models.BooleanField(default=False)
     double_count = models.PositiveSmallIntegerField(default=0)
     in_jail = models.BooleanField(default=False)

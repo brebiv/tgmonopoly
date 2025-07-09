@@ -1,15 +1,8 @@
 import type React from "react";
 import type { Tile } from "@/entities/types";
 import cn from "classnames";
-import { useBoardConfig } from "@/shared/hooks/useBoardConfig";
-import {
-  CloverIcon,
-  CoinsIcon,
-  Columns4Icon,
-  GoalIcon,
-  PiggyBankIcon,
-  SirenIcon,
-} from "lucide-react";
+import { CloverIcon, CoinsIcon, Columns4Icon, GoalIcon, PiggyBankIcon, SirenIcon } from "lucide-react";
+import { useGameBoardContext } from "@/entities/GameBoardContext";
 
 interface TileProps {
   tile: Tile;
@@ -17,7 +10,7 @@ interface TileProps {
 }
 
 const PurchasableTile: React.FC<TileProps> = ({ tile, side }) => {
-  const { data: boardConfig } = useBoardConfig();
+  const { boardConfig } = useGameBoardContext();
   const propertyGroup = boardConfig?.property_groups.find(
     (property_group) => property_group.id == tile.group,
   );
@@ -54,9 +47,7 @@ const PurchasableTile: React.FC<TileProps> = ({ tile, side }) => {
           src={tile.icon}
           className={cn({
             "w-full": side == "top" || side == "bottom",
-            "-rotate-90":
-              tile.tile_type == "property" &&
-              (side == "top" || side == "bottom"),
+            "-rotate-90": tile.tile_type == "property" && (side == "top" || side == "bottom"),
             "h-full": side == "right" || side == "left",
           })}
         />
@@ -69,7 +60,12 @@ export const BoardTile: React.FC<TileProps> = ({ tile, side }) => {
   const { tile_type } = tile;
 
   return (
-    <div className="bg-background relative h-full w-full dark:bg-white">
+    <div
+      data-position={tile.position}
+      data-iscorner={["start", "jail", "casino", "police"].includes(tile_type)}
+      date-side={side}
+      className="bg-background tile relative h-full w-full dark:bg-white"
+    >
       {/* Inner content wrapper */}
       <div className="absolute flex h-full w-full items-center justify-center">
         {/* Tiles */}

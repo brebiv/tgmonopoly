@@ -15,11 +15,15 @@
 
 @layer base {
     html[data-theme="tg"] {
+        /* Colors */
         --color-background: var(--tg-theme-bg-color);
         --color-secondary-background: var(--tg-theme-secondary-bg-color);
         --color-primary: var(--tg-theme-text-color);
         --color-hint: var(--tg-theme-hint-color);
         --color-link: var(--tg-theme-link-color);
+        
+        /* Animations */
+        --player-chip-move-duration: 500ms;
 
         p {
             color: var(--color-primary);

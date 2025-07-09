@@ -18,16 +18,28 @@ function assembleAuthHeader() {
 // axios.defaults.headers.common["Authorization"] = assembleAuthHeader();
 // axios.defaults.headers.common["Content-Type"] = "application/json";
 
-export const api = axios.create({
-  // baseURL: "feffw",
-  // timeout: 1000,
-  headers: {
-    Authorization: assembleAuthHeader(),
-    "Content-Type": "application/json",
-  },
-});
+// export const api = axios.create({
+//   // baseURL: "feffw",
+//   // timeout: 1000,
+//   headers: {
+//     Authorization: assembleAuthHeader(),
+//     "Content-Type": "application/json",
+//   },
+// });
+
+const initAPI = () => {
+  return axios.create({
+    // baseURL: "feffw",
+    // timeout: 1000,
+    headers: {
+      Authorization: assembleAuthHeader(),
+      "Content-Type": "application/json",
+    },
+  });
+};
 
 export const getAuth = () => {
+  const api = initAPI();
   return api
     .get("/api/me")
     .then((response) => {
@@ -39,6 +51,7 @@ export const getAuth = () => {
 };
 
 export const getGames = () => {
+  const api = initAPI();
   return api
     .get("/api/games/")
     .then((response) => {
@@ -49,11 +62,9 @@ export const getGames = () => {
     });
 };
 
-export const createGame = async (
-  max_players: number,
-  config = "classic",
-): Promise<CreateGameResponse> => {
+export const createGame = async (max_players: number, config = "classic"): Promise<CreateGameResponse> => {
   try {
+    const api = initAPI();
     const response = await api.post("/api/games/", {
       max_players: max_players,
       config: config,
@@ -69,6 +80,7 @@ export const createGame = async (
 
 export const joinGame = async (gameUUID: string): Promise<JoinGameResponse> => {
   try {
+    const api = initAPI();
     const response = await api.post(`/api/games/${gameUUID}/join/`);
     return response.data;
   } catch (err: any) {
@@ -79,10 +91,9 @@ export const joinGame = async (gameUUID: string): Promise<JoinGameResponse> => {
   }
 };
 
-export const leaveGame = async (
-  gameUUID: string,
-): Promise<JoinGameResponse> => {
+export const leaveGame = async (gameUUID: string): Promise<JoinGameResponse> => {
   try {
+    const api = initAPI();
     const response = await api.post(`/api/games/${gameUUID}/leave/`);
     return response.data;
   } catch (err: any) {
@@ -95,6 +106,7 @@ export const leaveGame = async (
 
 export const getBoardConfig = async (name: string): Promise<BoardConfig> => {
   try {
+    const api = initAPI();
     const response = await api.get(`/api/board_configs/${name}/`);
     return response.data;
   } catch (err: any) {

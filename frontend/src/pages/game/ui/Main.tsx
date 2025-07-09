@@ -19,7 +19,7 @@ export const Main = () => {
 
   const { game } = useGameStore();
   if (!game) {
-    return <h1>Loading</h1>;
+    return <h1>Loading game</h1>;
   }
 
   return <>{game.status === GameStatus.WAITING ? <Lobby /> : <Game />}</>;

@@ -1,15 +1,23 @@
 import type { Tile } from "@/entities/types";
-import React from "react";
+import React, { useEffect } from "react";
 import { BoardTile } from "./BoardTile";
 
 interface TileRendererProps {
   tiles: Tile[];
+  onLoad?: () => void;
+  children?: React.ReactNode;
 }
 
-export const TileRenderer: React.FC<TileRendererProps> = ({ tiles }) => {
+export const TileRenderer: React.FC<TileRendererProps> = ({ tiles, onLoad, children }) => {
   if (!tiles) {
     return <h1>Loading</h1>;
   }
+
+  useEffect(() => {
+    if (onLoad) {
+      onLoad();
+    }
+  }, []);
 
   return (
     <div
@@ -50,6 +58,8 @@ export const TileRenderer: React.FC<TileRendererProps> = ({ tiles }) => {
             <BoardTile tile={tile} side="left" />
           ))}
       </div>
+      {/* Center */}
+      <div className="relative col-span-9 col-start-2 row-span-9 row-start-2">{children}</div>
     </div>
   );
 };

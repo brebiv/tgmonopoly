@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+/* @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *)); */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+    --color-background: var(--tg-theme-bg-color);
+    --color-secondary-background: var(--tg-theme-secondary-bg-color);
+    --color-primary: var(--tg-theme-text-color);
+    --color-hint: var(--tg-theme-hint-color);
+    --color-link: var(--tg-theme-link-color);
+    --color-button: var(--tg-theme-button-color);
+    --color-button-text: var(--tg-theme-button-text-color);
+    /* Animations */
+    --player-chip-move-duration: 500ms;
+}
+
+@layer base {
+    .light {
+        --tg-color-scheme: light;
+        --tg-theme-bg-color: #ffffff;
+        --tg-theme-text-color: #000000;
+        --tg-theme-hint-color: #707579;
+        --tg-theme-link-color: #3390ec;
+        --tg-theme-button-color: #3390ec;
+        --tg-theme-button-text-color: #ffffff;
+        --tg-theme-secondary-bg-color: #f4f4f5;
+        --tg-theme-header-bg-color: #ffffff;
+        --tg-theme-accent-text-color: #3390ec;
+        --tg-theme-section-bg-color: #ffffff;
+        --tg-theme-section-header-text-color: #707579;
+        --tg-theme-subtitle-text-color: #707579;
+        --tg-theme-destructive-text-color: #e53935;
+        --tg-viewport-height: 100vh;
+        --tg-viewport-stable-height: 100vh;
+        /* Colors */
+        /* --color-background: var(--tg-theme-bg-color);
+        --color-secondary-background: var(--tg-theme-secondary-bg-color);
+        --color-primary: var(--tg-theme-text-color);
+        --color-hint: var(--tg-theme-hint-color);
+        --color-link: var(--tg-theme-link-color); */
+    }
+    .dark {
+        --tg-color-scheme: dark;
+        --tg-theme-bg-color: #212121;
+        --tg-theme-text-color: #ffffff;
+        --tg-theme-hint-color: #aaaaaa;
+        --tg-theme-link-color: #8774e1;
+        --tg-theme-button-color: #8774e1;
+        --tg-theme-button-text-color: #ffffff;
+        --tg-theme-secondary-bg-color: #181818;
+        --tg-theme-header-bg-color: #212121;
+        --tg-theme-accent-text-color: #8774e1;
+        --tg-theme-section-bg-color: #212121;
+        --tg-theme-section-header-text-color: #8774e1;
+        --tg-theme-subtitle-text-color: #aaaaaa;
+        --tg-theme-destructive-text-color: #ff595a;
+        --tg-viewport-height: 100vh;
+        --tg-viewport-stable-height: 100vh;
+    }
+    p {
+        color: var(--color-primary);
+        @apply text-base;
+    }
+
+
+    button {
+        color: var(--color-button-text);
+        background-color: var(--color-button);
+        @apply text-base;
+    }
+
+    html[data-theme="default"] {
+        --color-background: black;
+        --color-primary: red;
+    }
+
+    h1 {
+        font-size: 24px;
+    }
+
+    h2 {
+        font-size: 18px;
+    }
+}

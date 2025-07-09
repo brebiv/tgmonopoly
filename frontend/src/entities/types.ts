@@ -31,6 +31,7 @@ export type PlayerStatus = (typeof PlayerStatus)[keyof typeof PlayerStatus];
 export type GameStatus = (typeof GameStatus)[keyof typeof GameStatus];
 
 export type Player = {
+  id: number;
   avatar: string;
   cash: number;
   color: string;
@@ -58,8 +59,7 @@ export const GameEventTypes = {
   PLAYER_JOINED: "player.joined",
   PLAYER_ACTION: "player.action",
 } as const;
-export type GameEventTypes =
-  (typeof GameEventTypes)[keyof typeof GameEventTypes];
+export type GameEventTypes = (typeof GameEventTypes)[keyof typeof GameEventTypes];
 
 export type GameEvent = {
   event_type: GameEventTypes;

@@ -1,22 +1,30 @@
-import { useGameStore } from "@/entities/gameStore";
-import { useBoardConfig } from "@/shared/hooks/useBoardConfig";
 import { TileRenderer } from "./TileRenderer";
+import { PlayerChipController } from "./PlayerChipController";
+import React, { useState } from "react";
+import type { BoardConfig, Player } from "@/entities/types";
+import { GameBoardContextProvider } from "@/entities/GameBoardContext";
 
-export const GameBoard = () => {
-  const { game } = useGameStore();
-  const { data: boardConfig, isLoading: boardConfigLoading } = useBoardConfig(
-    game.board_config,
-    true,
-    true,
-  );
+interface GameBoardProps {
+  players: Player[];
+  boardConfig: BoardConfig;
+  children?: React.ReactNode;
+}
 
-  if (boardConfigLoading || !boardConfig) {
-    return <h1>Loading</h1>;
-  }
+export const GameBoard: React.FC<GameBoardProps> = ({ players, boardConfig, children }) => {
+  const [tilesLoaded, setTilesLoaded] = useState(false);
+
+  const handleTileLoaded = () => {
+    setTilesLoaded(true);
+  };
 
   return (
-    <div className="aspect-square w-full bg-amber-200">
-      <TileRenderer tiles={boardConfig?.tiles} />
-    </div>
+    <GameBoardContextProvider boardConfig={boardConfig}>
+      <div className="relative aspect-square w-full">
+        {tilesLoaded && <PlayerChipController players={players} />}
+        <TileRenderer tiles={boardConfig.tiles} onLoad={() => handleTileLoaded()}>
+          {children}
+        </TileRenderer>
+      </div>
+    </GameBoardContextProvider>
   );
 };

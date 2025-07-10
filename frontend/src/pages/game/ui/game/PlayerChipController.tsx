@@ -116,13 +116,15 @@ export const PlayerChipController: React.FC<PlayerChipControllerProps> = ({ play
   return (
     <div ref={playersAreaRef} id="players" className="absolute h-full w-full">
       {ready &&
-        players.map((player) => {
+        players.map((player, i) => {
           let position = calculatePlayerChipPosition(player, players);
           if (!position) {
             return;
           }
 
-          return <PlayerChip player={player} size={PLAYER_CHIP_SIZE_PX} x={position.x} y={position.y} />;
+          return (
+            <PlayerChip key={i} player={player} size={PLAYER_CHIP_SIZE_PX} x={position.x} y={position.y} />
+          );
         })}
     </div>
   );

@@ -71,6 +71,7 @@ export type GameFrame = {
   events: GameEvent[];
   game: Game;
   players: Player[];
+  my_player_id?: number;
   type: string;
 };
 

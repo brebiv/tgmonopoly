@@ -5,6 +5,7 @@ from asgiref.sync import async_to_sync
 
 from game.models import Game, Player
 from game.services import get_service_by_game
+from game.serializers import PlayerSerializer
 from .mixinis import AuthMixin
 
 
@@ -18,7 +19,7 @@ class GameConsumer(JsonWebsocketConsumer, AuthMixin):
             game_uuid_raw = self.scope["url_route"]["kwargs"]["game_uuid"]
             game_uuid = UUID(game_uuid_raw)
             game = Game.objects.get(uuid=game_uuid)
-            Player.objects.get(game=game, user=tg_user)
+            player = Player.objects.get(game=game, user=tg_user)
         except KeyError:
             print("something was wrong with self.scope keys")
             self.close()
@@ -43,7 +44,8 @@ class GameConsumer(JsonWebsocketConsumer, AuthMixin):
         self.scope["game_found"] = True
 
         monopoly_service = get_service_by_game(game)
-        game_frame = monopoly_service.assemble_game_frame(game, [])
+        game_frame = monopoly_service.assemble_game_frame(game, [], "game.initial")
+        game_frame["my_player_id"] = player.pk
 
         self.game_id = game.pk
         self.game_group_name = f"game_{game.uuid}"

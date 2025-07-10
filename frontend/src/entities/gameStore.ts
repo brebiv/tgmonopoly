@@ -8,6 +8,8 @@ type GameState = {
   players: Player[];
   game?: Game;
   boardConfig?: BoardConfig;
+  myPlayer?: Player;
+  isMyTurn: boolean;
   processGameFrame: (gameFrame: GameFrame) => void;
   addEvents: (events: GameEvent[]) => void;
   processNextEvent: () => void;
@@ -17,15 +19,18 @@ export const useGameStore = create<GameState>()((set, get) => ({
   eventQueue: [],
   eventLog: [],
   isProcessingGameEvent: false,
-  // players: MOCK_PLAYERS.slice(0, 100),
   players: [],
   game: undefined,
   boardConfig: undefined,
+  isMyTurn: false,
   processGameFrame: (gameFrame) => {
     console.log("Processing game frame", gameFrame);
-    get().addEvents(gameFrame.events);
-    set({ players: gameFrame.players, game: gameFrame.game });
-    // set({ game: gameFrame.game });
+    let state = get();
+    let myPlayer = gameFrame.players.find((player) => player.id == gameFrame.my_player_id);
+    let isMyTurn = gameFrame.game.current_player === myPlayer!.id;
+
+    state.addEvents(gameFrame.events);
+    set({ players: gameFrame.players, game: gameFrame.game, isMyTurn: isMyTurn, myPlayer: myPlayer });
   },
 
   addEvents: (events) => {
@@ -36,24 +41,3 @@ export const useGameStore = create<GameState>()((set, get) => ({
 
   processNextEvent: () => {},
 }));
-
-// export const useGameStore = create<GameState>()(
-//   devtools((set, get) => ({
-//     eventQueue: [],
-//     eventLog: [],
-//     isProcessingGameEvent: false,
-//     players: MOCK_PLAYERS.slice(0, 100),
-//     processGameFrame: (gameFrame) => {
-//       console.log("Processing game frame", gameFrame);
-//       get().addEvents(gameFrame.events);
-//       // set({ players: gameFrame.players, game: gameFrame.game });
-//       set({ game: gameFrame.game });
-//     },
-//     addEvents: (events) => {
-//       set((state) => ({
-//         eventQueue: [...state.eventQueue, ...events],
-//       }));
-//     },
-//     processNextEvent: () => {},
-//   })),
-// );

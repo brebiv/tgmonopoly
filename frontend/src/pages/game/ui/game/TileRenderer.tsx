@@ -30,14 +30,14 @@ export const TileRenderer: React.FC<TileRendererProps> = ({ tiles, onLoad, child
     >
       {/* Top */}
       <div className="relative col-span-11 row-start-1 grid grid-cols-subgrid gap-[2px]">
-        {tiles.slice(0, 11).map((tile) => (
-          <BoardTile tile={tile} side="top" />
+        {tiles.slice(0, 11).map((tile, i) => (
+          <BoardTile key={i} tile={tile} side="top" />
         ))}
       </div>
       {/* Right */}
       <div className="col-start-11 row-span-10 row-start-2 grid grid-cols-subgrid grid-rows-subgrid gap-[2px]">
-        {tiles.slice(11, 21).map((tile) => (
-          <BoardTile tile={tile} side="right" />
+        {tiles.slice(11, 21).map((tile, i) => (
+          <BoardTile key={i} tile={tile} side="right" />
         ))}
       </div>
       {/* Bottom */}
@@ -45,8 +45,8 @@ export const TileRenderer: React.FC<TileRendererProps> = ({ tiles, onLoad, child
         dir="rtl"
         className="col-span-11 col-start-11 col-end-1 row-start-11 grid grid-cols-subgrid grid-rows-subgrid gap-[2px]"
       >
-        {tiles.slice(21, 31).map((tile) => (
-          <BoardTile tile={tile} side="bottom" />
+        {tiles.slice(21, 31).map((tile, i) => (
+          <BoardTile key={i} tile={tile} side="bottom" />
         ))}
       </div>
       {/* Left */}
@@ -54,8 +54,8 @@ export const TileRenderer: React.FC<TileRendererProps> = ({ tiles, onLoad, child
         {tiles
           .slice(31, 40)
           .reverse()
-          .map((tile) => (
-            <BoardTile tile={tile} side="left" />
+          .map((tile, i) => (
+            <BoardTile key={i} tile={tile} side="left" />
           ))}
       </div>
       {/* Center */}

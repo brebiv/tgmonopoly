@@ -17,4 +17,15 @@ export const createMockPlayer = (id: number, name: string, color: string): Playe
   };
 };
 
-// const generateRandomPlayers = (count: number): Player[] => Array.from({ length: count }, createMockPlayer);
+export const generateRandomPlayers = (count: number): Player[] => {
+  let colors = ["blue", "red", "green", "yellow"];
+  let names = ["Leo", "Rick", "Morty", "Neo"];
+
+  let players: Player[] = [];
+  for (let i = 0; i < count; i++) {
+    let color = colors[i % colors.length];
+    let name = names[i % names.length];
+    players.push(createMockPlayer(i + 1, name, color));
+  }
+  return players;
+};

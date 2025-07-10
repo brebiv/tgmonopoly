@@ -4,16 +4,11 @@ import classic_board_config from "@/test/mocks/classic_board_config";
 
 import { useState } from "react";
 import { Button } from "@/shared/ui/Button";
-import { createMockPlayer } from "@/test/mocks/utils";
+import { generateRandomPlayers } from "@/test/mocks/utils";
 
 const playerPresets = {
-  TwoPlayers: [createMockPlayer(1, "Leo", "blue"), createMockPlayer(2, "Rick", "red")],
-  FourPlayers: [
-    createMockPlayer(1, "Leo", "blue"),
-    createMockPlayer(2, "Rick", "red"),
-    createMockPlayer(3, "Morty", "green"),
-    createMockPlayer(4, "Neo", "yellow"),
-  ],
+  TwoPlayers: [...generateRandomPlayers(2)],
+  FourPlayers: [...generateRandomPlayers(4)],
 };
 
 const meta = {

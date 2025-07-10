@@ -4,18 +4,15 @@ import { useReactQuerySubscription } from "@/shared/hooks/useReactQuerySubscript
 import { Lobby } from "./lobby/Lobby";
 import { Game } from "./game/Game";
 import { useTelegramColorScheme } from "@/shared/hooks/useTelegramTheme";
+import { useAuthContext } from "@/entities/AuthProvider";
 
 export const Main = () => {
   useTelegramColorScheme();
-  const pathname = URL.parse(location.href)?.pathname;
-  const gameUUID = pathname?.split("/").pop();
 
-  if (!gameUUID) {
-    console.error("Could not get UUID from url");
-    return;
-  }
+  const { me } = useAuthContext();
 
-  useReactQuerySubscription(gameUUID);
+  // current game is 100% present because there is a check in AuthProvider, maybe I should refactor this
+  useReactQuerySubscription(me.current_game!.uuid);
 
   const { game } = useGameStore();
   if (!game) {

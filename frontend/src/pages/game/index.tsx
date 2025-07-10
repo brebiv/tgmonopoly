@@ -10,12 +10,15 @@ import "@shared/styles/tailwind.css";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "../../shared/queryClient";
 import { Main } from "./ui/Main";
+import { AuthContextProvider } from "@/entities/AuthProvider";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      {/* <ReactQueryDevtools initialIsOpen={false} /> */}
-      <Main />
+      <AuthContextProvider currentGameUUIDMustMatchWithURL>
+        {/* <ReactQueryDevtools initialIsOpen={false} /> */}
+        <Main />
+      </AuthContextProvider>
     </QueryClientProvider>
-  </StrictMode>
+  </StrictMode>,
 );

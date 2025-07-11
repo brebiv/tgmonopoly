@@ -265,7 +265,12 @@ class GameEvent(models.Model):
         PLAYER_JOINED = "player.joined"
         PLAYER_ACTION = "player.action"
         PLAYER_LEAVE = "player.leave"
+        PLAYER_ROLL_DICE = "player.roll_dice"
+        PLAYER_MOVE = "player.move"
         GAME_STARTED = "game.started"
 
+    game = models.ForeignKey(
+        to=Game, related_name="events", on_delete=models.DO_NOTHING
+    )
     event_type = models.CharField(max_length=32, choices=Types.choices)
     extra_data = models.JSONField(default=dict)

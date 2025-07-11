@@ -4,13 +4,15 @@ from channels.generic.websocket import JsonWebsocketConsumer
 from asgiref.sync import async_to_sync
 
 from game.models import Game, Player
-from game.services import get_service_by_game
-from game.serializers import PlayerSerializer
+from game.services import get_service_by_game, BaseMonopoly
 from .mixinis import AuthMixin
 
 
 class GameConsumer(JsonWebsocketConsumer, AuthMixin):
-    def connect(self):
+    player: Player
+    monopoly_service: BaseMonopoly
+
+    def connect(self) -> None:
         self.authenticate()
         tg_user = self.scope.get("telegram_user")
 
@@ -47,7 +49,9 @@ class GameConsumer(JsonWebsocketConsumer, AuthMixin):
         game_frame = monopoly_service.assemble_game_frame(game, [], "game.initial")
         game_frame["my_player_id"] = player.pk
 
-        self.game_id = game.pk
+        self.game_uuid = game.pk
+        self.player = player
+        self.monopoly_service = monopoly_service
         self.game_group_name = f"game_{game.uuid}"
 
         async_to_sync(self.channel_layer.group_add)(
@@ -64,10 +68,14 @@ class GameConsumer(JsonWebsocketConsumer, AuthMixin):
             )
 
     def receive_json(self, content):
-        pass
+        print("Well, here we are JSON")
 
     def receive(self, text_data):
-        pass
+        action = text_data
+        game_frame = self.monopoly_service.process_game_action(
+            self.game_uuid, self.player.pk, action
+        )
+        async_to_sync(self.channel_layer.group_send)(self.game_group_name, game_frame)
 
     def game_event(self, event):
         self.send_json(event)

@@ -55,20 +55,33 @@ export type Game = {
 export enum GameEventTypes {
   PLAYER_JOINED = "player.joined",
   PLAYER_ACTION = "player.action",
+  PLAYER_ROLL_DICE = "player.roll_dice",
+  PLAYER_MOVE = "player.move",
 }
+
+type GameEventExtraData = {
+  player?: number;
+  position?: number;
+  dice_values?: number[];
+};
 
 export type GameEvent = {
   event_type: GameEventTypes;
-  action: string;
-  player: number;
+  game_uuid: string;
+  extra_data?: GameEventExtraData;
 };
+
+export enum GameFrameTypes {
+  GAME_INITIAL = "game.initial",
+  GAME_EVENT = "game.event",
+}
 
 export type GameFrame = {
   events: GameEvent[];
   game: Game;
   players: Player[];
   my_player_id?: number;
-  type: string;
+  type: GameFrameTypes;
 };
 
 export type PropertyGroup = {
@@ -135,3 +148,9 @@ export type BoardConfig = {
 export enum GameActionType {
   ROLL_DICE = "roll_dice",
 }
+
+export type GameAction = {
+  action: GameActionType;
+  game_uuid: string;
+  extra_data?: object;
+};

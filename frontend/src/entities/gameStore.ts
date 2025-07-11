@@ -1,7 +1,9 @@
 import { create } from "zustand";
-import type { BoardConfig, Game, GameEvent, GameFrame, Player } from "./types";
+import { type BoardConfig, type Game, type GameEvent, type GameFrame, type Player } from "./types";
+import { processEvent } from "@/app/lib/gameEventProcessing/processEvent";
 
-type GameState = {
+export type GameState = {
+  isProcessingEvents: boolean;
   eventQueue: GameEvent[];
   eventLog: GameEvent[];
   isProcessingGameEvent: boolean;
@@ -10,12 +12,14 @@ type GameState = {
   boardConfig?: BoardConfig;
   myPlayer?: Player;
   isMyTurn: boolean;
-  processGameFrame: (gameFrame: GameFrame) => void;
-  addEvents: (events: GameEvent[]) => void;
-  processNextEvent: () => void;
+  processEventGameFrame: (gameFrame: GameFrame) => void;
+  processInitialGameFrame: (gameFramge: GameFrame) => void;
+  enqueueEvents: (events: GameEvent[]) => void;
+  processEventQueue: () => void;
 };
 
 export const useGameStore = create<GameState>()((set, get) => ({
+  isProcessingEvents: false,
   eventQueue: [],
   eventLog: [],
   isProcessingGameEvent: false,
@@ -23,21 +27,38 @@ export const useGameStore = create<GameState>()((set, get) => ({
   game: undefined,
   boardConfig: undefined,
   isMyTurn: false,
-  processGameFrame: (gameFrame) => {
-    console.log("Processing game frame", gameFrame);
-    let state = get();
-    let myPlayer = gameFrame.players.find((player) => player.id == gameFrame.my_player_id);
-    let isMyTurn = gameFrame.game.current_player === myPlayer!.id;
-
-    state.addEvents(gameFrame.events);
-    set({ players: gameFrame.players, game: gameFrame.game, isMyTurn: isMyTurn, myPlayer: myPlayer });
+  processInitialGameFrame: (gameFrame) => {
+    set({
+      players: gameFrame.players,
+      game: gameFrame.game,
+      myPlayer: gameFrame.players.find((p) => p.id == gameFrame.my_player_id),
+      isMyTurn:
+        gameFrame.players.find((p) => p.id == gameFrame.my_player_id)?.id === gameFrame.game.current_player,
+    });
+  },
+  processEventGameFrame: async (gameFrame) => {
+    console.log("Processing event game frame", gameFrame);
+    get().enqueueEvents(gameFrame.events);
+    get().processEventQueue();
   },
 
-  addEvents: (events) => {
+  enqueueEvents: (events) => {
     set((state) => ({
       eventQueue: [...state.eventQueue, ...events],
     }));
   },
 
-  processNextEvent: () => {},
+  processEventQueue: async () => {
+    if (get().isProcessingEvents) return;
+
+    set({ isProcessingEvents: true });
+    while (get().eventQueue.length) {
+      const event = get().eventQueue[0];
+      await processEvent(event, set, get);
+      set((state) => ({
+        eventQueue: state.eventQueue.slice(1),
+      }));
+    }
+    set({ isProcessingEvents: false });
+  },
 }));

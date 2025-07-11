@@ -166,3 +166,9 @@ class BoardConfigDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = BoardConfig
         fields = ("name", "property_groups", "utility_groups", "tiles")
+
+
+class GameActionSerializer(serializers.Serializer):
+    action = serializers.CharField()
+    game_uuid = serializers.UUIDField()
+    extra_data = serializers.DictField(required=False)

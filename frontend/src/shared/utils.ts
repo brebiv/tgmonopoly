@@ -21,3 +21,7 @@ export const buildGameWebsocketUrl = (gameUUID: string) => {
 
   return `${protocol}://${window.location.host}/${path}/?${Telegram.WebApp.initData}`;
 };
+
+export const sleep = async (ms: number) => {
+  return new Promise((r) => setTimeout(r, ms));
+};

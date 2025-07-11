@@ -5,10 +5,8 @@ import { useBoardConfig } from "@/shared/hooks/useBoardConfig";
 import { ActionSheet } from "./ActionSheet";
 
 export const Game = () => {
-  const { game, players, isMyTurn } = useGameStore();
-  if (!game) {
-    return <h1>Loading game</h1>;
-  }
+  const { game, players, isMyTurn, eventQueue } = useGameStore();
+  // @ts-ignore
   const { data: boardConfig, isLoading: boardConfigLoading } = useBoardConfig(game.board_config, true, true);
 
   if (boardConfigLoading || !boardConfig) {
@@ -17,7 +15,15 @@ export const Game = () => {
 
   return (
     <div className="bg-secondary-background flex h-screen flex-col gap-2">
-      <GameBoard players={players} boardConfig={boardConfig} />
+      <GameBoard players={players} boardConfig={boardConfig}>
+        <div>
+          <p>Event queue length: {eventQueue.length}</p>
+          <p>Events:</p>
+          {eventQueue.map((event, i) => (
+            <p key={i}>{event.event_type}</p>
+          ))}
+        </div>
+      </GameBoard>
       <PlayersSection players={players} />
       <ActionSheet isOpen={isMyTurn} />
     </div>

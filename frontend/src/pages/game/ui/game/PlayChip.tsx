@@ -1,5 +1,5 @@
 import type { Player } from "@/entities/types";
-import { PLAYER_CHIP_COLORS } from "@/shared/config";
+import { PLAYER_CHIP_COLORS, PLAYER_CHIP_MOVE_DURATION_MS } from "@/shared/config";
 import type React from "react";
 
 interface PlayerChipProps {
@@ -14,10 +14,11 @@ export const PlayerChip: React.FC<PlayerChipProps> = ({ player, size, x, y }) =>
 
   return (
     <div
-      className="absolute z-10 rounded-full outline-2 transition-all duration-[var(--player-chip-move-duration)] ease-in-out"
+      className="absolute z-10 rounded-full outline-2 transition-all ease-in-out"
       style={{
         backgroundColor: primaryColor,
         outlineColor: borderColor,
+        transitionDuration: `${PLAYER_CHIP_MOVE_DURATION_MS}ms`,
         left: x,
         top: y,
         width: size,

@@ -2,6 +2,7 @@ import { buildGameWebsocketUrl } from "@/shared/utils";
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 
 interface ProviderData {
+  send: (message: any) => void;
   sendJSON: (message: any) => void;
   connected: boolean;
 }
@@ -48,17 +49,22 @@ export const WebSocketContextProvider: React.FC<ContextProps> = ({ gameUUID, onM
     };
   }, []);
 
-  const sendJSON = (message: object) => {
+  const send = (message: any) => {
     if (!websocketRef.current) {
       console.error("Websocket is not open");
       return;
     }
+    websocketRef.current.send(message);
+  };
+
+  const sendJSON = (message: object) => {
     let encoded_message = JSON.stringify(message);
-    websocketRef.current.send(encoded_message);
+    send(encoded_message);
   };
 
   const contextValue: ProviderData = {
     connected: connected,
+    send: send,
     sendJSON: sendJSON,
   };
 

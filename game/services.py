@@ -1,6 +1,8 @@
 from uuid import UUID
 from abc import ABC, abstractmethod
 from typing import List, Tuple
+from enum import Enum
+import random
 
 from django.db import transaction, IntegrityError
 
@@ -20,6 +22,7 @@ class BaseMonopoly(ABC):
         events: List[GameEvent],
         game_frame_type: str = "game.event",
     ) -> dict:
+        # Check if users are prefetched
         game_event_serailizer = GameEventSerializer(events, many=True)
         game_serializer = GameSerializer(game)
         players = [PlayerSerializer(player).data for player in game.players.all()]
@@ -31,6 +34,17 @@ class BaseMonopoly(ABC):
             "players": players,
             "events": game_event_serailizer.data,
         }
+
+    def _roll_dice_values(self, dices_count=2, min_value=1, max_value=6):
+        return [random.randint(min_value, max_value) for _ in range(dices_count)]
+
+    def _create_game_event(
+        self, game: Game, event_type: GameEvent.Types, extra_data: dict
+    ):
+        event = GameEvent.objects.create(
+            game=game, event_type=event_type, extra_data=extra_data
+        )
+        return event
 
     @abstractmethod
     def create_game(self, owner: TelegramUser, max_players: int) -> Game: ...
@@ -46,8 +60,16 @@ class BaseMonopoly(ABC):
     @abstractmethod
     def start_game(self, game: Game, player: Player) -> list[GameEvent]: ...
 
+    @abstractmethod
+    def process_game_action(
+        self, game_uuid: UUID, player_id: int, action: str
+    ) -> dict: ...
+
 
 class ClassicMonopolyService(BaseMonopoly):
+    class Actions(Enum):
+        ROLL_DICE = "roll_dice"
+
     def __init__(self):
         self.config = ClassicMonopolyConfig()
 
@@ -110,8 +132,10 @@ class ClassicMonopolyService(BaseMonopoly):
         except IntegrityError:
             raise GameException("You are already playing this game")
 
-        game_event = GameEvent.objects.create(
-            event_type=GameEvent.Types.PLAYER_JOINED, extra_data={"player": player.pk}
+        game_event = self._create_game_event(
+            game=game,
+            event_type=GameEvent.Types.PLAYER_JOINED,
+            extra_data={"player": player.pk},
         )
 
         events.append(game_event)
@@ -130,6 +154,7 @@ class ClassicMonopolyService(BaseMonopoly):
             player.delete()
 
             game_event = GameEvent.objects.create(
+                game=game,
                 event_type=GameEvent.Types.PLAYER_LEAVE,
                 extra_data={"player": player.pk},
             )
@@ -154,6 +179,7 @@ class ClassicMonopolyService(BaseMonopoly):
             game.save()
 
             game_event = GameEvent.objects.create(
+                game=game,
                 event_type=GameEvent.Types.GAME_STARTED,
                 extra_data={"player": player.pk},
             )
@@ -161,6 +187,38 @@ class ClassicMonopolyService(BaseMonopoly):
             events.append(game_event)
 
         return events
+
+    def process_game_action(self, game_uuid, player_id, action) -> dict:
+        print("Processing game action", game_uuid, player_id, action)
+        events: list[GameEvent] = []
+        player = Player.objects.get(pk=player_id)
+        game = Game.objects.get(pk=game_uuid)
+
+        try:
+            validated_action = self.Actions(action)
+        except ValueError:
+            validated_action = None
+
+        if validated_action == self.Actions.ROLL_DICE:
+            dice_values = self._roll_dice_values()
+            dice_sum = sum(dice_values)
+            new_position = player.move_forward(dice_sum)
+            player.save()
+
+            event = self._create_game_event(
+                game,
+                GameEvent.Types.PLAYER_ROLL_DICE,
+                {"player": player.pk, "dice_values": dice_values},
+            )
+            events.append(event)
+            event = self._create_game_event(
+                game,
+                GameEvent.Types.PLAYER_MOVE,
+                {"player": player.pk, "position": new_position},
+            )
+            events.append(event)
+
+        return self.assemble_game_frame(game, events)
 
 
 _STRATEGIES: dict[str, type[BaseMonopoly]] = {

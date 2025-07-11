@@ -6,7 +6,6 @@ export type GameState = {
   isProcessingEvents: boolean;
   eventQueue: GameEvent[];
   eventLog: GameEvent[];
-  isProcessingGameEvent: boolean;
   players: Player[];
   game?: Game;
   boardConfig?: BoardConfig;
@@ -22,7 +21,6 @@ export const useGameStore = create<GameState>()((set, get) => ({
   isProcessingEvents: false,
   eventQueue: [],
   eventLog: [],
-  isProcessingGameEvent: false,
   players: [],
   game: undefined,
   boardConfig: undefined,

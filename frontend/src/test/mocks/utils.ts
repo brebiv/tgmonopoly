@@ -1,4 +1,6 @@
 import { PlayerStatus, type Player } from "@/entities/types";
+import initial_game_frame from "./initial_game_frame";
+import { useGameStore } from "@/entities/gameStore";
 
 export const createMockPlayer = (id: number, name: string, color: string): Player => {
   return {
@@ -28,4 +30,16 @@ export const generateRandomPlayers = (count: number): Player[] => {
     players.push(createMockPlayer(i + 1, name, color));
   }
   return players;
+};
+
+export const mockGameStore = () => {
+  const { players, game } = initial_game_frame;
+  useGameStore.setState({
+    // isProcessingEvents: false,
+    // eventQueue: [],
+    // eventLog: [],
+    players,
+    game,
+    isMyTurn: true,
+  });
 };

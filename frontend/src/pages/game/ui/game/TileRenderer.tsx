@@ -10,7 +10,7 @@ interface TileRendererProps {
 
 export const TileRenderer: React.FC<TileRendererProps> = ({ tiles, onLoad, children }) => {
   if (!tiles) {
-    return <h1>Loading</h1>;
+    return <h1>Loading tile renderer</h1>;
   }
 
   useEffect(() => {

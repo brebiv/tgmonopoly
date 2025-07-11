@@ -7,8 +7,18 @@ import { withThemeByClassName } from "@storybook/addon-themes";
 import { queryClient } from "../src/shared/queryClient";
 import { handlers } from "../src/test/mocks/handlers.ts";
 import "../src/stories/assets/style/tailwind.css";
+import { isCommonAssetRequest } from "msw";
 
-initialize(undefined, handlers);
+initialize(
+  {
+    onUnhandledRequest(request, print) {
+      if (isCommonAssetRequest(request)) return;
+      print.warning();
+    },
+  },
+  // @ts-ignore
+  handlers,
+);
 
 const withQueryClient = (Story: any) => {
   return (

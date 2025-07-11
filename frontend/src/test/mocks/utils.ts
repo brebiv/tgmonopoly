@@ -1,4 +1,4 @@
-import type { Player } from "@/entities/types";
+import { PlayerStatus, type Player } from "@/entities/types";
 
 export const createMockPlayer = (id: number, name: string, color: string): Player => {
   return {
@@ -11,7 +11,7 @@ export const createMockPlayer = (id: number, name: string, color: string): Playe
     in_jail: false,
     jail_turns: 0,
     move_backwards: false,
-    status: "playing",
+    status: PlayerStatus.PLAYING,
     avatar: `https://api.dicebear.com/9.x/pixel-art/svg?seed=${id}.png`,
     name: name,
   };

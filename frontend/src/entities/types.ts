@@ -12,23 +12,20 @@ export type Me = {
   current_game: Game | null;
 };
 
-export const PlayerStatus = {
-  WAITING: "waiting",
-  PLAYING: "playing",
-  WON: "won",
-  LOST: "lost",
-  TIMEOUT: "timeout",
-} as const;
+export enum PlayerStatus {
+  WAITING = "waiting",
+  PLAYING = "playing",
+  WON = "won",
+  LOST = "lost",
+  TIMEOUT = "timeout",
+}
 
-export const GameStatus = {
-  WAITING: "WAITING",
-  PLAYING: "PLAYING",
-  FINISHED: "FINISHED",
-  ABANDONED: "ABANDONED",
-} as const;
-
-export type PlayerStatus = (typeof PlayerStatus)[keyof typeof PlayerStatus];
-export type GameStatus = (typeof GameStatus)[keyof typeof GameStatus];
+export enum GameStatus {
+  WAITING = "WAITING",
+  PLAYING = "PLAYING",
+  FINISHED = "FINISHED",
+  ABANDONED = "ABANDONED",
+}
 
 export type Player = {
   id: number;
@@ -55,11 +52,10 @@ export type Game = {
   uuid: string;
 };
 
-export const GameEventTypes = {
-  PLAYER_JOINED: "player.joined",
-  PLAYER_ACTION: "player.action",
-} as const;
-export type GameEventTypes = (typeof GameEventTypes)[keyof typeof GameEventTypes];
+export enum GameEventTypes {
+  PLAYER_JOINED = "player.joined",
+  PLAYER_ACTION = "player.action",
+}
 
 export type GameEvent = {
   event_type: GameEventTypes;
@@ -88,17 +84,16 @@ export type UtilityGroup = {
   color: string;
 };
 
-const TileTypes = {
-  START: "start",
-  TAX: "tax",
-  CHANCE: "chance",
-  JAIL: "jail",
-  POLICE: "police",
-  CASINO: "casino",
-  PROPERTY: "property",
-  UTILITY: "utility",
-} as const;
-export type TileTypes = (typeof TileTypes)[keyof typeof TileTypes];
+export enum TileTypes {
+  START = "start",
+  TAX = "tax",
+  CHANCE = "chance",
+  JAIL = "jail",
+  POLICE = "police",
+  CASINO = "casino",
+  PROPERTY = "property",
+  UTILITY = "utility",
+}
 
 type Property = {
   price: number;
@@ -136,3 +131,7 @@ export type BoardConfig = {
   utility_groups: UtilityGroup[];
   tiles: Tile[];
 };
+
+export enum GameActionType {
+  ROLL_DICE = "roll_dice",
+}

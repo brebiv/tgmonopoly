@@ -59,7 +59,9 @@ export const TileRenderer: React.FC<TileRendererProps> = ({ tiles, onLoad, child
           ))}
       </div>
       {/* Center */}
-      <div className="relative col-span-9 col-start-2 row-span-9 row-start-2">{children}</div>
+      <div className="relative col-span-9 col-start-2 row-span-9 row-start-2 overflow-y-scroll">
+        {children}
+      </div>
     </div>
   );
 };

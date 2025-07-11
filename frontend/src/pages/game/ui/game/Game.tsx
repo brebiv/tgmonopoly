@@ -16,7 +16,7 @@ export const Game = () => {
   return (
     <div className="bg-secondary-background flex h-screen flex-col gap-2">
       <GameBoard players={players} boardConfig={boardConfig}>
-        <div>
+        <div className="absolute flex flex-col">
           <p>Event queue length: {eventQueue.length}</p>
           <p>Events:</p>
           {eventQueue.map((event, i) => (

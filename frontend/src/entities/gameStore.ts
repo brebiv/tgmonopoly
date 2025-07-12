@@ -11,6 +11,8 @@ export type GameState = {
   boardConfig?: BoardConfig;
   myPlayer?: Player;
   isMyTurn: boolean;
+  dices?: number[];
+  showDices: boolean;
   processEventGameFrame: (gameFrame: GameFrame) => void;
   processInitialGameFrame: (gameFramge: GameFrame) => void;
   enqueueEvents: (events: GameEvent[]) => void;
@@ -25,6 +27,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
   game: undefined,
   boardConfig: undefined,
   isMyTurn: false,
+  showDices: false,
   processInitialGameFrame: (gameFrame) => {
     set({
       players: gameFrame.players,

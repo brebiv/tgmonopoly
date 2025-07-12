@@ -21,6 +21,7 @@
     "lucide-react": "^0.518.0",
     "motion": "^12.23.3",
     "react": "^19.1.0",
+    "react-dice-complete": "^2.2.0",
     "react-dom": "^19.1.0",
     "react-modal-sheet": "^4.4.0",
     "tailwindcss": "^4.1.10",

@@ -7,3 +7,4 @@ export const PLAYER_CHIP_COLORS = {
 };
 
 export const PLAYER_CHIP_MOVE_DURATION_MS = 500;
+export const DICE_ROLL_DURATION_MS = 1000;

@@ -1,7 +1,15 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 
-import { type BoardConfig, type Game, type GameEvent, type GameFrame, type Player, type Tile } from "./types";
+import {
+  type BoardConfig,
+  type Game,
+  type GameEvent,
+  type GameFrame,
+  type Ownership,
+  type Player,
+  type Tile,
+} from "./types";
 import { processEvent } from "@/app/lib/gameEventProcessing/processEvent";
 
 export type GameState = {
@@ -23,6 +31,8 @@ export type GameState = {
 
   // Utils
   getTileByPosition: (position: number) => Tile | undefined;
+  getOwnershipByPosition: (position: number) => Ownership | undefined;
+  getPlayerById: (id: number) => Player | undefined;
 };
 
 export const useGameStore = create<GameState>(
@@ -103,6 +113,14 @@ export const useGameStore = create<GameState>(
     getTileByPosition: (position) => {
       const { boardConfig } = get();
       return boardConfig?.tiles.find((tile) => tile.position === position);
+    },
+    getOwnershipByPosition: (position) => {
+      const { game } = get();
+      return game?.ownerships.find((o) => o.tile_position === position);
+    },
+    getPlayerById: (id) => {
+      const { game } = get();
+      return game?.players.find((p) => p.id === id);
     },
   })),
 );

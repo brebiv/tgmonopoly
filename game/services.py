@@ -1,6 +1,7 @@
 from uuid import UUID
 from abc import ABC, abstractmethod
 from typing import List, Tuple, Optional, Callable, Any
+import datetime
 import random
 
 from django.db import transaction, IntegrityError
@@ -86,6 +87,9 @@ class ClassicMonopolyService(BaseMonopoly):
             PendingAction.Types.BUY_PROPERTY: {
                 "accept": self._buy_property,
                 "reject": lambda g, p: print(g, p),
+            },
+            PendingAction.Types.PAY_RENT: {
+                "accept": self._pay_rent,
             },
         }
 
@@ -229,7 +233,13 @@ class ClassicMonopolyService(BaseMonopoly):
                     player=player, action_type=PendingAction.Types.BUY_PROPERTY, expires_at=timezone.now()
                 )
             else:
-                self._next_turn(game, player)
+                pa = PendingAction.objects.create(
+                    # expires_at = timezone.now() + datetime.timedelta(seconds=30)
+                    player=player,
+                    action_type=PendingAction.Types.PAY_RENT,
+                    expires_at=timezone.now(),
+                )
+                # self._next_turn(game, player)
 
         player.save()
         game.save()
@@ -268,6 +278,22 @@ class ClassicMonopolyService(BaseMonopoly):
         self._next_turn(game, player)
         return events
 
+    def _pay_rent(self, game: Game, player: Player) -> list[GameEvent]:
+        events = []
+
+        tile = Property.objects.get(position=player.position)
+        ownership = Ownership.objects.select_related("player").get(game=game, tile=tile)
+        player.cash -= tile.rent
+        owner = ownership.player
+        owner.cash += tile.rent
+        player.save()
+        owner.save()
+
+        next_turn_events = self._next_turn(game, player)
+        events.extend(next_turn_events)
+
+        return events
+
     @transaction.atomic
     def process_game_action(self, game_uuid, player_id, action) -> dict:
         print("Processing game action", game_uuid, player_id, action)
@@ -276,7 +302,7 @@ class ClassicMonopolyService(BaseMonopoly):
         game = Game.objects.select_for_update().get(pk=game_uuid)
 
         if game.current_player != player:
-            print("WTF?. It's not your turn")
+            raise GameException("WTF? It's not your turn")
 
         if player.status == player.Status.WAITING:
             print("Whole other deal")
@@ -285,13 +311,12 @@ class ClassicMonopolyService(BaseMonopoly):
             if prev_pa is None:
                 raise GameException("Could not find pending action to resolve")
 
-            prev_pa.resolved_at = timezone.now()
-            prev_pa.save()
-
             handler = self.PENDING_ACTION_COMMAND_HANDLERS.get(prev_pa.action_type, {}).get(action)  # type: ignore[call-overload]
             if not handler:
-                print("You are fucked. There is no such action")
-                return {"type": "game.error", "msg": "You are fucked. There is no such action"}
+                raise GameException("You are fucked. There is no such action")
+
+            prev_pa.resolved_at = timezone.now()
+            prev_pa.save()
 
             events = handler(game, player)
 

@@ -6,8 +6,8 @@ const snapPoints = [1, 0.2];
 
 interface ActionSheetProps {
   isOpen: boolean;
-  title: string;
-  hint: string;
+  title: string | React.ReactNode;
+  hint: string | React.ReactNode;
   actions: React.ReactNode[];
 }
 

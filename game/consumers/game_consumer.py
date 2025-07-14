@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from asgiref.sync import async_to_sync
 
 from game.models import Game, Player
+from game.exceptions import GameException
 from game.services import get_service_by_game, BaseMonopoly
 from game.serializers import BoardConfigDetailSerializer
 from .mixinis import AuthMixin
@@ -71,6 +72,9 @@ class GameConsumer(JsonWebsocketConsumer, AuthMixin):
         try:
             game_frame = self.monopoly_service.process_game_action(self.game_uuid, self.player.pk, action)
             async_to_sync(self.channel_layer.group_send)(self.game_group_name, game_frame)
+        except GameException as err:
+            resp_msg = {"type": "game.error", "msg": str(err)}
+            self.send_json(resp_msg)
         except ValidationError as err:
             print(err)
             self.send_json(str(err))

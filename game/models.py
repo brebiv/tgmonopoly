@@ -257,6 +257,7 @@ class PendingAction(models.Model):
     class Types(models.TextChoices):
         ROLL_DICE = "roll_dice"
         BUY_PROPERTY = "buy_property"
+        PAY_RENT = "pay_rent"
 
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4)
     # game = models.ForeignKey(to=Game, related_name="pending_actions", on_delete=models.DO_NOTHING)

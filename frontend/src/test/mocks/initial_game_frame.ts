@@ -3,17 +3,17 @@ import type { GameFrame } from "@/entities/types";
 export default {
   type: "game.initial",
   game: {
-    uuid: "529e9bb1-2659-4308-a38e-fcdb87a129b2",
+    uuid: "915ae7f7-d66f-434b-bf70-015b56c924d3",
     board_config: "classic",
     max_players: 2,
-    turn: 2,
-    current_player: 2,
+    turn: 5,
+    current_player: 1,
     status: "PLAYING",
     players: [
       {
         id: 1,
-        position: 3,
-        cash: 10,
+        position: 6,
+        cash: 20,
         color: "blue",
         rolled_double: false,
         double_count: 0,
@@ -24,12 +24,19 @@ export default {
         avatar:
           "https://a-ttgme.stel.com/i/userpic/320/km3Kt2Xui5sV_iITWLc7vA3Cq5svooSqa29PcQpToEfRtOLHVNLZhpmxXBImuJBH.svg",
         name: "ooooo",
-        pending_actions: [],
+        pending_action: {
+          action_type: "roll_dice",
+          action_data: {},
+          created: "2025-07-14T11:33:49.553009Z",
+          expires_at: "2025-07-14T11:33:49.552630Z",
+          resolved_at: null,
+          player: 1,
+        },
       },
       {
         id: 2,
-        position: 0,
-        cash: 10,
+        position: 6,
+        cash: 0,
         color: "red",
         rolled_double: false,
         double_count: 0,
@@ -40,25 +47,19 @@ export default {
         avatar:
           "https://a-ttgme.stel.com/i/userpic/320/nG-zbLjFwgajwIVtHiQjS5YLYmwfOj_MhhQCc2A9s6TulwyGlHs_Wm7tgMDa9f-T.svg",
         name: "\u0430\u043d\u044f",
-        pending_actions: [
-          {
-            action_type: "roll_dice",
-            action_data: {},
-            created: "2025-07-13T15:35:13.032582Z",
-            expires_at: "2025-07-13T15:35:13.032488Z",
-            resolved_at: null,
-            player: 2,
-          },
-        ],
+        pending_action: null,
       },
     ],
-    ownerships: [{ tile_position: 3, houses: 0, mortgaged: false, mortage_last_turn: null, player: 1 }],
+    ownerships: [
+      { tile_position: 3, houses: 0, mortgaged: false, mortage_last_turn: null, player: 1 },
+      { tile_position: 6, houses: 0, mortgaged: false, mortage_last_turn: null, player: 1 },
+    ],
   },
   players: [
     {
       id: 1,
-      position: 3,
-      cash: 10,
+      position: 6,
+      cash: 20,
       color: "blue",
       rolled_double: false,
       double_count: 0,
@@ -69,12 +70,19 @@ export default {
       avatar:
         "https://a-ttgme.stel.com/i/userpic/320/km3Kt2Xui5sV_iITWLc7vA3Cq5svooSqa29PcQpToEfRtOLHVNLZhpmxXBImuJBH.svg",
       name: "ooooo",
-      pending_actions: [],
+      pending_action: {
+        action_type: "roll_dice",
+        action_data: {},
+        created: "2025-07-14T11:33:49.553009Z",
+        expires_at: "2025-07-14T11:33:49.552630Z",
+        resolved_at: null,
+        player: 1,
+      },
     },
     {
       id: 2,
-      position: 0,
-      cash: 10,
+      position: 6,
+      cash: 0,
       color: "red",
       rolled_double: false,
       double_count: 0,
@@ -85,16 +93,7 @@ export default {
       avatar:
         "https://a-ttgme.stel.com/i/userpic/320/nG-zbLjFwgajwIVtHiQjS5YLYmwfOj_MhhQCc2A9s6TulwyGlHs_Wm7tgMDa9f-T.svg",
       name: "\u0430\u043d\u044f",
-      pending_actions: [
-        {
-          action_type: "roll_dice",
-          action_data: {},
-          created: "2025-07-13T15:35:13.032582Z",
-          expires_at: "2025-07-13T15:35:13.032488Z",
-          resolved_at: null,
-          player: 2,
-        },
-      ],
+      pending_action: null,
     },
   ],
   events: [],

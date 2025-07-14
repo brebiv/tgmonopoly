@@ -30,6 +30,7 @@ export enum GameStatus {
 export enum PendingActionTypes {
   ROLL_DICE = "roll_dice",
   BUY_PROPERTY = "buy_property",
+  PAY_RENT = "pay_rent",
 }
 
 export interface PendingAction {
@@ -54,7 +55,7 @@ export type Player = {
   rolled_double: boolean;
   status: PlayerStatus;
   name: string;
-  pending_actions: PendingAction[];
+  pending_action: PendingAction | null;
 };
 
 export type Ownership = {

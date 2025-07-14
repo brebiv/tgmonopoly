@@ -1,17 +1,17 @@
 import { useGameStore } from "@/entities/gameStore";
 import { GameBoard } from "./GameBoard";
 import { PlayersSection } from "./PlayersSection";
-import { useBoardConfig } from "@/shared/hooks/useBoardConfig";
 import { ActionSheet } from "./ActionSheet";
 import { DiceController } from "./DiceController";
+import { useActionSheetConfig } from "@/shared/hooks/useActionSheetConfig";
+import { Button } from "@/shared/ui/Button";
 
 export const Game = () => {
-  const { game, players, isMyTurn } = useGameStore();
+  const { players, boardConfig, game, showActionSheet } = useGameStore();
   // const { eventQueue } = useGameStore();
-  // @ts-ignore
-  const { data: boardConfig, isLoading: boardConfigLoading } = useBoardConfig(game.board_config, true, true);
+  const actionSheetCfg = useActionSheetConfig(boardConfig, showActionSheet);
 
-  if (boardConfigLoading || !boardConfig) {
+  if (!boardConfig) {
     return <h1>Loading board config</h1>;
   }
 
@@ -19,16 +19,29 @@ export const Game = () => {
     <div className="bg-secondary-background flex h-screen flex-col gap-2">
       <GameBoard players={players} boardConfig={boardConfig}>
         <DiceController />
-        {/* <div className="absolute flex flex-col">
+        {import.meta.env.DEV && (
+          <div>
+            <Button
+              className="absolute top-0"
+              onClick={() => {
+                // @ts-ignore
+                window.open(`http://localhost:8000/api/games/${game?.uuid}/`, "_blank").focus();
+              }}
+            >
+              Go to api
+            </Button>
+            {/* <div className="absolute flex flex-col">
           <p>Event queue length: {eventQueue.length}</p>
           <p>Events:</p>
           {eventQueue.map((event, i) => (
             <p key={i}>{event.event_type}</p>
           ))}
         </div> */}
+          </div>
+        )}
       </GameBoard>
       <PlayersSection players={players} />
-      <ActionSheet isOpen={isMyTurn} />
+      {actionSheetCfg && <ActionSheet isOpen={showActionSheet} {...actionSheetCfg} />}
     </div>
   );
 };

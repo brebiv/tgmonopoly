@@ -21,9 +21,7 @@ class BoardConfig(models.Model):
 
 
 class PropertyGroup(models.Model):
-    board_config = models.ForeignKey(
-        BoardConfig, related_name="property_groups", on_delete=models.CASCADE
-    )
+    board_config = models.ForeignKey(BoardConfig, related_name="property_groups", on_delete=models.CASCADE)
     name = models.CharField(max_length=32)
     color = models.CharField(max_length=32, validators=[validate_color])
 
@@ -36,26 +34,20 @@ class UtilityGroup(models.Model):
         UTILITY_1 = "UTILITY_1"
         UTILITY_2 = "UTILITY_2"
 
-    board_config = models.ForeignKey(
-        BoardConfig, related_name="utility_groups", on_delete=models.CASCADE
-    )
+    board_config = models.ForeignKey(BoardConfig, related_name="utility_groups", on_delete=models.CASCADE)
     type = models.CharField(max_length=32, choices=Types.choices)
     name = models.CharField(max_length=32)
     color = models.CharField(max_length=32, validators=[validate_color])
 
 
 class Tile(models.Model):
-    board_config = models.ForeignKey(
-        BoardConfig, related_name="tiles", on_delete=models.CASCADE
-    )
+    board_config = models.ForeignKey(BoardConfig, related_name="tiles", on_delete=models.CASCADE)
     position = models.PositiveSmallIntegerField()
     name = models.CharField(max_length=32)
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(
-                fields=["board_config", "position"], name="unique_board_config_position"
-            )
+            models.UniqueConstraint(fields=["board_config", "position"], name="unique_board_config_position")
         ]
 
     def downcast(self) -> Union["Start", "Tax", "Chance", "Jail"]:
@@ -66,6 +58,9 @@ class Tile(models.Model):
             except AttributeError:
                 continue
         raise Exception("Failed to downcast")
+
+    def check_if_buyable(self, game: "Game") -> bool:
+        return not self.ownerships.filter(game=game).exists()
 
 
 class Start(Tile):
@@ -114,9 +109,7 @@ class Property(Tile):
 class Utility(Tile):
     price = models.IntegerField()
     mortgage_value = models.IntegerField()
-    group = models.ForeignKey(
-        UtilityGroup, on_delete=models.CASCADE, null=True, blank=True
-    )
+    group = models.ForeignKey(UtilityGroup, on_delete=models.CASCADE, null=True, blank=True)
 
     icon = models.ImageField(upload_to="properties", null=True, blank=True)
 
@@ -129,9 +122,7 @@ class Game(models.Model):
         ABANDONED = "ABANDONED"
 
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4)
-    board_config = models.ForeignKey(
-        to=BoardConfig, related_name="games", on_delete=models.DO_NOTHING
-    )
+    board_config = models.ForeignKey(to=BoardConfig, related_name="games", on_delete=models.DO_NOTHING)
 
     max_players = models.IntegerField(
         default=2,
@@ -146,16 +137,12 @@ class Game(models.Model):
         blank=True,
     )
 
-    status = models.CharField(
-        max_length=16, choices=Status.choices, default=Status.WAITING
-    )
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.WAITING)
     created = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         constraints = [
-            models.CheckConstraint(
-                check=Q(max_players__gte=2), name="max_players_gte_2"
-            ),
+            models.CheckConstraint(check=Q(max_players__gte=2), name="max_players_gte_2"),
         ]
 
     def __str__(self):
@@ -189,18 +176,14 @@ class Player(models.Model):
     in_jail = models.BooleanField(default=False)
     jail_turns = models.PositiveSmallIntegerField(default=0)
     move_backwards = models.BooleanField(default=False)
-    status = models.CharField(
-        max_length=16, choices=Status.choices, default=Status.WAITING
-    )
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.WAITING)
 
     created = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         constraints = [
             models.UniqueConstraint(fields=["user", "game"], name="unique_user_game"),
-            models.UniqueConstraint(
-                fields=["color", "game"], name="unique_color_per_game"
-            ),
+            models.UniqueConstraint(fields=["color", "game"], name="unique_color_per_game"),
         ]
 
     @property
@@ -225,16 +208,18 @@ class Player(models.Model):
     def exceded_doubles(self) -> bool:
         return self.double_count > get_config().MAX_DOUBLES
 
+    @property
+    def active_pending_actions(self):
+        return self.pending_actions.filter(resolved_at__isnull=True)
+
     def __str__(self):
         return f"{self.user.user_id} in {self.game.uuid}"
 
 
 class Ownership(models.Model):
     game = models.ForeignKey(Game, related_name="ownerships", on_delete=models.CASCADE)
-    player = models.ForeignKey(
-        Player, related_name="owned_properties", on_delete=models.CASCADE
-    )
-    tile = models.ForeignKey(Tile, on_delete=models.CASCADE)
+    player = models.ForeignKey(Player, related_name="owned_properties", on_delete=models.CASCADE)
+    tile = models.ForeignKey(Tile, related_name="ownerships", on_delete=models.CASCADE)
     houses = models.IntegerField(default=0)
     mortgaged = models.BooleanField(default=False)
     mortage_last_turn = models.IntegerField(null=True, blank=True)
@@ -242,18 +227,12 @@ class Ownership(models.Model):
     created = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=["game", "tile"], name="unique_game_tile_in_ownership"
-            )
-        ]
+        constraints = [models.UniqueConstraint(fields=["game", "tile"], name="unique_game_tile_in_ownership")]
 
     def clean(self):
         super().clean()
         if not isinstance(self.tile, (Property, Utility)):
-            raise ValidationError(
-                {"tile": "Tile for ownership must by either Property or Utility"}
-            )
+            raise ValidationError({"tile": "Tile for ownership must by either Property or Utility"})
 
     def save(self, *args, **kwargs):
         self.full_clean()
@@ -269,8 +248,23 @@ class GameEvent(models.Model):
         PLAYER_MOVE = "player.move"
         GAME_STARTED = "game.started"
 
-    game = models.ForeignKey(
-        to=Game, related_name="events", on_delete=models.DO_NOTHING
-    )
+    game = models.ForeignKey(to=Game, related_name="events", on_delete=models.DO_NOTHING)
     event_type = models.CharField(max_length=32, choices=Types.choices)
     extra_data = models.JSONField(default=dict)
+
+
+class PendingAction(models.Model):
+    class Types(models.TextChoices):
+        ROLL_DICE = "roll_dice"
+        BUY_PROPERTY = "buy_property"
+
+    uuid = models.UUIDField(primary_key=True, default=uuid.uuid4)
+    # game = models.ForeignKey(to=Game, related_name="pending_actions", on_delete=models.DO_NOTHING)
+    player = models.ForeignKey(to=Player, related_name="pending_actions", on_delete=models.DO_NOTHING)
+    action_type = models.CharField(max_length=32, choices=Types.choices)
+
+    action_data = models.JSONField(default=dict)
+
+    created = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    resolved_at = models.DateTimeField(null=True)

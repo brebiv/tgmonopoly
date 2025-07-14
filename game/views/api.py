@@ -57,6 +57,11 @@ class GameViewSet(viewsets.ReadOnlyModelViewSet):
     lookup_field = "uuid"
     lookup_value_converter = "uuid"
 
+    def get_queryset(self):
+        if self.action == "retrieve":
+            return Game.objects.all()
+        return super().get_queryset()
+
     def create(self, request: CustomRequest):
         serializer = CreateGameInputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -76,15 +81,11 @@ class GameViewSet(viewsets.ReadOnlyModelViewSet):
             {
                 "type": "game.created",
                 "game": GameSerializer(game).data,
-                "games": GameSerializer(
-                    Game.objects.filter(status=Game.Status.WAITING), many=True
-                ).data,
+                "games": GameSerializer(Game.objects.filter(status=Game.Status.WAITING), many=True).data,
             },
         )
 
-        return Response(
-            {"status": "ok", "game_uuid": game.uuid}, status.HTTP_201_CREATED
-        )
+        return Response({"status": "ok", "game_uuid": game.uuid}, status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["post"])
     def join(self, request: CustomRequest, uuid: UUID):

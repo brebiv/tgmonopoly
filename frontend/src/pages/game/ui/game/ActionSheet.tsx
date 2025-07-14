@@ -1,4 +1,3 @@
-import { RollDiceButton } from "@/features/roll-dice/RollDiceButton";
 import type React from "react";
 import { useRef } from "react";
 import { Sheet, type SheetRef } from "react-modal-sheet";
@@ -7,9 +6,12 @@ const snapPoints = [1, 0.2];
 
 interface ActionSheetProps {
   isOpen: boolean;
+  title: string;
+  hint: string;
+  actions: React.ReactNode[];
 }
 
-export const ActionSheet: React.FC<ActionSheetProps> = ({ isOpen }) => {
+export const ActionSheet: React.FC<ActionSheetProps> = ({ isOpen, title, hint, actions }) => {
   const ref = useRef<SheetRef>(null);
 
   return (
@@ -27,13 +29,12 @@ export const ActionSheet: React.FC<ActionSheetProps> = ({ isOpen }) => {
         <Sheet.Content className="bg-background">
           <div className="flex flex-col gap-4 px-4 pb-12">
             <div className="flex flex-col">
-              <h1 className="text-primary text-center text-2xl font-semibold">It's your turn!</h1>
-              <p className="text-hint text-center whitespace-pre-wrap">
-                You're likely to land on property ______
-              </p>
+              <h1 className="text-primary text-center text-2xl font-semibold">{title}</h1>
+              <p className="text-hint text-center whitespace-pre-wrap">{hint}</p>
             </div>
             <div className="flex flex-col gap-2">
-              <RollDiceButton />
+              {/* <RollDiceButton /> */}
+              {actions}
             </div>
           </div>
         </Sheet.Content>

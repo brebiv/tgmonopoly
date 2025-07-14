@@ -16,6 +16,7 @@ export const createMockPlayer = (id: number, name: string, color: string): Playe
     status: PlayerStatus.PLAYING,
     avatar: `https://api.dicebear.com/9.x/pixel-art/svg?seed=${id}.png`,
     name: name,
+    pending_actions: [],
   };
 };
 

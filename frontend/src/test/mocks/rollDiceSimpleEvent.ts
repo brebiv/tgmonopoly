@@ -1,16 +1,16 @@
 export const rollDiceSimpleEvent = {
   type: "game.event",
   game: {
-    uuid: "0c23c860-aebc-44f7-99e1-f8b32e973a52",
+    uuid: "529e9bb1-2659-4308-a38e-fcdb87a129b2",
     board_config: "classic",
     max_players: 2,
-    turn: 1,
-    current_player: 2,
+    turn: 3,
+    current_player: 1,
     status: "PLAYING",
     players: [
       {
         id: 1,
-        position: 0,
+        position: 3,
         cash: 10,
         color: "blue",
         rolled_double: false,
@@ -22,10 +22,20 @@ export const rollDiceSimpleEvent = {
         avatar:
           "https://a-ttgme.stel.com/i/userpic/320/km3Kt2Xui5sV_iITWLc7vA3Cq5svooSqa29PcQpToEfRtOLHVNLZhpmxXBImuJBH.svg",
         name: "ooooo",
+        pending_actions: [
+          {
+            action_type: "roll_dice",
+            action_data: {},
+            created: "2025-07-13T15:58:15.515487Z",
+            expires_at: "2025-07-13T15:58:15.515254Z",
+            resolved_at: null,
+            player: 1,
+          },
+        ],
       },
       {
         id: 2,
-        position: 13,
+        position: 3,
         cash: 10,
         color: "red",
         rolled_double: false,
@@ -36,14 +46,16 @@ export const rollDiceSimpleEvent = {
         status: "playing",
         avatar:
           "https://a-ttgme.stel.com/i/userpic/320/nG-zbLjFwgajwIVtHiQjS5YLYmwfOj_MhhQCc2A9s6TulwyGlHs_Wm7tgMDa9f-T.svg",
-        name: "аня",
+        name: "\u0430\u043d\u044f",
+        pending_actions: [],
       },
     ],
+    ownerships: [{ tile_position: 3, houses: 0, mortgaged: false, mortage_last_turn: null, player: 1 }],
   },
   players: [
     {
       id: 1,
-      position: 0,
+      position: 3,
       cash: 10,
       color: "blue",
       rolled_double: false,
@@ -55,10 +67,20 @@ export const rollDiceSimpleEvent = {
       avatar:
         "https://a-ttgme.stel.com/i/userpic/320/km3Kt2Xui5sV_iITWLc7vA3Cq5svooSqa29PcQpToEfRtOLHVNLZhpmxXBImuJBH.svg",
       name: "ooooo",
+      pending_actions: [
+        {
+          action_type: "roll_dice",
+          action_data: {},
+          created: "2025-07-13T15:58:15.515487Z",
+          expires_at: "2025-07-13T15:58:15.515254Z",
+          resolved_at: null,
+          player: 1,
+        },
+      ],
     },
     {
       id: 2,
-      position: 13,
+      position: 3,
       cash: 10,
       color: "red",
       rolled_double: false,
@@ -69,23 +91,12 @@ export const rollDiceSimpleEvent = {
       status: "playing",
       avatar:
         "https://a-ttgme.stel.com/i/userpic/320/nG-zbLjFwgajwIVtHiQjS5YLYmwfOj_MhhQCc2A9s6TulwyGlHs_Wm7tgMDa9f-T.svg",
-      name: "аня",
+      name: "\u0430\u043d\u044f",
+      pending_actions: [],
     },
   ],
   events: [
-    {
-      event_type: "player.roll_dice",
-      extra_data: {
-        player: 2,
-        dice_values: [3, 6],
-      },
-    },
-    {
-      event_type: "player.move",
-      extra_data: {
-        player: 2,
-        position: 13,
-      },
-    },
+    { event_type: "player.roll_dice", extra_data: { player: 2, dice_values: [2, 1] } },
+    { event_type: "player.move", extra_data: { player: 2, position: 3 } },
   ],
 };

@@ -11,6 +11,8 @@ from game.models import (
     UtilityGroup,
     Property,
     Utility,
+    PendingAction,
+    Ownership,
 )
 
 
@@ -33,9 +35,17 @@ class CreateGameInputSerializer(serializers.Serializer):
     config = serializers.CharField()
 
 
+class PendingActionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PendingAction
+        # fields = "__all__"
+        exclude = ("uuid",)
+
+
 class PlayerSerializer(serializers.ModelSerializer):
     avatar = serializers.URLField(source="user.photo_url")
     name = serializers.CharField(source="user.full_name")
+    pending_actions = PendingActionSerializer(many=True, source="active_pending_actions")
 
     class Meta:
         model = Player
@@ -52,12 +62,22 @@ class PlayerSerializer(serializers.ModelSerializer):
             "status",
             "avatar",
             "name",
+            "pending_actions",
         )
+
+
+class OwnershipSerializer(serializers.ModelSerializer):
+    tile_position = serializers.IntegerField(source="tile.position")
+
+    class Meta:
+        model = Ownership
+        exclude = ("id", "created", "game", "tile")
 
 
 class GameSerializer(serializers.ModelSerializer):
     board_config = serializers.CharField(source="board_config.name")
     players = PlayerSerializer(many=True)
+    ownerships = OwnershipSerializer(many=True)
 
     class Meta:
         model = Game
@@ -69,6 +89,7 @@ class GameSerializer(serializers.ModelSerializer):
             "current_player",
             "status",
             "players",
+            "ownerships",
         )
 
 

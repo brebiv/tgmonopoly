@@ -14,7 +14,7 @@ export const PlayerChip: React.FC<PlayerChipProps> = ({ player, size, x, y }) =>
 
   return (
     <div
-      className="absolute z-10 rounded-full outline-2 transition-all ease-in-out"
+      className="absolute z-20 rounded-full outline-2 transition-all ease-in-out"
       style={{
         backgroundColor: primaryColor,
         outlineColor: borderColor,

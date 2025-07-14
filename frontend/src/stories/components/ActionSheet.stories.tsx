@@ -3,6 +3,7 @@ import { ActionSheet } from "@/pages/game/ui/game/ActionSheet";
 import { WebSocketContextProvider } from "@/app/providers/WebSocketProvider";
 import initial_game_frame from "@/test/mocks/initial_game_frame";
 import { mockTelegram } from "@/test/mocks/mockTelegram";
+import { RollDiceButton } from "@/features/roll-dice/RollDiceButton";
 
 const meta = {
   component: ActionSheet,
@@ -28,6 +29,9 @@ type Story = StoryObj<typeof ActionSheet>;
 export const RollDice: Story = {
   args: {
     isOpen: true,
+    title: "It's your turn!",
+    hint: "You're likely to land on property ______",
+    actions: [<RollDiceButton />],
   },
   globals: {
     viewport: { value: "iphoneSE3", isRotated: false },

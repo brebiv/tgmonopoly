@@ -1,5 +1,6 @@
 from django.contrib import admin
 from .models import (
+    Player,
     Tile,
     Start,
     Tax,
@@ -15,3 +16,7 @@ from .models import (
 
 
 # Register your models here.
+@admin.register(Player)
+class PlayerAdmin(admin.ModelAdmin):
+    list_display = ("user", "game", "position")
+    list_editable = ("position",)

@@ -27,6 +27,20 @@ export enum GameStatus {
   ABANDONED = "ABANDONED",
 }
 
+export enum PendingActionTypes {
+  ROLL_DICE = "roll_dice",
+  BUY_PROPERTY = "buy_property",
+}
+
+export interface PendingAction {
+  action_type: PendingActionTypes;
+  action_data: object;
+  created: string;
+  expires_at: string;
+  resolved_at: string | null;
+  player: number;
+}
+
 export type Player = {
   id: number;
   avatar: string;
@@ -40,6 +54,15 @@ export type Player = {
   rolled_double: boolean;
   status: PlayerStatus;
   name: string;
+  pending_actions: PendingAction[];
+};
+
+export type Ownership = {
+  player: number;
+  tile_position: number;
+  houses: number;
+  mortgaged: boolean;
+  mortage_last_turn: number | null;
 };
 
 export type Game = {
@@ -50,6 +73,7 @@ export type Game = {
   status: GameStatus;
   turn: number;
   uuid: string;
+  ownerships: Ownership[];
 };
 
 export enum GameEventTypes {
@@ -82,6 +106,7 @@ export type GameFrame = {
   players: Player[];
   my_player_id?: number;
   type: GameFrameTypes;
+  board_config?: BoardConfig;
 };
 
 export type PropertyGroup = {
@@ -91,7 +116,6 @@ export type PropertyGroup = {
 };
 
 export type UtilityGroup = {
-  id: number;
   type: string;
   name: string;
   color: string;
@@ -109,25 +133,25 @@ export enum TileTypes {
 }
 
 type Property = {
-  price: number;
-  mortgage_value: number;
-  house_price: number;
-  rent: number;
-  rent_with_1_house: number;
-  rent_with_2_houses: number;
-  rent_with_3_houses: number;
-  rent_with_4_houses: number;
-  rent_with_5_houses: number;
-  group: number;
-  icon: string;
-  mortgage_buyback_price: number;
+  price?: number;
+  mortgage_value?: number;
+  house_price?: number;
+  rent?: number;
+  rent_with_1_house?: number;
+  rent_with_2_houses?: number;
+  rent_with_3_houses?: number;
+  rent_with_4_houses?: number;
+  rent_with_5_houses?: number;
+  group?: number;
+  icon?: string;
+  mortgage_buyback_price?: number;
 };
 
 type Utility = {
-  price: number;
-  mortgage_value: number;
-  group: string;
-  icon: string;
+  price?: number;
+  mortgage_value?: number;
+  group?: string;
+  icon?: string;
 };
 
 type BaseTile = {

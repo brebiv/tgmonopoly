@@ -1,5 +1,5 @@
 import type React from "react";
-import type { Tile } from "@/entities/types";
+import type { Player, Tile } from "@/entities/types";
 import cn from "classnames";
 import { CloverIcon, CoinsIcon, Columns4Icon, GoalIcon, PiggyBankIcon, SirenIcon } from "lucide-react";
 import { useGameBoardContext } from "@/entities/GameBoardContext";
@@ -7,9 +7,10 @@ import { useGameBoardContext } from "@/entities/GameBoardContext";
 interface TileProps {
   tile: Tile;
   side: "top" | "right" | "bottom" | "left";
+  owner?: Player;
 }
 
-const PurchasableTile: React.FC<TileProps> = ({ tile, side }) => {
+const PurchasableTile: React.FC<TileProps> = ({ tile, side, owner }) => {
   const { boardConfig } = useGameBoardContext();
   const propertyGroup = boardConfig?.property_groups.find(
     (property_group) => property_group.id == tile.group,
@@ -24,6 +25,7 @@ const PurchasableTile: React.FC<TileProps> = ({ tile, side }) => {
     <>
       {/* Group marker */}
       <div
+        data-component="group-marker"
         className={cn("absolute items-center justify-center", {
           "-top-3 flex h-3 w-full": side == "top",
           "-right-3 flex h-full w-3": side == "right",
@@ -42,7 +44,7 @@ const PurchasableTile: React.FC<TileProps> = ({ tile, side }) => {
         </p>
       </div>
       {/* Image */}
-      <div className="flex h-full w-full items-center justify-center p-1">
+      <div data-component="tile-image" className="z-10 flex h-full w-full items-center justify-center p-1">
         <img
           src={tile.icon}
           className={cn({
@@ -52,11 +54,19 @@ const PurchasableTile: React.FC<TileProps> = ({ tile, side }) => {
           })}
         />
       </div>
+      {/* Ownership marker */}
+      {owner && (
+        <div
+          data-component="ownership-marker"
+          className="absolute h-full w-full opacity-50"
+          style={{ backgroundColor: owner.color }}
+        ></div>
+      )}
     </>
   );
 };
 
-export const BoardTile: React.FC<TileProps> = ({ tile, side }) => {
+export const BoardTile: React.FC<TileProps> = ({ tile, side, owner }) => {
   const { tile_type } = tile;
 
   return (
@@ -69,8 +79,8 @@ export const BoardTile: React.FC<TileProps> = ({ tile, side }) => {
       {/* Inner content wrapper */}
       <div className="absolute flex h-full w-full items-center justify-center">
         {/* Tiles */}
-        {tile_type == "property" && <PurchasableTile tile={tile} side={side} />}
-        {tile_type == "utility" && <PurchasableTile tile={tile} side={side} />}
+        {tile_type == "property" && <PurchasableTile tile={tile} side={side} owner={owner} />}
+        {tile_type == "utility" && <PurchasableTile tile={tile} side={side} owner={owner} />}
         {tile_type == "chance" && <CloverIcon color="black" />}
         {tile_type == "tax" && <PiggyBankIcon color="black" />}
         {/* Corners */}

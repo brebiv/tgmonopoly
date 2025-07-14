@@ -11,15 +11,11 @@ from game.utils import update_or_create_telegram_user
 class AsyncORMMixin(ABC):
     @database_sync_to_async
     def get_waiting_games(self):
-        return Game.objects.filter(status=Game.Status.WAITING).prefetch_related(
-            "board_config"
-        )
+        return Game.objects.filter(status=Game.Status.WAITING).prefetch_related("board_config")
 
     @database_sync_to_async
     def get_waiting_games_serialized(self):
-        games = Game.objects.filter(status=Game.Status.WAITING).prefetch_related(
-            "board_config"
-        )
+        games = Game.objects.filter(status=Game.Status.WAITING).prefetch_related("board_config")
         serializer = GameSerializer(games, many=True)
         return serializer.data
 
@@ -32,9 +28,7 @@ class AuthMixin(ABC):
 
         init_data = init_data_raw.decode()
 
-        data_is_valid, validated_data = (
-            TelegramWebAppAuthentication().verify_telegram_init_data(init_data)
-        )
+        data_is_valid, validated_data = TelegramWebAppAuthentication().verify_telegram_init_data(init_data)
 
         if not data_is_valid:
             raise DenyConnection()
@@ -51,9 +45,7 @@ class AuthMixin(ABC):
 
         init_data = init_data_raw.decode()
 
-        data_is_valid, validated_data = (
-            TelegramWebAppAuthentication().verify_telegram_init_data(init_data)
-        )
+        data_is_valid, validated_data = TelegramWebAppAuthentication().verify_telegram_init_data(init_data)
 
         if not data_is_valid:
             raise DenyConnection()

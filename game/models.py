@@ -209,8 +209,8 @@ class Player(models.Model):
         return self.double_count > get_config().MAX_DOUBLES
 
     @property
-    def active_pending_actions(self):
-        return self.pending_actions.filter(resolved_at__isnull=True)
+    def pending_action(self) -> "PendingAction | None":
+        return self.pending_actions.filter(resolved_at__isnull=True).first()
 
     def __str__(self):
         return f"{self.user.user_id} in {self.game.uuid}"
@@ -268,3 +268,12 @@ class PendingAction(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()
     resolved_at = models.DateTimeField(null=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["player"],
+                condition=Q(resolved_at__isnull=True),
+                name="unique_active_pending_action_per_player",
+            )
+        ]

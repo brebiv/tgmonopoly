@@ -237,10 +237,6 @@ class ClassicMonopolyService(BaseMonopoly):
         return events
 
     def _handle_dice_roll(self, game: Game, player: Player) -> list[GameEvent]:
-        pa = player.active_pending_actions.filter(action_type=PendingAction.Types.ROLL_DICE).last()
-        pa.resolved_at = timezone.now()
-        pa.save()
-
         events = []
         dice_values = self._roll_dice_values()
 
@@ -262,10 +258,6 @@ class ClassicMonopolyService(BaseMonopoly):
     def _buy_property(self, game: Game, player: Player) -> list[GameEvent]:
         events: list[GameEvent] = []
 
-        pa = player.active_pending_actions.filter(action_type=PendingAction.Types.BUY_PROPERTY).last()
-        pa.resolved_at = timezone.now()
-        pa.save()
-
         property = Property.objects.get(position=player.position)
         Ownership.objects.create(
             game=game,
@@ -284,14 +276,19 @@ class ClassicMonopolyService(BaseMonopoly):
         game = Game.objects.select_for_update().get(pk=game_uuid)
 
         if game.current_player != player:
-            print("WTF?")
+            print("WTF?. It's not your turn")
 
         if player.status == player.Status.WAITING:
             print("Whole other deal")
         elif player.status == player.Status.PLAYING:
-            pa = player.active_pending_actions.first()
-            print(pa.action_type)
-            handler = self.PENDING_ACTION_COMMAND_HANDLERS.get(pa.action_type, {}).get(action)
+            prev_pa = player.pending_action
+            if prev_pa is None:
+                raise GameException("Could not find pending action to resolve")
+
+            prev_pa.resolved_at = timezone.now()
+            prev_pa.save()
+
+            handler = self.PENDING_ACTION_COMMAND_HANDLERS.get(prev_pa.action_type, {}).get(action)  # type: ignore[call-overload]
             if not handler:
                 print("You are fucked. There is no such action")
                 return {"type": "game.error", "msg": "You are fucked. There is no such action"}

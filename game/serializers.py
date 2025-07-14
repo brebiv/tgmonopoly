@@ -45,7 +45,7 @@ class PendingActionSerializer(serializers.ModelSerializer):
 class PlayerSerializer(serializers.ModelSerializer):
     avatar = serializers.URLField(source="user.photo_url")
     name = serializers.CharField(source="user.full_name")
-    pending_actions = PendingActionSerializer(many=True, source="active_pending_actions")
+    pending_action = PendingActionSerializer()
 
     class Meta:
         model = Player
@@ -62,7 +62,7 @@ class PlayerSerializer(serializers.ModelSerializer):
             "status",
             "avatar",
             "name",
-            "pending_actions",
+            "pending_action",
         )
 
 

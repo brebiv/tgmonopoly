@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from channels.generic.websocket import JsonWebsocketConsumer
+from channels.exceptions import DenyConnection
 from django.core.exceptions import ValidationError
 from asgiref.sync import async_to_sync
 
@@ -27,21 +28,25 @@ class GameConsumer(JsonWebsocketConsumer, AuthMixin):
             game = Game.objects.select_related("board_config").get(uuid=game_uuid)
             player = Player.objects.get(game=game, user=tg_user)
         except KeyError:
-            print("something was wrong with self.scope keys")
-            self.close()
-            return
+            # print("something was wrong with self.scope keys")
+            # self.close()
+            raise DenyConnection("something was wrong with self.scope keys")
         except ValueError:
-            print(f"something was wrong with game_uuid, could't parse it to UUID. uuid={game_uuid}")
-            self.close()
-            return
+            # print(f"something was wrong with game_uuid, could't parse it to UUID. uuid={game_uuid_raw}")
+            # self.close()
+            raise DenyConnection(
+                f"something was wrong with game_uuid, could't parse it to UUID. uuid={game_uuid_raw}"
+            )
         except Game.DoesNotExist:
-            print(f"could not find game with uuid={game_uuid}")
-            self.close()
-            return
+            # print(f"could not find game with uuid={game_uuid_raw}")
+            # self.close()
+            raise DenyConnection(f"could not find game with uuid={game_uuid_raw}")
         except Player.DoesNotExist:
-            print(f"could not find player with game_uuid={game.uuid} user_id={tg_user.user_id}")
-            self.close()
-            return
+            # print(f"could not find player with game_uuid={game.uuid} user_id={tg_user.user_id}")
+            # self.close()
+            raise DenyConnection(
+                f"could not find player with game_uuid={game.uuid} user_id={tg_user.user_id}"
+            )
 
         self.scope["game_found"] = True
 

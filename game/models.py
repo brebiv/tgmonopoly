@@ -218,7 +218,7 @@ class Player(models.Model):
 
 class Ownership(models.Model):
     game = models.ForeignKey(Game, related_name="ownerships", on_delete=models.CASCADE)
-    player = models.ForeignKey(Player, related_name="owned_properties", on_delete=models.CASCADE)
+    player = models.ForeignKey(Player, related_name="ownerships", on_delete=models.CASCADE)
     tile = models.ForeignKey(Tile, related_name="ownerships", on_delete=models.CASCADE)
     houses = models.IntegerField(default=0)
     mortgaged = models.BooleanField(default=False)
@@ -258,6 +258,7 @@ class PendingAction(models.Model):
         ROLL_DICE = "roll_dice"
         BUY_PROPERTY = "buy_property"
         PAY_RENT = "pay_rent"
+        IN_AUCTION = "IN_AUCTION"
 
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4)
     # game = models.ForeignKey(to=Game, related_name="pending_actions", on_delete=models.DO_NOTHING)

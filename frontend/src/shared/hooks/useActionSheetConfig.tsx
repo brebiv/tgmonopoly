@@ -1,9 +1,13 @@
+import { validateInAuctionAction } from "@/app/lib/gameActionProcessing/gameActionValidators";
 import { useGameStore } from "@/entities/gameStore";
 import { GameActionType, PendingActionTypes, type BoardConfig } from "@/entities/types";
 import { AcceptActionButton } from "@/features/accept-action/AcceptActionButton";
+import { AcceptButton } from "@/features/action-buttons/AcceptButton";
+import { RejectButton } from "@/features/action-buttons/RejectButton";
+import { StartAuctionButton } from "@/features/auction/StartAuctionButton";
 import { BuyButton } from "@/features/buy-property/BuyPropertyButton";
 import { RollDiceButton } from "@/features/roll-dice/RollDiceButton";
-import { BanknoteIcon } from "lucide-react";
+import { BanknoteIcon, GavelIcon } from "lucide-react";
 import type React from "react";
 
 export const useActionSheetConfig = (
@@ -50,7 +54,10 @@ export const useActionSheetConfig = (
       return {
         title: `Do you want to buy ${tile.name}?`,
         hint: `It would cost $${tile.price}`,
-        actions: [<BuyButton key={"buy"} myPlayer={myPlayer} propertyTile={tile} />],
+        actions: [
+          <BuyButton key={"buy"} myPlayer={myPlayer} propertyTile={tile} />,
+          <StartAuctionButton key={"start_auction"} />,
+        ],
       };
     }
     case PendingActionTypes.PAY_RENT: {
@@ -81,6 +88,26 @@ export const useActionSheetConfig = (
             <BanknoteIcon />
             {"Pay"}
           </AcceptActionButton>,
+        ],
+      };
+    }
+    case PendingActionTypes.IN_AUCTION: {
+      const { current_price, players } = validateInAuctionAction(pending);
+      let title = "Do you want to buy bet?";
+
+      if (players.length == 1) {
+        title = "Do you want to buy tile?";
+      }
+
+      return {
+        title: title,
+        hint: `It would cost $${current_price}`,
+        actions: [
+          <AcceptButton>
+            <GavelIcon />
+            Accept
+          </AcceptButton>,
+          <RejectButton>Reject</RejectButton>,
         ],
       };
     }

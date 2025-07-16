@@ -11,6 +11,7 @@
     --color-link: var(--tg-theme-link-color);
     --color-button: var(--tg-theme-button-color);
     --color-button-text: var(--tg-theme-button-text-color);
+    --color-destructive: var(--tg-theme-destructive-text-color);
 }
 
 @layer base {
@@ -21,6 +22,7 @@
         --color-primary: var(--tg-theme-text-color);
         --color-hint: var(--tg-theme-hint-color);
         --color-link: var(--tg-theme-link-color);
+        --color-destructive: var(--tg-theme-destructive-text-color);
         
         /* Animations */
         --player-chip-move-duration: 500ms;

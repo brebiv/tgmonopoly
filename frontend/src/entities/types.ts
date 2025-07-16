@@ -31,11 +31,21 @@ export enum PendingActionTypes {
   ROLL_DICE = "roll_dice",
   BUY_PROPERTY = "buy_property",
   PAY_RENT = "pay_rent",
+  IN_AUCTION = "IN_AUCTION",
 }
+
+export type ActionData = {
+  property_id?: number;
+  current_price?: number;
+  next_price?: number;
+  started_by_id?: number;
+  players?: number[];
+  is_bet?: boolean;
+};
 
 export interface PendingAction {
   action_type: PendingActionTypes;
-  action_data: object;
+  action_data: ActionData;
   created: string;
   expires_at: string;
   resolved_at: string | null;

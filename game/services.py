@@ -3,8 +3,11 @@ from abc import ABC, abstractmethod
 from typing import List, Tuple, Optional, Callable, Any
 import datetime
 import random
+import logging
+import math
 
 from django.db import transaction, IntegrityError
+from django.db.models import QuerySet, F
 from django.utils import timezone
 
 from bot.models import TelegramUser
@@ -12,6 +15,9 @@ from game.models import BoardConfig, Game, Player, GameEvent, Property, Ownershi
 from game.game_config import BaseMonopolyConfig, ClassicMonopolyConfig
 from game.exceptions import GameException
 from game.serializers import GameEventSerializer, GameSerializer, PlayerSerializer
+
+
+logger = logging.getLogger(__name__)
 
 
 class BaseMonopoly(ABC):
@@ -79,17 +85,21 @@ class ClassicMonopolyService(BaseMonopoly):
     def __init__(self) -> None:
         self.config = ClassicMonopolyConfig()
         self.PENDING_ACTION_COMMAND_HANDLERS: dict[
-            PendingAction.Types, dict[str, Callable[[Game, Player], Any]]
+            PendingAction.Types, dict[str, Callable[[Game, Player, Optional[PendingAction]], Any]]
         ] = {
             PendingAction.Types.ROLL_DICE: {
                 "roll_dice": self._handle_dice_roll,
             },
             PendingAction.Types.BUY_PROPERTY: {
-                "accept": self._buy_property,
-                "reject": lambda g, p: print(g, p),
+                "accept": self._handle_buy_property_accept,
+                "start_auction": self._start_auction,
             },
             PendingAction.Types.PAY_RENT: {
                 "accept": self._pay_rent,
+            },
+            PendingAction.Types.IN_AUCTION: {
+                "accept": self._accept_auction,
+                "reject": self._reject_auction,
             },
         }
 
@@ -206,7 +216,7 @@ class ClassicMonopolyService(BaseMonopoly):
 
         game.current_player = next_player
         game.turn += 1
-        game.save()
+        game.save(update_fields=["turn", "current_player"])
 
         pa = PendingAction.objects.create(
             player=next_player, action_type=PendingAction.Types.ROLL_DICE, expires_at=timezone.now()
@@ -239,14 +249,15 @@ class ClassicMonopolyService(BaseMonopoly):
                     action_type=PendingAction.Types.PAY_RENT,
                     expires_at=timezone.now(),
                 )
-                # self._next_turn(game, player)
 
         player.save()
         game.save()
 
         return events
 
-    def _handle_dice_roll(self, game: Game, player: Player) -> list[GameEvent]:
+    def _handle_dice_roll(
+        self, game: Game, player: Player, resolved_pa: Optional[PendingAction] = None
+    ) -> list[GameEvent]:
         events = []
         dice_values = self._roll_dice_values()
 
@@ -265,20 +276,40 @@ class ClassicMonopolyService(BaseMonopoly):
 
         return events
 
-    def _buy_property(self, game: Game, player: Player) -> list[GameEvent]:
+    def _buy_property(
+        self, game: Game, player: Player, property: Property, override_price: int | None = None
+    ) -> list[GameEvent]:
         events: list[GameEvent] = []
+        price = override_price or property.price
 
-        property = Property.objects.get(position=player.position)
+        if player.cash < price:
+            raise GameException("You don't have enough money to buy this property")
+
+        player.cash -= price
+        player.save()
         Ownership.objects.create(
             game=game,
             player=player,
             tile=property,
         )
 
-        self._next_turn(game, player)
         return events
 
-    def _pay_rent(self, game: Game, player: Player) -> list[GameEvent]:
+    def _handle_buy_property_accept(
+        self, game: Game, player: Player, resolved_pa: Optional[PendingAction] = None
+    ) -> list[GameEvent]:
+        events: list[GameEvent] = []
+
+        property = Property.objects.get(position=player.position)
+        buy_property_events = self._buy_property(game, player, property)
+        next_turn_events = self._next_turn(game, player)
+        events.extend([*buy_property_events, *next_turn_events])
+
+        return events
+
+    def _pay_rent(
+        self, game: Game, player: Player, resolved_pa: Optional[PendingAction] = None
+    ) -> list[GameEvent]:
         events = []
 
         tile = Property.objects.get(position=player.position)
@@ -294,9 +325,163 @@ class ClassicMonopolyService(BaseMonopoly):
 
         return events
 
+    def _start_auction(
+        self, game: Game, player: Player, resolved_pa: Optional[PendingAction] = None
+    ) -> list[GameEvent]:
+        events: list[GameEvent] = []
+
+        try:
+            property = Property.objects.get(position=player.position)
+        except Property.DoesNotExist:
+            raise GameException("Could not find property for an auction")
+
+        auction_price = math.ceil(property.price * 1.1)
+        auction_participants: QuerySet[Player] = (
+            game.players.exclude(pk=player.pk).exclude(cash__lt=auction_price).exclude(in_jail=True)
+        )
+
+        if auction_participants.count() == 0:
+            self._next_turn(game, player)
+        else:
+            next_player = auction_participants.first()
+
+            if next_player is None:
+                raise GameException("Could not find next player for auction")
+
+            game.current_player = next_player
+            game.save()
+
+            pa = PendingAction.objects.create(
+                player=next_player,
+                action_type=PendingAction.Types.IN_AUCTION,
+                expires_at=timezone.now(),
+                action_data={
+                    "property_id": property.pk,
+                    "current_price": auction_price,
+                    # "next_price": math.ceil(auction_price * 1.1),
+                    "next_price": None,
+                    "started_by_id": player.pk,
+                    "players": [p.pk for p in auction_participants],
+                    "is_bet": False,
+                },
+            )
+
+        return events
+
+    @transaction.atomic
+    def _accept_auction(
+        self, game: Game, player: Player, resolved_pa: Optional[PendingAction] = None
+    ) -> list[GameEvent]:
+        events: list[GameEvent] = []
+
+        pa = resolved_pa
+        if pa is None:
+            raise GameException("Could not find action for auction")
+
+        # Auction data
+        property_id = pa.action_data.get("property_id")
+        current_price = pa.action_data.get("current_price")
+        next_price = pa.action_data.get("next_price")  # could be None if it's the first turn
+        started_by_id = pa.action_data.get("started_by_id")
+        players_ids: list[int] = pa.action_data.get("players")
+
+        if len(players_ids) == 1:
+            property = Property.objects.get(pk=property_id)
+            buy_property_events = self._buy_property(game, player, property, current_price)
+            events.extend(buy_property_events)
+
+            started_by = Player.objects.get(pk=started_by_id)
+            next_turn_events = self._next_turn(game, started_by)
+            events.extend(next_turn_events)
+        else:
+            next_in_auction_id = players_ids[(players_ids.index(player.pk) + 1) % len(players_ids)]
+
+            if next_price:
+                new_current_price = next_price
+                new_next_price = math.ceil(next_price * 1.1)
+            else:
+                new_current_price = current_price
+                new_next_price = math.ceil(current_price * 1.1)
+
+            game.current_player_id = next_in_auction_id
+            game.save()
+            pa = PendingAction.objects.create(
+                player_id=next_in_auction_id,
+                action_type=PendingAction.Types.IN_AUCTION,
+                expires_at=timezone.now(),
+                action_data={
+                    "property_id": property_id,
+                    # "current_price": next_price,
+                    "current_price": new_current_price,
+                    "next_price": new_next_price,
+                    "started_by_id": started_by_id,
+                    "players": players_ids,
+                    "is_bet": True,
+                },
+            )
+
+        return events
+
+    def _reject_auction(
+        self, game: Game, player: Player, resolved_pa: Optional[PendingAction] = None
+    ) -> list[GameEvent]:
+        events: list[GameEvent] = []
+
+        pa = resolved_pa
+        if pa is None:
+            raise GameException("Could not find action for auction")
+
+        # Auction data
+        property_id = pa.action_data.get("property_id")
+        current_price = pa.action_data.get("current_price")
+        next_price = pa.action_data.get("next_price")
+        started_by_id = pa.action_data.get("started_by_id")
+        players_ids: list[int] = pa.action_data.get("players")
+        is_bet = pa.action_data.get("is_bet")
+
+        players_ids.remove(player.pk)
+
+        if len(players_ids) == 0:
+            property = Property.objects.get(pk=property_id)
+            started_by_user = Player.objects.get(pk=started_by_id)
+            next_turn_events = self._next_turn(game, started_by_user)
+            events.extend(next_turn_events)
+        elif len(players_ids) == 1:
+            if is_bet:
+                property = Property.objects.get(pk=property_id)
+                last_player = Player.objects.get(pk=players_ids[0])
+                buy_tile_events = self._buy_property(game, last_player, property, current_price)
+                events.extend(buy_tile_events)
+                started_by_user = Player.objects.get(pk=started_by_id)
+                next_turn_events = self._next_turn(game, started_by_user)
+
+                events.extend(next_turn_events)
+            else:
+                next_in_auction_id = players_ids[0]
+                game.current_player_id = next_in_auction_id
+                game.save()
+                pa = PendingAction.objects.create(
+                    player_id=next_in_auction_id,
+                    action_type=PendingAction.Types.IN_AUCTION,
+                    expires_at=timezone.now(),
+                    action_data={
+                        "property_id": property_id,
+                        # "current_price": next_price,
+                        "current_price": current_price,
+                        "next_price": next_price,
+                        "started_by_id": started_by_id,
+                        "players": players_ids,
+                        "is_bet": True,
+                    },
+                )
+        else:
+            raise NotImplementedError()
+
+        return events
+
     @transaction.atomic
     def process_game_action(self, game_uuid, player_id, action) -> dict:
-        print("Processing game action", game_uuid, player_id, action)
+        logger.debug("Processing game action", game_uuid, player_id, action)
         events: list[GameEvent] = []
         player = Player.objects.select_for_update().get(pk=player_id)
         game = Game.objects.select_for_update().get(pk=game_uuid)
@@ -318,7 +503,7 @@ class ClassicMonopolyService(BaseMonopoly):
             prev_pa.resolved_at = timezone.now()
             prev_pa.save()
 
-            events = handler(game, player)
+            events = handler(game, player, prev_pa)
 
         return self.assemble_game_frame(game, events)
 

@@ -13,19 +13,28 @@ dependencies = [
     "djangorestframework>=3.16.0",
     "djangorestframework-stubs>=3.16.0",
     "mypy>=1.16.1",
+    "mysqlclient>=2.2.7",
     "pillow>=11.2.1",
     "pydantic>=2.11.7",
     "pydantic-extra-types>=2.10.5",
     "pytelegrambotapi>=4.27.0",
+    "pytest-django>=4.11.1",
     "python-dotenv>=1.1.0",
     "rich>=14.0.0",
 ]
 
 [dependency-groups]
 dev = [
+    "faker>=37.4.0",
     "ruff>=0.11.13",
 ]
 
 [tool.ruff]
 # Allow lines to be as long as 120.
 line-length = 110
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "tgmonopoly.settings"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]

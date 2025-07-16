@@ -94,6 +94,7 @@ class ClassicMonopolyService(BaseMonopoly):
         ] = {
             PendingAction.Types.ROLL_DICE: {
                 "roll_dice": self._handle_dice_roll,
+                "pay_jail": self._handle_pay_jail,
             },
             PendingAction.Types.BUY_PROPERTY: {
                 "accept": self._handle_buy_property_accept,
@@ -276,6 +277,51 @@ class ClassicMonopolyService(BaseMonopoly):
 
         return events
 
+    def _handle_jail_dice_roll(self, game: Game, player: Player, dice_values: list[int]) -> list[GameEvent]:
+        events: list[GameEvent] = []
+
+        if dice_values[0] == dice_values[1]:
+            player.in_jail = False
+            player.jail_turns = 0
+            pa = PendingAction.objects.create(
+                # expires_at = timezone.now() + datetime.timedelta(seconds=30)
+                player=player,
+                action_type=PendingAction.Types.ROLL_DICE,
+                expires_at=timezone.now(),
+            )
+        else:
+            player.jail_turns += 1
+            next_turn_events = self._next_turn(game, player)
+            events.extend(next_turn_events)
+
+        player.save()
+        return events
+
+    def _handle_pay_jail(
+        self, game: Game, player: Player, resolved_pa: Optional[PendingAction]
+    ) -> list[GameEvent]:
+        events: list[GameEvent] = []
+
+        JAIL_PAY_PRICE = 100
+
+        if not player.in_jail:
+            raise GameException("You can pay for jail only when you are in jail")
+        if player.cash < JAIL_PAY_PRICE:
+            raise GameException("You don't have enough money to pay for jail")
+
+        player.cash -= JAIL_PAY_PRICE
+        player.in_jail = False
+        player.jail_turns = 0
+        player.save()
+
+        pa = PendingAction.objects.create(
+            player=player,
+            action_type=PendingAction.Types.ROLL_DICE,
+            expires_at=timezone.now(),
+        )
+
+        return events
+
     def _handle_dice_roll(
         self, game: Game, player: Player, resolved_pa: Optional[PendingAction] = None
     ) -> list[GameEvent]:
@@ -293,7 +339,9 @@ class ClassicMonopolyService(BaseMonopoly):
         events.append(event)
 
         if player.in_jail:
-            raise NotImplementedError()
+            if player.jail_turns >= 3:
+                raise GameException("You can't roll dice in jail anymore")
+            self._handle_jail_dice_roll(game, player, dice_values)
         else:
             roll_events = self._handle_normal_roll(game, player, dice_values)
             events.extend(roll_events)

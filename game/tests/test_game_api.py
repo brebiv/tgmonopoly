@@ -11,6 +11,7 @@ from game.management.commands.populate_database import (
 )
 from game.models import PendingAction, BoardConfig, Game, Player, Property, Jail, Police
 from game.services import get_service_by_name, ClassicMonopolyService
+from game.exceptions import GameException
 from . import BaseApiTestCase, test_data
 
 
@@ -451,54 +452,176 @@ class TestAuction:
             assert self.player_2.cash == player_2_cash_before_accept
 
 
-# @pytest.mark.django_db
-# class TestRollDice:
-#     monopoly_service: ClassicMonopolyService
-#     player_1: Player
-#     player_2: Player
-#     player_3: Player
+@pytest.mark.django_db
+class TestJail:
+    monopoly_service: ClassicMonopolyService
+    game: Game
+    player_1: Player
+    player_2: Player
+    player_3: Player
 
-#     def setup_method(self, method):
-#         PopulateDatabaseCommand().handle()
+    def setup_method(self, method):
+        PopulateDatabaseCommand().handle()
 
-#     def _refresh_game_and_players(self):
-#         """Refresh game and all players from DB"""
-#         self.game.refresh_from_db()
-#         for player in self.players:
-#             player.refresh_from_db()
+    def _refresh_game_and_players(self):
+        """Refresh game and all players from DB"""
+        self.game.refresh_from_db()
+        for player in self.players:
+            player.refresh_from_db()
 
-#     def _create_game(self, players: int):
-#         self.tg_users = test_data.create_telegram_users(players, synthetic=True)
-#         self.monopoly_service = get_service_by_name("classic")  # type: ignore[assignment]
-#         self.game = self.monopoly_service.create_game(self.tg_users[0], players)
+    def _create_game(self, players: int):
+        self.tg_users = test_data.create_telegram_users(players, synthetic=True)
+        self.monopoly_service = get_service_by_name("classic")  # type: ignore[assignment]
+        self.game = self.monopoly_service.create_game(self.tg_users[0], players)
 
-#         for i in range(1, players):
-#             player, _ = self.monopoly_service.join_game(self.game.uuid, self.tg_users[i])
+        for i in range(1, players):
+            player, _ = self.monopoly_service.join_game(self.game.uuid, self.tg_users[i])
 
-#         game_players = self.game.players.all()
-#         self.players = list(game_players)
-#         self._refresh_game_and_players()
+        game_players = self.game.players.all()
+        self.players = list(game_players)
+        self._refresh_game_and_players()
 
-#     def test_go_to_jail_from_police(self, db):
-#         self._create_game(3)
+    def test_getting_out_of_jail_on_first_attempt(self):
+        self._create_game(2)
+        self.game.players.update(cash=1000)
 
-#         self.player_1 = self.players[0]
-#         self.player_2 = self.players[1]
-#         self.player_3 = self.players[2]
+        player_1 = self.players[0]
 
-#         self.player_2.cash = 1000
-#         self.player_3.cash = 1000
-#         self.player_2.save()
-#         self.player_3.save()
+        self.monopoly_service._move_player_to_jail(self.game, player_1)
 
-#         players_in_auction = [self.player_2, self.player_3]
+        assert player_1.pending_action.action_type == PendingAction.Types.ROLL_DICE
 
-#         assert self.player_1.pending_action.action_type == PendingAction.Types.ROLL_DICE
+        with patch("game.services.ClassicMonopolyService._roll_dice_values", return_value=[2, 2]):
+            self.monopoly_service.process_game_action(self.game.uuid, player_1.pk, "roll_dice")
 
-#         with patch("game.services.ClassicMonopolyService._roll_dice_values", return_value=[5, 5]):
-#             self.monopoly_service.process_game_action(self.game.uuid, self.player_1.pk, "roll_dice")
+        self._refresh_game_and_players()
 
-#         self._refresh_game_and_players()
+        assert player_1.in_jail is False
+        assert player_1.jail_turns == 0
+        assert self.game.current_player == player_1
+        assert player_1.pending_action.action_type == PendingAction.Types.ROLL_DICE
 
-#         assert self.game.current_player == self.player_1
-#         assert self.player_1.pending_action.action_type == PendingAction.Types.BUY_PROPERTY
+    def test_getting_out_of_jail_on_second_attempt(self) -> None:
+        self._create_game(2)
+        self.game.players.update(cash=1000)
+
+        player_1: Player = self.players[0]
+        player_2: Player = self.players[1]
+
+        self.monopoly_service._move_player_to_jail(self.game, player_1)
+
+        assert player_1.pending_action.action_type == PendingAction.Types.ROLL_DICE  # type: ignore[union-attr]
+        assert player_1.jail_turns == 0
+
+        with patch("game.services.ClassicMonopolyService._roll_dice_values", return_value=[2, 1]):
+            self.monopoly_service.process_game_action(self.game.uuid, player_1.pk, "roll_dice")
+
+        self._refresh_game_and_players()
+
+        assert player_1.in_jail is True
+        assert player_1.jail_turns == 1
+        assert self.game.current_player == player_2
+        assert player_2.pending_action.action_type == PendingAction.Types.ROLL_DICE  # type: ignore[union-attr]
+
+        with patch("game.services.ClassicMonopolyService._roll_dice_values", return_value=[39, 1]):
+            # Just go ever to start tile
+            self.monopoly_service.process_game_action(self.game.uuid, player_2.pk, "roll_dice")
+
+        with patch("game.services.ClassicMonopolyService._roll_dice_values", return_value=[2, 2]):
+            self.monopoly_service.process_game_action(self.game.uuid, player_1.pk, "roll_dice")
+
+        self._refresh_game_and_players()
+
+        assert player_1.in_jail is False
+        assert player_1.jail_turns == 0
+        assert self.game.current_player == player_1
+        assert player_1.pending_action.action_type == PendingAction.Types.ROLL_DICE
+
+    def test_out_of_jail_escape_attempts(self) -> None:
+        self._create_game(2)
+        self.game.players.update(cash=1000)
+
+        player_1: Player = self.players[0]
+        player_2: Player = self.players[1]
+
+        self.monopoly_service._move_player_to_jail(self.game, player_1)
+
+        assert player_1.pending_action.action_type == PendingAction.Types.ROLL_DICE  # type: ignore[union-attr]
+        assert player_1.jail_turns == 0
+
+        for _ in range(3):
+            with patch("game.services.ClassicMonopolyService._roll_dice_values", return_value=[1, 2]):
+                self.monopoly_service.process_game_action(self.game.uuid, player_1.pk, "roll_dice")
+
+            with patch("game.services.ClassicMonopolyService._roll_dice_values", return_value=[39, 1]):
+                # Just go ever to start tile
+                self.monopoly_service.process_game_action(self.game.uuid, player_2.pk, "roll_dice")
+
+        self._refresh_game_and_players()
+
+        with pytest.raises(GameException):
+            with patch("game.services.ClassicMonopolyService._roll_dice_values", return_value=[1, 2]):
+                self.monopoly_service.process_game_action(self.game.uuid, player_1.pk, "roll_dice")
+
+        assert player_1.in_jail is True
+        assert player_1.jail_turns == 3
+        assert self.game.current_player == player_1
+        assert player_1.pending_action.action_type == PendingAction.Types.ROLL_DICE  # type: ignore[union-attr]
+
+    def test_pay_for_jail(self) -> None:
+        self._create_game(2)
+        self.game.players.update(cash=1000)
+
+        player_1: Player = self.players[0]
+        player_2: Player = self.players[1]
+
+        player_1_cash_before = player_1.cash
+
+        self.monopoly_service._move_player_to_jail(self.game, player_1)
+
+        assert player_1.pending_action.action_type == PendingAction.Types.ROLL_DICE  # type: ignore[union-attr]
+        assert player_1.jail_turns == 0
+
+        self.monopoly_service.process_game_action(self.game.uuid, player_1.pk, "pay_jail")
+        self._refresh_game_and_players()
+
+        assert player_1.cash == player_1_cash_before - 100
+        assert player_1.in_jail is False
+        assert player_1.jail_turns == 0
+        assert self.game.current_player == player_1
+        assert player_1.pending_action.action_type == PendingAction.Types.ROLL_DICE  # type: ignore[union-attr]
+
+    def test_pay_for_jail_no_money(self) -> None:
+        self._create_game(2)
+        self.game.players.update(cash=1)
+
+        player_1: Player = self.players[0]
+        player_2: Player = self.players[1]
+
+        player_1.cash = 1
+        player_1.save()
+        player_1_cash_before = player_1.cash
+
+        self.monopoly_service._move_player_to_jail(self.game, player_1)
+
+        assert player_1.pending_action.action_type == PendingAction.Types.ROLL_DICE  # type: ignore[union-attr]
+        assert player_1.jail_turns == 0
+
+        with pytest.raises(GameException):
+            self.monopoly_service.process_game_action(self.game.uuid, player_1.pk, "pay_jail")
+
+        self._refresh_game_and_players()
+
+        assert player_1.in_jail is True
+        assert player_1.jail_turns == 0
+        assert self.game.current_player == player_1
+        assert player_1.pending_action.action_type == PendingAction.Types.ROLL_DICE  # type: ignore[union-attr]
+
+    def test_pay_for_jail_not_in_jail(self) -> None:
+        self._create_game(2)
+        player_1: Player = self.players[0]
+
+        assert player_1.pending_action.action_type == PendingAction.Types.ROLL_DICE  # type: ignore[union-attr]
+
+        with pytest.raises(GameException):
+            self.monopoly_service.process_game_action(self.game.uuid, player_1.pk, "pay_jail")

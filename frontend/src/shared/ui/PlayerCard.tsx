@@ -9,15 +9,16 @@ interface PlayerCardProps {
 
 export const PlayerCard: React.FC<PlayerCardProps> = ({ player }) => {
   const empty = player == null;
+
   return (
-    <Card className="bg-background border-none !px-0">
-      <div className="w-full h-14 flex gap-2">
-        <div className="h-full aspect-square">
+    <Card className="bg-background border-none px-2">
+      <div className="flex h-14 w-full gap-2">
+        <div className="aspect-square h-full">
           <Avatar player={player} />
         </div>
         <div className="flex flex-col justify-center">
           <p>{empty ? "" : player.name}</p>
-          {!empty && <p className="flex gap-1 text-hint">$ {player.cash}</p>}
+          {!empty && <p className="text-hint flex gap-1">$ {player.cash}</p>}
         </div>
       </div>
     </Card>

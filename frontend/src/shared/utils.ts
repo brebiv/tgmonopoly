@@ -1,4 +1,6 @@
 import type { Game } from "@/entities/types";
+import classNames, { type Argument } from "classnames";
+import { twMerge } from "tailwind-merge";
 
 export const navigateTo = (path: string) => {
   location.assign(path);
@@ -24,4 +26,8 @@ export const buildGameWebsocketUrl = (gameUUID: string) => {
 
 export const sleep = async (ms: number) => {
   return new Promise((r) => setTimeout(r, ms));
+};
+
+export const cn = (...inputs: Argument[]) => {
+  return twMerge(classNames(...inputs));
 };

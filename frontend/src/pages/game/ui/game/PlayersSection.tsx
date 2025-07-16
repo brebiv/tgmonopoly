@@ -1,4 +1,5 @@
 import type { Player } from "@/entities/types";
+import { PlayerCard } from "@/shared/ui/PlayerCard";
 import type React from "react";
 
 interface PlayersSectionProps {
@@ -7,11 +8,9 @@ interface PlayersSectionProps {
 
 export const PlayersSection: React.FC<PlayersSectionProps> = ({ players }) => {
   return (
-    <div className="grid grid-cols-2 gap-2 p-2">
-      {players.map((_, i) => (
-        <div key={i} className="bg-background flex items-center justify-center px-4 py-2">
-          Player: {i}
-        </div>
+    <div className="grid grid-cols-2 gap-2">
+      {players.map((p, i) => (
+        <PlayerCard key={i} player={p} />
       ))}
     </div>
   );

@@ -16,7 +16,7 @@ export const Game = () => {
   }
 
   return (
-    <div className="bg-secondary-background flex h-screen flex-col gap-2">
+    <div className="bg-secondary-background flex h-screen flex-col gap-3">
       <GameBoard players={players} boardConfig={boardConfig}>
         <DiceController />
         {import.meta.env.DEV && (

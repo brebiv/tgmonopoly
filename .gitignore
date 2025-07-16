@@ -31,6 +31,7 @@ kool_thing
 
 # Local stuff
 .local/
+.vscode/
 
 # Vim .swp files
 .swp

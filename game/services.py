@@ -11,7 +11,7 @@ from django.db.models import QuerySet, F
 from django.utils import timezone
 
 from bot.models import TelegramUser
-from game.models import BoardConfig, Game, Player, GameEvent, Property, Ownership, PendingAction
+from game.models import BoardConfig, Game, Player, GameEvent, Property, Ownership, PendingAction, Jail, Police
 from game.game_config import BaseMonopolyConfig, ClassicMonopolyConfig
 from game.exceptions import GameException
 from game.serializers import GameEventSerializer, GameSerializer, PlayerSerializer
@@ -42,7 +42,12 @@ class BaseMonopoly(ABC):
         }
 
     def _roll_dice_values(self, dices_count=2, min_value=1, max_value=6):
-        return [2, 1]
+        if dices_count > 2:
+            raise NotImplementedError(
+                "Current only two dices supported because of dice double calculation logic"
+            )
+        # return [2, 1]
+        return [2, 2]
         # return [random.randint(min_value, max_value) for _ in range(dices_count)]
 
     def _create_game_event(self, game: Game, event_type: GameEvent.Types, extra_data: Optional[dict] = None):
@@ -117,7 +122,7 @@ class ClassicMonopolyService(BaseMonopoly):
             board_config = BoardConfig.objects.get(name=BoardConfig.Names.CLASSIC)
 
             game = Game.objects.create(board_config=board_config, max_players=max_players)
-            Player.objects.create(user=user, game=game, color=Player.Color.BLUE)
+            Player.objects.create(user=user, game=game, color=Player.Color.BLUE, cash=1000)
 
         return game
 
@@ -210,13 +215,21 @@ class ClassicMonopolyService(BaseMonopoly):
         events: list[GameEvent] = []
 
         if player.rolled_double:
-            next_player = player
+            player.double_count += 1
+            player.rolled_double = False
+            if player.double_count == 3:
+                move_to_jail_events = self._move_player_to_jail(game, player)
+                events.extend(move_to_jail_events)
+                next_player = self._calculate_next_player(game, player)
+            else:
+                next_player = player
         else:
             next_player = self._calculate_next_player(game, player)
 
         game.current_player = next_player
         game.turn += 1
         game.save(update_fields=["turn", "current_player"])
+        player.save()
 
         pa = PendingAction.objects.create(
             player=next_player, action_type=PendingAction.Types.ROLL_DICE, expires_at=timezone.now()
@@ -249,6 +262,14 @@ class ClassicMonopolyService(BaseMonopoly):
                     action_type=PendingAction.Types.PAY_RENT,
                     expires_at=timezone.now(),
                 )
+        elif isinstance(tile, Police):
+            move_to_jail_event = self._move_player_to_jail(game, player)
+            events.extend(move_to_jail_event)
+            next_turn_events = self._next_turn(game, player)
+            events.extend(next_turn_events)
+        else:
+            self._next_turn(game, player)
+            # raise NotImplementedError()
 
         player.save()
         game.save()
@@ -261,6 +282,9 @@ class ClassicMonopolyService(BaseMonopoly):
         events = []
         dice_values = self._roll_dice_values()
 
+        if dice_values[0] == dice_values[1]:
+            player.rolled_double = True
+
         event = self._create_game_event(
             game,
             GameEvent.Types.PLAYER_ROLL_DICE,
@@ -269,11 +293,20 @@ class ClassicMonopolyService(BaseMonopoly):
         events.append(event)
 
         if player.in_jail:
-            pass
+            raise NotImplementedError()
         else:
             roll_events = self._handle_normal_roll(game, player, dice_values)
             events.extend(roll_events)
 
+        return events
+
+    def _move_player_to_jail(self, game: Game, player: Player) -> list[GameEvent]:
+        events: list[GameEvent] = []
+        jail_tile = Jail.objects.get(board_config=game.board_config)
+        player.in_jail = True
+        player.jail_turns = 0
+        player.position = jail_tile.position
+        player.save()
         return events
 
     def _buy_property(

@@ -9,7 +9,7 @@ from tgmonopoly.asgi import application
 from game.management.commands.populate_database import (
     Command as PopulateDatabaseCommand,
 )
-from game.models import PendingAction, BoardConfig, Game, Player, Property
+from game.models import PendingAction, BoardConfig, Game, Player, Property, Jail, Police
 from game.services import get_service_by_name, ClassicMonopolyService
 from . import BaseApiTestCase, test_data
 
@@ -86,6 +86,93 @@ class DiceRollAPITest(BaseApiTestCase):
         self.assertEqual(frame_type, "game.error")
         self.assertIsNotNone(game_frame.get("msg"))
 
+    @patch("game.services.ClassicMonopolyService._roll_dice_values")
+    async def test_go_to_jail_because_of_doubles(self, mock_dice_values):
+        dices_values = [2, 2]
+        mock_dice_values.return_value = dices_values
+
+        await database_sync_to_async(self._call_create_game)(2)
+
+        ws_url = f"/ws/game/{self.game.uuid}/?" + test_data.TG_INIT_DATA_RAW_LIST[0]
+        communicator = WebsocketCommunicator(application, ws_url)
+        connected, _ = await communicator.connect()
+
+        self.assertTrue(connected)
+        game_frame = await communicator.receive_json_from()
+
+        await self._refresh_game_and_players_async()
+        frame_type = game_frame["type"]
+        p1 = game_frame["game"]["players"][0]
+        p2 = game_frame["game"]["players"][1]
+        player_1 = self.players[0]
+        player_1.cash = 1000
+        await player_1.asave()
+
+        self.assertEqual(frame_type, "game.initial")
+        self.assertEqual(p1["pending_action"]["action_type"], PendingAction.Types.ROLL_DICE.value)
+        self.assertIsNone(p2["pending_action"])
+        self.assertEqual(player_1.position, 0)
+
+        await communicator.send_to("roll_dice")
+
+        for _ in range(4):
+            game_frame = await communicator.receive_json_from()
+            p1 = game_frame["game"]["players"][0]
+            if p1["in_jail"]:
+                break
+
+            if p1["pending_action"]["action_type"] == PendingAction.Types.ROLL_DICE:
+                await communicator.send_to("roll_dice")
+            elif p1["pending_action"]["action_type"] == PendingAction.Types.BUY_PROPERTY:
+                await communicator.send_to("accept")
+
+        await player_1.arefresh_from_db()
+        jail_tile = await database_sync_to_async(Jail.objects.get)(board_config_id=self.game.board_config_id)
+
+        self.assertEqual(player_1.in_jail, True)
+        self.assertEqual(player_1.position, jail_tile.position)
+
+    @patch("game.services.ClassicMonopolyService._roll_dice_values")
+    async def test_go_to_jail_from_police(self, mock_dice_values):
+        await database_sync_to_async(self._call_create_game)(2)
+
+        ws_url = f"/ws/game/{self.game.uuid}/?" + test_data.TG_INIT_DATA_RAW_LIST[0]
+        communicator = WebsocketCommunicator(application, ws_url)
+        connected, _ = await communicator.connect()
+
+        self.assertTrue(connected)
+        game_frame = await communicator.receive_json_from()
+
+        await self._refresh_game_and_players_async()
+        frame_type = game_frame["type"]
+        p1 = game_frame["game"]["players"][0]
+        p2 = game_frame["game"]["players"][1]
+        player_1 = self.players[0]
+        player_1.cash = 1000
+        await player_1.asave()
+
+        self.assertEqual(frame_type, "game.initial")
+        self.assertEqual(p1["pending_action"]["action_type"], PendingAction.Types.ROLL_DICE.value)
+        self.assertIsNone(p2["pending_action"])
+        self.assertEqual(player_1.position, 0)
+
+        police_tile = await database_sync_to_async(Police.objects.get)(
+            board_config_id=self.game.board_config_id
+        )
+
+        dices_values = [police_tile.position, 0]
+        mock_dice_values.return_value = dices_values
+
+        await communicator.send_to("roll_dice")
+
+        game_frame = await communicator.receive_json_from()
+
+        await player_1.arefresh_from_db()
+        jail_tile = await database_sync_to_async(Jail.objects.get)(board_config_id=self.game.board_config_id)
+
+        self.assertEqual(player_1.in_jail, True)
+        self.assertEqual(player_1.position, jail_tile.position)
+
 
 class TestAuctionLegacy(BaseApiTestCase):
     monopoly_service: ClassicMonopolyService
@@ -109,7 +196,10 @@ class TestAuctionLegacy(BaseApiTestCase):
 
         self._refresh_game_and_players()
 
-    def test_start_auction(self):
+    @patch("game.services.ClassicMonopolyService._roll_dice_values")
+    def test_start_auction(self, mock_dice_values):
+        dices_value = [1, 2]
+        mock_dice_values.return_value = dices_value
         # Make sure player has enough money for buying tile in auction
         self._create_game(2)
         self.player_1 = self.players[0]
@@ -141,7 +231,10 @@ class TestAuctionLegacy(BaseApiTestCase):
             ],
         )
 
-    def test_start_auction_flop(self):
+    @patch("game.services.ClassicMonopolyService._roll_dice_values")
+    def test_start_auction_flop(self, mock_dice_values):
+        dices_value = [1, 2]
+        mock_dice_values.return_value = dices_value
         """When other players don't have enough money for auction"""
         self._create_game(2)
         self.player_1 = self.players[0]
@@ -165,7 +258,10 @@ class TestAuctionLegacy(BaseApiTestCase):
         self.assertEqual(self.game.turn, 2)
         self.assertEqual(self.player_2.pending_action.action_type, PendingAction.Types.ROLL_DICE)
 
-    def test_accept_auction_2_players_no_double_dice(self):
+    @patch("game.services.ClassicMonopolyService._roll_dice_values")
+    def test_accept_auction_2_players_no_double_dice(self, mock_dice_values):
+        dices_value = [1, 2]
+        mock_dice_values.return_value = dices_value
         self._create_game(2)
         self.player_1 = self.players[0]
         self.player_2 = self.players[1]
@@ -210,7 +306,10 @@ class TestAuctionLegacy(BaseApiTestCase):
         self.assertEqual(self.player_2.cash, player_2_cash_before_accept - expected_property_price)
         self.assertEqual(self.player_2.ownerships.count(), 1)
 
-    def test_reject_auction_2_players_no_double_dice(self):
+    @patch("game.services.ClassicMonopolyService._roll_dice_values")
+    def test_reject_auction_2_players_no_double_dice(self, mock_dice_values):
+        dices_value = [1, 2]
+        mock_dice_values.return_value = dices_value
         self._create_game(2)
         self.player_1 = self.players[0]
         self.player_2 = self.players[1]
@@ -307,7 +406,9 @@ class TestAuction:
 
         assert self.player_1.pending_action.action_type == PendingAction.Types.ROLL_DICE
 
-        self.monopoly_service.process_game_action(self.game.uuid, self.player_1.pk, "roll_dice")
+        with patch("game.services.ClassicMonopolyService._roll_dice_values", return_value=[1, 2]):
+            self.monopoly_service.process_game_action(self.game.uuid, self.player_1.pk, "roll_dice")
+
         self._refresh_game_and_players()
 
         assert self.game.current_player == self.player_1
@@ -348,3 +449,56 @@ class TestAuction:
         else:
             assert self.player_2.ownerships.count() == 0
             assert self.player_2.cash == player_2_cash_before_accept
+
+
+# @pytest.mark.django_db
+# class TestRollDice:
+#     monopoly_service: ClassicMonopolyService
+#     player_1: Player
+#     player_2: Player
+#     player_3: Player
+
+#     def setup_method(self, method):
+#         PopulateDatabaseCommand().handle()
+
+#     def _refresh_game_and_players(self):
+#         """Refresh game and all players from DB"""
+#         self.game.refresh_from_db()
+#         for player in self.players:
+#             player.refresh_from_db()
+
+#     def _create_game(self, players: int):
+#         self.tg_users = test_data.create_telegram_users(players, synthetic=True)
+#         self.monopoly_service = get_service_by_name("classic")  # type: ignore[assignment]
+#         self.game = self.monopoly_service.create_game(self.tg_users[0], players)
+
+#         for i in range(1, players):
+#             player, _ = self.monopoly_service.join_game(self.game.uuid, self.tg_users[i])
+
+#         game_players = self.game.players.all()
+#         self.players = list(game_players)
+#         self._refresh_game_and_players()
+
+#     def test_go_to_jail_from_police(self, db):
+#         self._create_game(3)
+
+#         self.player_1 = self.players[0]
+#         self.player_2 = self.players[1]
+#         self.player_3 = self.players[2]
+
+#         self.player_2.cash = 1000
+#         self.player_3.cash = 1000
+#         self.player_2.save()
+#         self.player_3.save()
+
+#         players_in_auction = [self.player_2, self.player_3]
+
+#         assert self.player_1.pending_action.action_type == PendingAction.Types.ROLL_DICE
+
+#         with patch("game.services.ClassicMonopolyService._roll_dice_values", return_value=[5, 5]):
+#             self.monopoly_service.process_game_action(self.game.uuid, self.player_1.pk, "roll_dice")
+
+#         self._refresh_game_and_players()
+
+#         assert self.game.current_player == self.player_1
+#         assert self.player_1.pending_action.action_type == PendingAction.Types.BUY_PROPERTY

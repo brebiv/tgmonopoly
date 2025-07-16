@@ -46,8 +46,8 @@ class BaseMonopoly(ABC):
             raise NotImplementedError(
                 "Current only two dices supported because of dice double calculation logic"
             )
-        # return [2, 1]
-        return [2, 2]
+        return [2, 1]
+        # return [2, 2]
         # return [random.randint(min_value, max_value) for _ in range(dices_count)]
 
     def _create_game_event(self, game: Game, event_type: GameEvent.Types, extra_data: Optional[dict] = None):
@@ -123,7 +123,7 @@ class ClassicMonopolyService(BaseMonopoly):
             board_config = BoardConfig.objects.get(name=BoardConfig.Names.CLASSIC)
 
             game = Game.objects.create(board_config=board_config, max_players=max_players)
-            Player.objects.create(user=user, game=game, color=Player.Color.BLUE, cash=1000)
+            Player.objects.create(user=user, game=game, color=Player.Color.BLUE)
 
         return game
 
@@ -252,17 +252,23 @@ class ClassicMonopolyService(BaseMonopoly):
 
         tile = game.board_config.tiles.get(position=player.position).downcast()
         if isinstance(tile, Property):
-            if tile.check_if_buyable(game):
+            ownership = Ownership.objects.filter(tile=tile, game=game).first()
+            if not ownership:
                 pa = PendingAction.objects.create(
                     player=player, action_type=PendingAction.Types.BUY_PROPERTY, expires_at=timezone.now()
                 )
             else:
-                pa = PendingAction.objects.create(
-                    # expires_at = timezone.now() + datetime.timedelta(seconds=30)
-                    player=player,
-                    action_type=PendingAction.Types.PAY_RENT,
-                    expires_at=timezone.now(),
-                )
+                if ownership.player != player:
+                    pa = PendingAction.objects.create(
+                        # expires_at = timezone.now() + datetime.timedelta(seconds=30)
+                        player=player,
+                        action_type=PendingAction.Types.PAY_RENT,
+                        expires_at=timezone.now(),
+                    )
+                else:
+                    events.append(self._create_game_event(game, GameEvent.Types.LANDED_ON_OWN_PROPERTY))
+                    self._next_turn(game, player)
+
         elif isinstance(tile, Police):
             move_to_jail_event = self._move_player_to_jail(game, player)
             events.extend(move_to_jail_event)
@@ -395,6 +401,9 @@ class ClassicMonopolyService(BaseMonopoly):
 
         tile = Property.objects.get(position=player.position)
         ownership = Ownership.objects.select_related("player").get(game=game, tile=tile)
+        if player.cash < tile.rent:
+            raise GameException("You don't have enough money to pay rent")
+
         player.cash -= tile.rent
         owner = ownership.player
         owner.cash += tile.rent
@@ -423,6 +432,7 @@ class ClassicMonopolyService(BaseMonopoly):
 
         if auction_participants.count() == 0:
             self._next_turn(game, player)
+            events.append(self._create_game_event(game, GameEvent.Types.GAME_AUCTION_FLOP))
         else:
             next_player = auction_participants.first()
 

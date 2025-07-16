@@ -247,6 +247,8 @@ class GameEvent(models.Model):
         PLAYER_ROLL_DICE = "player.roll_dice"
         PLAYER_MOVE = "player.move"
         GAME_STARTED = "game.started"
+        GAME_AUCTION_FLOP = "game.auction_flop"
+        LANDED_ON_OWN_PROPERTY = "game.landed_on_own_property"
 
     game = models.ForeignKey(to=Game, related_name="events", on_delete=models.DO_NOTHING)
     event_type = models.CharField(max_length=32, choices=Types.choices)

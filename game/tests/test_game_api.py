@@ -9,7 +9,7 @@ from tgmonopoly.asgi import application
 from game.management.commands.populate_database import (
     Command as PopulateDatabaseCommand,
 )
-from game.models import PendingAction, BoardConfig, Game, Player, Property, Jail, Police
+from game.models import PendingAction, BoardConfig, Game, Player, Property, Jail, Police, Ownership, GameEvent
 from game.services import get_service_by_name, ClassicMonopolyService
 from game.exceptions import GameException
 from . import BaseApiTestCase, test_data
@@ -625,3 +625,144 @@ class TestJail:
 
         with pytest.raises(GameException):
             self.monopoly_service.process_game_action(self.game.uuid, player_1.pk, "pay_jail")
+
+
+@pytest.mark.django_db
+class TestPayRent:
+    monopoly_service: ClassicMonopolyService
+    game: Game
+    player_1: Player
+    player_2: Player
+    player_3: Player
+
+    def setup_method(self, method):
+        PopulateDatabaseCommand().handle()
+
+    def _refresh_game_and_players(self):
+        """Refresh game and all players from DB"""
+        self.game.refresh_from_db()
+        for player in self.players:
+            player.refresh_from_db()
+
+    def _create_game(self, players: int):
+        self.tg_users = test_data.create_telegram_users(players, synthetic=True)
+        self.monopoly_service = get_service_by_name("classic")  # type: ignore[assignment]
+        self.game = self.monopoly_service.create_game(self.tg_users[0], players)
+
+        for i in range(1, players):
+            player, _ = self.monopoly_service.join_game(self.game.uuid, self.tg_users[i])
+
+        game_players = self.game.players.all()
+        self.players = list(game_players)
+        self._refresh_game_and_players()
+
+    def test_pay_rent(self):
+        self._create_game(2)
+        player_1 = self.players[0]
+        player_2 = self.players[1]
+
+        player_2_cash_before = player_2.cash
+
+        assert player_1.pending_action.action_type == PendingAction.Types.ROLL_DICE
+
+        with patch("game.services.ClassicMonopolyService._roll_dice_values", return_value=[2, 1]):
+            # Roll dice and but property on position 3
+            self.monopoly_service.process_game_action(self.game.uuid, player_1.pk, "roll_dice")
+            self.monopoly_service.process_game_action(self.game.uuid, player_1.pk, "accept")
+
+        self._refresh_game_and_players()
+
+        assert player_1.ownerships.count() == 1
+        assert self.game.current_player == player_2
+        assert player_2.pending_action.action_type == PendingAction.Types.ROLL_DICE
+
+        with patch("game.services.ClassicMonopolyService._roll_dice_values", return_value=[2, 1]):
+            # Roll dice and but property on position 3
+            self.monopoly_service.process_game_action(self.game.uuid, player_2.pk, "roll_dice")
+
+        self._refresh_game_and_players()
+        assert self.game.current_player == player_2
+        assert player_2.pending_action.action_type == PendingAction.Types.PAY_RENT
+
+        self.monopoly_service.process_game_action(self.game.uuid, player_2.pk, "accept")
+        self._refresh_game_and_players()
+
+        property = Property.objects.get(board_config=self.game.board_config, position=3)
+
+        assert player_2.cash == player_2_cash_before - property.rent
+        assert self.game.current_player == player_1
+        assert player_1.pending_action.action_type == PendingAction.Types.ROLL_DICE
+
+    def test_pay_rent_no_money(self):
+        self._create_game(2)
+        player_1 = self.players[0]
+        player_2 = self.players[1]
+
+        player_2.cash = 1
+        player_2.save()
+        player_2_cash_before = player_2.cash
+
+        assert player_1.pending_action.action_type == PendingAction.Types.ROLL_DICE
+
+        with patch("game.services.ClassicMonopolyService._roll_dice_values", return_value=[2, 1]):
+            # Roll dice and but property on position 3
+            self.monopoly_service.process_game_action(self.game.uuid, player_1.pk, "roll_dice")
+            self.monopoly_service.process_game_action(self.game.uuid, player_1.pk, "accept")
+
+        self._refresh_game_and_players()
+
+        assert player_1.ownerships.count() == 1
+        assert self.game.current_player == player_2
+        assert player_2.pending_action.action_type == PendingAction.Types.ROLL_DICE
+
+        with patch("game.services.ClassicMonopolyService._roll_dice_values", return_value=[2, 1]):
+            # Roll dice and but property on position 3
+            self.monopoly_service.process_game_action(self.game.uuid, player_2.pk, "roll_dice")
+
+        self._refresh_game_and_players()
+        assert self.game.current_player == player_2
+        assert player_2.pending_action.action_type == PendingAction.Types.PAY_RENT
+
+        with pytest.raises(GameException):
+            self.monopoly_service.process_game_action(self.game.uuid, player_2.pk, "accept")
+
+        self._refresh_game_and_players()
+
+        assert player_2.cash == player_2_cash_before
+        assert self.game.current_player == player_2
+        assert player_2.pending_action.action_type == PendingAction.Types.PAY_RENT
+
+    def test_land_on_own_property(self):
+        self._create_game(2)
+        player_1 = self.players[0]
+        player_2 = self.players[1]
+
+        player_2.cash = 1
+        property = Property.objects.get(board_config=self.game.board_config, position=3)
+        ownership = Ownership.objects.create(
+            game=self.game,
+            player=player_1,
+            tile=property,
+        )
+
+        with patch("game.services.ClassicMonopolyService._roll_dice_values", return_value=[2, 1]):
+            # Roll dice and but property on position 3
+            game_frame = self.monopoly_service.process_game_action(self.game.uuid, player_1.pk, "roll_dice")
+
+            with open("events", "w") as f:
+                print(str(game_frame["events"]), file=f)
+
+        self._refresh_game_and_players()
+
+        assert self.game.current_player == player_2
+        assert (
+            next(
+                (
+                    e
+                    for e in game_frame["events"]
+                    if e["event_type"] == GameEvent.Types.LANDED_ON_OWN_PROPERTY
+                ),
+                None,
+            )
+            is not None
+        )

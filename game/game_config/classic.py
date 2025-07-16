@@ -2,7 +2,7 @@ from .base import BaseMonopolyConfig
 
 
 class ClassicMonopolyConfig(BaseMonopolyConfig):
-    STARTING_CASH: int = 10
+    STARTING_CASH: int = 1000
     MORTGAGE_INTEREST_RATE: float = 1.1
     MAX_DOUBLES: int = 3
 

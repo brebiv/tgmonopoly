@@ -94,7 +94,7 @@ class ClassicMonopolyService(BaseMonopoly):
         ] = {
             PendingAction.Types.ROLL_DICE: {
                 "roll_dice": self._handle_dice_roll,
-                "pay_jail": self._handle_pay_jail,
+                "reject": self._handle_pay_jail,
             },
             PendingAction.Types.BUY_PROPERTY: {
                 "accept": self._handle_buy_property_accept,
@@ -297,8 +297,15 @@ class ClassicMonopolyService(BaseMonopoly):
             )
         else:
             player.jail_turns += 1
-            next_turn_events = self._next_turn(game, player)
-            events.extend(next_turn_events)
+            if player.jail_turns < 3:
+                next_turn_events = self._next_turn(game, player)
+                events.extend(next_turn_events)
+            else:
+                pa = PendingAction.objects.create(
+                    player=player,
+                    action_type=PendingAction.Types.ROLL_DICE,
+                    expires_at=timezone.now(),
+                )
 
         player.save()
         return events

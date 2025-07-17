@@ -3,10 +3,11 @@ import { Button } from "@/shared/ui/Button";
 import { DicesIcon } from "lucide-react";
 
 interface RollDiceButtonProps {
+  disabled?: boolean;
   protocol?: "ws" | "http";
 }
 
-export const RollDiceButton = ({ protocol = "ws" }: RollDiceButtonProps) => {
+export const RollDiceButton = ({ disabled = false, protocol = "ws" }: RollDiceButtonProps) => {
   const { send } = useWebSocketContext();
 
   const handleClickWS = () => {
@@ -19,6 +20,7 @@ export const RollDiceButton = ({ protocol = "ws" }: RollDiceButtonProps) => {
 
   return (
     <Button
+      disabled={disabled}
       className="flex gap-2 py-3 text-lg font-semibold"
       onClick={protocol == "ws" ? handleClickWS : handleClickHTTP}
     >

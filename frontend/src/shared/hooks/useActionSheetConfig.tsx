@@ -7,7 +7,7 @@ import { RejectButton } from "@/features/action-buttons/RejectButton";
 import { StartAuctionButton } from "@/features/auction/StartAuctionButton";
 import { BuyButton } from "@/features/buy-property/BuyPropertyButton";
 import { RollDiceButton } from "@/features/roll-dice/RollDiceButton";
-import { BanknoteIcon, GavelIcon } from "lucide-react";
+import { BanknoteIcon, GavelIcon, HandCoinsIcon } from "lucide-react";
 import type React from "react";
 
 export const useActionSheetConfig = (
@@ -32,13 +32,29 @@ export const useActionSheetConfig = (
     // console.log("There is no pending action for this player");
     return {
       title: "You don't have any actions",
-      hint: "¯\_(ツ)_/¯",
+      hint: "¯\\_(ツ)_/¯",
       actions: [],
     };
   }
 
   switch (pending.action_type) {
     case PendingActionTypes.ROLL_DICE: {
+      if (myPlayer.in_jail) {
+        console.warn("Requires improvement. Move harcoded 3 and $100 into BoardConfig setting");
+        let escapeAttemptsLeft = 3 - myPlayer.jail_turns;
+        let canRollDice = myPlayer.jail_turns < 3;
+
+        return {
+          title: "You are in jail!",
+          hint: `You have ${escapeAttemptsLeft} escape attempts or you can pay`,
+          actions: [
+            <RollDiceButton key={GameActionType.ROLL_DICE} disabled={!canRollDice} />,
+            <RejectButton key={GameActionType.REJECT} action={GameActionType.REJECT}>
+              <HandCoinsIcon /> Pay (${100})
+            </RejectButton>,
+          ],
+        };
+      }
       return {
         title: "It's your turn!",
         hint: "You're likely to land on property ______",
@@ -76,7 +92,6 @@ export const useActionSheetConfig = (
       }
 
       return {
-        // title: "You stepped on other player's property!",
         title: (
           <>
             You landed on <span style={{ color: player.color }}>{tile.name}</span>!

@@ -549,13 +549,14 @@ class TestJail:
         assert player_1.pending_action.action_type == PendingAction.Types.ROLL_DICE  # type: ignore[union-attr]
         assert player_1.jail_turns == 0
 
-        for _ in range(3):
+        for i in range(3):
             with patch("game.services.ClassicMonopolyService._roll_dice_values", return_value=[1, 2]):
                 self.monopoly_service.process_game_action(self.game.uuid, player_1.pk, "roll_dice")
 
-            with patch("game.services.ClassicMonopolyService._roll_dice_values", return_value=[39, 1]):
-                # Just go ever to start tile
-                self.monopoly_service.process_game_action(self.game.uuid, player_2.pk, "roll_dice")
+            if i < 2:
+                with patch("game.services.ClassicMonopolyService._roll_dice_values", return_value=[39, 1]):
+                    # Just go ever to start tile
+                    self.monopoly_service.process_game_action(self.game.uuid, player_2.pk, "roll_dice")
 
         self._refresh_game_and_players()
 
@@ -582,7 +583,7 @@ class TestJail:
         assert player_1.pending_action.action_type == PendingAction.Types.ROLL_DICE  # type: ignore[union-attr]
         assert player_1.jail_turns == 0
 
-        self.monopoly_service.process_game_action(self.game.uuid, player_1.pk, "pay_jail")
+        self.monopoly_service.process_game_action(self.game.uuid, player_1.pk, "reject")
         self._refresh_game_and_players()
 
         assert player_1.cash == player_1_cash_before - 100
@@ -608,7 +609,7 @@ class TestJail:
         assert player_1.jail_turns == 0
 
         with pytest.raises(GameException):
-            self.monopoly_service.process_game_action(self.game.uuid, player_1.pk, "pay_jail")
+            self.monopoly_service.process_game_action(self.game.uuid, player_1.pk, "reject")
 
         self._refresh_game_and_players()
 
@@ -624,7 +625,7 @@ class TestJail:
         assert player_1.pending_action.action_type == PendingAction.Types.ROLL_DICE  # type: ignore[union-attr]
 
         with pytest.raises(GameException):
-            self.monopoly_service.process_game_action(self.game.uuid, player_1.pk, "pay_jail")
+            self.monopoly_service.process_game_action(self.game.uuid, player_1.pk, "reject")
 
 
 @pytest.mark.django_db

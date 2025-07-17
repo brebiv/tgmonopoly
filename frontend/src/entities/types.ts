@@ -182,6 +182,8 @@ export type BoardConfig = {
 
 export enum GameActionType {
   ROLL_DICE = "roll_dice",
+  ACCEPT = "accept",
+  REJECT = "reject",
 }
 
 export type GameAction = {

@@ -1,17 +1,19 @@
 import { useWebSocketContext } from "@/app/providers/WebSocketProvider";
+import { GameActionType } from "@/entities/types";
 import { Button } from "@/shared/ui/Button";
 import type React from "react";
 
 interface RejectButtonProps {
+  action?: GameActionType;
   protocol?: "ws" | "http";
   children: React.ReactNode;
 }
 
-export const RejectButton: React.FC<RejectButtonProps> = ({ protocol = "ws", children }) => {
+export const RejectButton: React.FC<RejectButtonProps> = ({ action, protocol = "ws", children }) => {
   const { send } = useWebSocketContext();
 
   const handleClickWS = () => {
-    const command = "reject";
+    const command = action || GameActionType.REJECT;
     send(command);
   };
   const handleClickHTTP = () => {

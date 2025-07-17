@@ -426,8 +426,8 @@ class ClassicMonopolyService(BaseMonopoly):
             raise GameException("Could not find property for an auction")
 
         auction_price = math.ceil(property.price * 1.1)
-        auction_participants: QuerySet[Player] = (
-            game.players.exclude(pk=player.pk).exclude(cash__lt=auction_price).exclude(in_jail=True)
+        auction_participants: QuerySet[Player] = game.players.exclude(pk=player.pk).exclude(
+            cash__lt=auction_price
         )
 
         if auction_participants.count() == 0:

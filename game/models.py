@@ -250,7 +250,7 @@ class GameEvent(models.Model):
         GAME_AUCTION_FLOP = "game.auction_flop"
         LANDED_ON_OWN_PROPERTY = "game.landed_on_own_property"
 
-    game = models.ForeignKey(to=Game, related_name="events", on_delete=models.DO_NOTHING)
+    game = models.ForeignKey(to=Game, related_name="events", on_delete=models.CASCADE)
     event_type = models.CharField(max_length=32, choices=Types.choices)
     extra_data = models.JSONField(default=dict)
 
@@ -264,7 +264,7 @@ class PendingAction(models.Model):
 
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4)
     # game = models.ForeignKey(to=Game, related_name="pending_actions", on_delete=models.DO_NOTHING)
-    player = models.ForeignKey(to=Player, related_name="pending_actions", on_delete=models.DO_NOTHING)
+    player = models.ForeignKey(to=Player, related_name="pending_actions", on_delete=models.CASCADE)
     action_type = models.CharField(max_length=32, choices=Types.choices)
 
     action_data = models.JSONField(default=dict)

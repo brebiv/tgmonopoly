@@ -23,6 +23,7 @@ from game.models import (
     GameEvent,
     Utility,
     UtilityGroup,
+    Tax,
 )
 from game.services import get_service_by_name, ClassicMonopolyService
 from game.exceptions import GameException
@@ -103,7 +104,7 @@ class DiceRollAPITest(BaseApiTestCase):
 
     @patch("game.services.ClassicMonopolyService._roll_dice_values")
     async def test_go_to_jail_because_of_doubles(self, mock_dice_values):
-        dices_values = [2, 2]
+        dices_values = [20, 20]  # will loop over start tile
         mock_dice_values.return_value = dices_values
 
         await database_sync_to_async(self._call_create_game)(2)
@@ -997,3 +998,98 @@ class TestUtility:
         assert player_1.cash == player_1_cash_before - expected_rent
         assert self.game.current_player == player_2
         assert player_2.pending_action.action_type == PendingAction.Types.ROLL_DICE
+
+
+@pytest.mark.django_db
+class TestTax:
+    monopoly_service: ClassicMonopolyService
+    game: Game
+    player_1: Player
+    player_2: Player
+    player_3: Player
+
+    def setup_method(self, method):
+        PopulateDatabaseCommand().handle()
+
+    def _refresh_game_and_players(self):
+        """Refresh game and all players from DB"""
+        self.game.refresh_from_db()
+        for player in self.players:
+            player.refresh_from_db()
+
+    def _create_game(self, players: int):
+        self.tg_users = mock_data.create_telegram_users(players, synthetic=True)
+        self.monopoly_service = get_service_by_name("classic")  # type: ignore[assignment]
+        self.game = self.monopoly_service.create_game(self.tg_users[0], players)
+
+        for i in range(1, players):
+            player, _ = self.monopoly_service.join_game(self.game.uuid, self.tg_users[i])
+
+        game_players = self.game.players.all()
+        self.players = list(game_players)
+        self._refresh_game_and_players()
+
+    @pytest.mark.parametrize(
+        ("should_roll_double", "should_have_enough_money"),
+        [
+            (False, True),
+            (True, True),
+            (False, True),
+            (False, True),
+            (False, False),
+        ],
+        ids=[
+            "no_double_enough_money_1",
+            "double_enough_money",
+            "no_double_enough_money_2",
+            "no_double_enough_money_3",
+            "no_double_not_enough_money",
+        ],
+    )
+    @no_type_check
+    def test_landing_on_tax(self, should_roll_double, should_have_enough_money):
+        self._create_game(2)
+        player_1: Player = self.players[0]
+        player_2: Player = self.players[1]
+        player_1_cash_before = player_1.cash
+
+        if not should_have_enough_money:
+            player_1.cash = 1
+            player_1.save()
+
+        tax = Tax.objects.filter(board_config=self.game.board_config).first()
+        dice_values = [tax.position - 1, 1]
+
+        if should_roll_double:
+            player_1.position = (player_1.position - tax.position) % self.game.board_config.tiles.count()
+            player_1.save()
+            dice_values = [tax.position] * 2
+
+        with patch("game.services.ClassicMonopolyService._roll_dice_values", return_value=dice_values):
+            game_frame = self.monopoly_service.process_game_action(self.game.uuid, player_1.pk, "roll_dice")
+
+        self._refresh_game_and_players()
+
+        assert self.game.current_player == player_1
+        assert player_1.pending_action.action_type == PendingAction.Types.PAY_TAX
+
+        if not should_have_enough_money:
+            with pytest.raises(GameException):
+                self.monopoly_service.process_game_action(self.game.uuid, player_1.pk, "accept")
+        else:
+            self.monopoly_service.process_game_action(self.game.uuid, player_1.pk, "accept")
+
+        self._refresh_game_and_players()
+        if should_have_enough_money:
+            assert player_1.cash == player_1_cash_before - 100
+
+        if should_roll_double:
+            assert self.game.current_player == player_1
+            assert player_1.pending_action.action_type == PendingAction.Types.ROLL_DICE
+        else:
+            if not should_have_enough_money:
+                assert self.game.current_player == player_1
+                assert player_1.pending_action.action_type == PendingAction.Types.PAY_TAX
+            else:
+                assert self.game.current_player == player_2
+                assert player_2.pending_action.action_type == PendingAction.Types.ROLL_DICE

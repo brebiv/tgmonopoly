@@ -46,3 +46,7 @@ class AuctionData(BaseModel):
 
 class PayRentData(BaseModel):
     rent: int
+
+
+class PayTaxData(BaseModel):
+    amount: int

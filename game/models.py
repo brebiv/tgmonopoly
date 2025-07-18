@@ -312,6 +312,7 @@ class PendingAction(models.Model):
         ROLL_DICE = "roll_dice"
         BUY_PROPERTY = "buy_property"
         PAY_RENT = "pay_rent"
+        PAY_TAX = "pay_tax"
         IN_AUCTION = "IN_AUCTION"
 
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4)

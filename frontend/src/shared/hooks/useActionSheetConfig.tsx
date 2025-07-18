@@ -1,6 +1,7 @@
 import {
   validateInAuctionAction,
   validatePayRentAction,
+  validatePayTaxAction,
 } from "@/app/lib/gameActionProcessing/gameActionValidators";
 import { useGameStore } from "@/entities/gameStore";
 import { GameActionType, PendingActionTypes, type BoardConfig } from "@/entities/types";
@@ -107,6 +108,25 @@ export const useActionSheetConfig = (
             <BanknoteIcon />
             {"Pay"}
           </AcceptActionButton>,
+        ],
+      };
+    }
+    case PendingActionTypes.PAY_TAX: {
+      let tile = getTileByPosition(myPlayer.position);
+      let { amount } = validatePayTaxAction(pending);
+
+      if (!tile) {
+        throw new Error("Could not find tile for player position");
+      }
+
+      return {
+        title: "You have to pay tax!",
+        hint: `You have to pay $${amount}`,
+        actions: [
+          <RejectButton action={GameActionType.ACCEPT}>
+            <BanknoteIcon />
+            {"Pay"}
+          </RejectButton>,
         ],
       };
     }

@@ -23,11 +23,13 @@ from game.models import (
     Police,
     Utility,
     Tile,
+    Tax,
+    Start,
 )
 from game.game_config import BaseMonopolyConfig, ClassicMonopolyConfig
 from game.exceptions import GameException
 from game.serializers import GameEventSerializer, GameSerializer, PlayerSerializer
-from game.schemas import AuctionData, PayRentData
+from game.schemas import AuctionData, PayRentData, PayTaxData
 
 
 logger = logging.getLogger(__name__)
@@ -59,8 +61,8 @@ class BaseMonopoly(ABC):
             raise NotImplementedError(
                 "Current only two dices supported because of dice double calculation logic"
             )
-        return [2, 1]
-        # return [2, 2]
+        # return [2, 1]
+        return [2, 2]
         # return [random.randint(min_value, max_value) for _ in range(dices_count)]
 
     def _create_game_event(self, game: Game, event_type: GameEvent.Types, extra_data: Optional[dict] = None):
@@ -103,7 +105,7 @@ class ClassicMonopolyService(BaseMonopoly):
     def __init__(self) -> None:
         self.config = ClassicMonopolyConfig()
         self.PENDING_ACTION_COMMAND_HANDLERS: dict[
-            PendingAction.Types, dict[str, Callable[[Game, Player, Optional[PendingAction]], Any]]
+            PendingAction.Types, dict[str, Callable[[Game, Player, PendingAction], Any]]
         ] = {
             PendingAction.Types.ROLL_DICE: {
                 "roll_dice": self._handle_dice_roll,
@@ -115,6 +117,9 @@ class ClassicMonopolyService(BaseMonopoly):
             },
             PendingAction.Types.PAY_RENT: {
                 "accept": self._pay_rent,
+            },
+            PendingAction.Types.PAY_TAX: {
+                "accept": self._handle_pay_tax,
             },
             PendingAction.Types.IN_AUCTION: {
                 "accept": self._accept_auction,
@@ -291,7 +296,18 @@ class ClassicMonopolyService(BaseMonopoly):
             events.extend(move_to_jail_event)
             next_turn_events = self._next_turn(game, player)
             events.extend(next_turn_events)
+        elif isinstance(downcasted_tile, Tax):
+            paytax_data = PayTaxData(amount=100)
+            pa = PendingAction.objects.create(
+                player=player,
+                action_type=PendingAction.Types.PAY_TAX,
+                expires_at=timezone.now(),
+                action_data=paytax_data.model_dump(),
+            )
+        elif isinstance(downcasted_tile, Start):
+            self._next_turn(game, player)
         else:
+            raise NotImplementedError()
             self._next_turn(game, player)
 
         player.save()
@@ -423,7 +439,7 @@ class ClassicMonopolyService(BaseMonopoly):
 
         return events
 
-    def _pay_rent(self, game: Game, player: Player, resolved_pa) -> list[GameEvent]:
+    def _pay_rent(self, game: Game, player: Player, resolved_pa: PendingAction) -> list[GameEvent]:
         events = []
 
         payrent_data = PayRentData(**resolved_pa.action_data)
@@ -439,6 +455,23 @@ class ClassicMonopolyService(BaseMonopoly):
         owner.cash += rent
         player.save()
         owner.save()
+
+        next_turn_events = self._next_turn(game, player)
+        events.extend(next_turn_events)
+
+        return events
+
+    def _handle_pay_tax(self, game: Game, player: Player, resolved_pa: PendingAction) -> list[GameEvent]:
+        events = []
+
+        action_data = PayTaxData(**resolved_pa.action_data)
+        amount = action_data.amount
+
+        if player.cash < amount:
+            raise GameException("You don't have enough money to pay tax")
+
+        player.cash -= amount
+        player.save()
 
         next_turn_events = self._next_turn(game, player)
         events.extend(next_turn_events)

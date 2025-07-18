@@ -21,6 +21,8 @@ const PurchasableTile: React.FC<TileProps> = ({ tile, side, owner }) => {
     return <h1>Could not find property group {tile.group}</h1>;
   }
 
+  let price = owner ? tile.rent : tile.price;
+
   return (
     <>
       {/* Group marker */}
@@ -40,7 +42,7 @@ const PurchasableTile: React.FC<TileProps> = ({ tile, side, owner }) => {
             "-rotate-90": side == "left",
           })}
         >
-          {tile.price}
+          {price}
         </p>
       </div>
       {/* Image */}

@@ -1,3 +1,4 @@
+from typing import no_type_check
 import pytest
 import math
 from unittest.mock import patch
@@ -10,7 +11,19 @@ from tgmonopoly.asgi import application
 from game.management.commands.populate_database import (
     Command as PopulateDatabaseCommand,
 )
-from game.models import PendingAction, BoardConfig, Game, Player, Property, Jail, Police, Ownership, GameEvent
+from game.models import (
+    PendingAction,
+    BoardConfig,
+    Game,
+    Player,
+    Property,
+    Jail,
+    Police,
+    Ownership,
+    GameEvent,
+    Utility,
+    UtilityGroup,
+)
 from game.services import get_service_by_name, ClassicMonopolyService
 from game.exceptions import GameException
 from .. import BaseApiTestCase
@@ -117,7 +130,7 @@ class DiceRollAPITest(BaseApiTestCase):
 
         await communicator.send_to("roll_dice")
 
-        for _ in range(4):
+        for _ in range(5):
             game_frame = await communicator.receive_json_from()
             p1 = game_frame["game"]["players"][0]
             if p1["in_jail"]:
@@ -224,7 +237,7 @@ class TestAuctionLegacy(BaseApiTestCase):
 
         self.assertEqual(self.game.current_player, self.player_2)
         self.assertEqual(self.player_2.pending_action.action_type, PendingAction.Types.IN_AUCTION)
-        self.assertEqual(self.player_2.pending_action.action_data.get("property_id"), property.pk)
+        self.assertEqual(self.player_2.pending_action.action_data.get("tile_id"), property.pk)
         self.assertEqual(self.player_2.pending_action.action_data.get("current_price"), property.price * 1.1)
         self.assertListEqual(
             self.player_2.pending_action.action_data.get("players"),
@@ -288,7 +301,7 @@ class TestAuctionLegacy(BaseApiTestCase):
         self.assertEqual(self.game.turn, 1)
         self.assertEqual(self.game.current_player, self.player_2)
         self.assertEqual(self.player_2.pending_action.action_type, PendingAction.Types.IN_AUCTION)
-        self.assertEqual(self.player_2.pending_action.action_data.get("property_id"), property.pk)
+        self.assertEqual(self.player_2.pending_action.action_data.get("tile_id"), property.pk)
         self.assertEqual(
             self.player_2.pending_action.action_data.get("current_price"), expected_property_price
         )
@@ -336,7 +349,7 @@ class TestAuctionLegacy(BaseApiTestCase):
         self.assertEqual(self.game.turn, 1)
         self.assertEqual(self.game.current_player, self.player_2)
         self.assertEqual(self.player_2.pending_action.action_type, PendingAction.Types.IN_AUCTION)
-        self.assertEqual(self.player_2.pending_action.action_data.get("property_id"), property.pk)
+        self.assertEqual(self.player_2.pending_action.action_data.get("tile_id"), property.pk)
         self.assertEqual(
             self.player_2.pending_action.action_data.get("current_price"), expected_property_price
         )
@@ -426,7 +439,7 @@ class TestAuction:
         assert self.game.turn == 1
         assert self.game.current_player == self.player_2
         assert self.player_2.pending_action.action_type == PendingAction.Types.IN_AUCTION
-        assert self.player_2.pending_action.action_data.get("property_id") == property.pk
+        assert self.player_2.pending_action.action_data.get("tile_id") == property.pk
         assert self.player_2.pending_action.action_data.get("current_price") == expected_property_price
 
         assert self.player_2.pending_action.action_data.get("next_price") is None
@@ -751,9 +764,6 @@ class TestPayRent:
             # Roll dice and but property on position 3
             game_frame = self.monopoly_service.process_game_action(self.game.uuid, player_1.pk, "roll_dice")
 
-            with open("events", "w") as f:
-                print(str(game_frame["events"]), file=f)
-
         self._refresh_game_and_players()
 
         assert self.game.current_player == player_2
@@ -768,3 +778,222 @@ class TestPayRent:
             )
             is not None
         )
+
+
+@pytest.mark.django_db
+class TestUtility:
+    monopoly_service: ClassicMonopolyService
+    game: Game
+    player_1: Player
+    player_2: Player
+    player_3: Player
+
+    def setup_method(self, method):
+        PopulateDatabaseCommand().handle()
+
+    def _refresh_game_and_players(self):
+        """Refresh game and all players from DB"""
+        self.game.refresh_from_db()
+        for player in self.players:
+            player.refresh_from_db()
+
+    def _create_game(self, players: int):
+        self.tg_users = mock_data.create_telegram_users(players, synthetic=True)
+        self.monopoly_service = get_service_by_name("classic")  # type: ignore[assignment]
+        self.game = self.monopoly_service.create_game(self.tg_users[0], players)
+
+        for i in range(1, players):
+            player, _ = self.monopoly_service.join_game(self.game.uuid, self.tg_users[i])
+
+        game_players = self.game.players.all()
+        self.players = list(game_players)
+        self._refresh_game_and_players()
+
+    @pytest.mark.parametrize(
+        ("should_roll_double",),
+        [
+            (False,),
+            (True,),
+        ],
+    )
+    @no_type_check
+    def test_landing_on_free_utility_buy(self, should_roll_double):
+        self._create_game(2)
+        player_1: Player = self.players[0]
+        player_2: Player = self.players[1]
+
+        utility = Utility.objects.get(board_config=self.game.board_config, position=5)
+        dice_values = [utility.position - 1, 1]
+
+        if should_roll_double:
+            player_1.position = (player_1.position - utility.position) % self.game.board_config.tiles.count()
+            player_1.save()
+            dice_values = [utility.position] * 2
+
+        with patch("game.services.ClassicMonopolyService._roll_dice_values", return_value=dice_values):
+            game_frame = self.monopoly_service.process_game_action(self.game.uuid, player_1.pk, "roll_dice")
+
+        self._refresh_game_and_players()
+
+        assert self.game.current_player == player_1
+        assert player_1.pending_action.action_type == PendingAction.Types.BUY_PROPERTY
+
+        self.monopoly_service.process_game_action(self.game.uuid, player_1.pk, "accept")
+        self._refresh_game_and_players()
+
+        if should_roll_double:
+            assert self.game.current_player == player_1
+            assert player_1.pending_action.action_type == PendingAction.Types.ROLL_DICE
+        else:
+            assert self.game.current_player == player_2
+            assert player_2.pending_action.action_type == PendingAction.Types.ROLL_DICE
+
+    @pytest.mark.parametrize(
+        ("should_roll_double", "auction_action", "player_2_expected_ownerships_count"),
+        [
+            (False, "reject", 0),
+            (True, "accept", 1),
+        ],
+    )
+    @no_type_check
+    def test_landing_on_free_utility_auction(
+        self, should_roll_double, auction_action, player_2_expected_ownerships_count
+    ):
+        self._create_game(2)
+        player_1: Player = self.players[0]
+        player_2: Player = self.players[1]
+
+        utility = Utility.objects.get(board_config=self.game.board_config, position=5)
+        dice_values = [utility.position - 1, 1]
+
+        if should_roll_double:
+            player_1.position = (player_1.position - utility.position) % self.game.board_config.tiles.count()
+            player_1.save()
+            dice_values = [utility.position] * 2
+
+        with patch("game.services.ClassicMonopolyService._roll_dice_values", return_value=dice_values):
+            game_frame = self.monopoly_service.process_game_action(self.game.uuid, player_1.pk, "roll_dice")
+
+        self._refresh_game_and_players()
+
+        assert self.game.current_player == player_1
+        assert player_1.pending_action.action_type == PendingAction.Types.BUY_PROPERTY
+
+        self.monopoly_service.process_game_action(self.game.uuid, player_1.pk, "start_auction")
+        self._refresh_game_and_players()
+
+        assert self.game.current_player == player_2
+        assert player_2.pending_action.action_type == PendingAction.Types.IN_AUCTION
+
+        self.monopoly_service.process_game_action(self.game.uuid, player_2.pk, auction_action)
+        self._refresh_game_and_players()
+
+        assert player_2.ownerships.count() == player_2_expected_ownerships_count
+
+        if should_roll_double:
+            assert self.game.current_player == player_1
+            assert player_1.pending_action.action_type == PendingAction.Types.ROLL_DICE
+        else:
+            assert self.game.current_player == player_2
+            assert player_2.pending_action.action_type == PendingAction.Types.ROLL_DICE
+
+    @pytest.mark.parametrize(
+        ("utility_group", "own_entire_group"),
+        [
+            (UtilityGroup.Types.UTILITY_1, False),
+            (UtilityGroup.Types.UTILITY_1, True),
+        ],
+    )
+    @no_type_check
+    def test_landing_on_owned_utility_1(self, utility_group, own_entire_group):
+        self._create_game(2)
+        player_1: Player = self.players[0]
+        player_2: Player = self.players[1]
+        player_1_cash_before = player_1.cash
+
+        if own_entire_group:
+            utilities = list(
+                Utility.objects.filter(board_config=self.game.board_config, group__type=utility_group).all()
+            )
+        else:
+            utilities = list(
+                Utility.objects.filter(board_config=self.game.board_config, group__type=utility_group)[:1]
+            )
+
+        for u in utilities:
+            ownership = Ownership.objects.create(
+                game=self.game,
+                player=player_2,
+                tile=u,
+            )
+
+        dice_values = [utilities[0].position - 1, 1]
+
+        with patch("game.services.ClassicMonopolyService._roll_dice_values", return_value=dice_values):
+            game_frame = self.monopoly_service.process_game_action(self.game.uuid, player_1.pk, "roll_dice")
+
+        self._refresh_game_and_players()
+
+        expected_rent = utilities[0].rent * len(utilities)
+
+        assert self.game.current_player == player_1
+        assert player_1.pending_action.action_type == PendingAction.Types.PAY_RENT  # type: ignore[union-attr]
+        assert player_1.pending_action.action_data.get("rent") == expected_rent
+
+        self.monopoly_service.process_game_action(self.game.uuid, player_1.pk, "accept")
+        self._refresh_game_and_players()
+
+        assert player_1.cash == player_1_cash_before - expected_rent
+        assert self.game.current_player == player_2
+        assert player_2.pending_action.action_type == PendingAction.Types.ROLL_DICE
+
+    @pytest.mark.parametrize(
+        ("utility_group", "own_entire_group"),
+        [
+            (UtilityGroup.Types.UTILITY_2, False),
+            (UtilityGroup.Types.UTILITY_2, True),
+        ],
+    )
+    @no_type_check
+    def test_landing_on_owned_utility_2(self, utility_group, own_entire_group):
+        self._create_game(2)
+        player_1: Player = self.players[0]
+        player_2: Player = self.players[1]
+        player_1_cash_before = player_1.cash
+
+        if own_entire_group:
+            utilities = list(
+                Utility.objects.filter(board_config=self.game.board_config, group__type=utility_group).all()
+            )
+        else:
+            utilities = list(
+                Utility.objects.filter(board_config=self.game.board_config, group__type=utility_group)[:1]
+            )
+
+        for u in utilities:
+            ownership = Ownership.objects.create(
+                game=self.game,
+                player=player_2,
+                tile=u,
+            )
+
+        dice_values = [utilities[0].position - 1, 1]
+        utility_2_multiplier = 10 if own_entire_group else 4
+
+        with patch("game.services.ClassicMonopolyService._roll_dice_values", return_value=dice_values):
+            game_frame = self.monopoly_service.process_game_action(self.game.uuid, player_1.pk, "roll_dice")
+
+        self._refresh_game_and_players()
+
+        expected_rent = sum(dice_values) * utility_2_multiplier
+
+        assert self.game.current_player == player_1
+        assert player_1.pending_action.action_type == PendingAction.Types.PAY_RENT  # type: ignore[union-attr]
+        assert player_1.pending_action.action_data.get("rent") == expected_rent
+
+        self.monopoly_service.process_game_action(self.game.uuid, player_1.pk, "accept")
+        self._refresh_game_and_players()
+
+        assert player_1.cash == player_1_cash_before - expected_rent
+        assert self.game.current_player == player_2
+        assert player_2.pending_action.action_type == PendingAction.Types.ROLL_DICE

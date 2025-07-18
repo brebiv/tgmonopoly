@@ -68,6 +68,19 @@ class PlayerSerializer(serializers.ModelSerializer):
 
 class OwnershipSerializer(serializers.ModelSerializer):
     tile_position = serializers.IntegerField(source="tile.position")
+    # rent = serializers.IntegerField(source="calculate_rent")
+    rent = serializers.SerializerMethodField()
+
+    def get_rent(self, obj: Ownership) -> int | str:
+        tile = obj.tile
+        downcasted_tile = tile.downcast()
+        if isinstance(downcasted_tile, Utility):
+            if downcasted_tile.group.type == UtilityGroup.Types.UTILITY_2:
+                if obj.owns_entire_group():
+                    return "4x"
+                else:
+                    return "2x"
+        return obj.calculate_rent()
 
     class Meta:
         model = Ownership

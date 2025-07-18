@@ -1,17 +1,19 @@
 import type React from "react";
-import type { Player, Tile } from "@/entities/types";
-import cn from "classnames";
+import type { Ownership, Tile } from "@/entities/types";
+import { cn } from "@/shared/utils";
 import { CloverIcon, CoinsIcon, Columns4Icon, GoalIcon, PiggyBankIcon, SirenIcon } from "lucide-react";
 import { useGameBoardContext } from "@/entities/GameBoardContext";
+import { useGameStore } from "@/entities/gameStore";
 
 interface TileProps {
   tile: Tile;
   side: "top" | "right" | "bottom" | "left";
-  owner?: Player;
+  ownership?: Ownership;
 }
 
-const PurchasableTile: React.FC<TileProps> = ({ tile, side, owner }) => {
+const PurchasableTile: React.FC<TileProps> = ({ tile, side, ownership }) => {
   const { boardConfig } = useGameBoardContext();
+  const { getPlayerById } = useGameStore();
   const propertyGroup = boardConfig?.property_groups.find(
     (property_group) => property_group.id == tile.group,
   );
@@ -21,7 +23,8 @@ const PurchasableTile: React.FC<TileProps> = ({ tile, side, owner }) => {
     return <h1>Could not find property group {tile.group}</h1>;
   }
 
-  let price = owner ? tile.rent : tile.price;
+  let price = ownership ? ownership.rent : tile.price;
+  let owner = ownership && getPlayerById(ownership.player);
 
   return (
     <>
@@ -68,7 +71,7 @@ const PurchasableTile: React.FC<TileProps> = ({ tile, side, owner }) => {
   );
 };
 
-export const BoardTile: React.FC<TileProps> = ({ tile, side, owner }) => {
+export const BoardTile: React.FC<TileProps> = ({ tile, side, ownership }) => {
   const { tile_type } = tile;
 
   return (
@@ -81,8 +84,8 @@ export const BoardTile: React.FC<TileProps> = ({ tile, side, owner }) => {
       {/* Inner content wrapper */}
       <div className="absolute flex h-full w-full items-center justify-center">
         {/* Tiles */}
-        {tile_type == "property" && <PurchasableTile tile={tile} side={side} owner={owner} />}
-        {tile_type == "utility" && <PurchasableTile tile={tile} side={side} owner={owner} />}
+        {tile_type == "property" && <PurchasableTile tile={tile} side={side} ownership={ownership} />}
+        {tile_type == "utility" && <PurchasableTile tile={tile} side={side} ownership={ownership} />}
         {tile_type == "chance" && <CloverIcon color="black" />}
         {tile_type == "tax" && <PiggyBankIcon color="black" />}
         {/* Corners */}

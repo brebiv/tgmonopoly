@@ -41,6 +41,7 @@ export type ActionData = {
   started_by_id?: number;
   players?: number[];
   is_bet?: boolean;
+  rent?: number;
 };
 
 export interface PendingAction {
@@ -74,6 +75,7 @@ export type Ownership = {
   houses: number;
   mortgaged: boolean;
   mortage_last_turn: number | null;
+  rent: number | string;
 };
 
 export type Game = {

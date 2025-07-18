@@ -35,18 +35,14 @@ export const TileRenderer: React.FC<TileRendererProps> = ({ tiles, onLoad, child
       <div className="relative col-span-11 row-start-1 grid grid-cols-subgrid gap-[2px]">
         {tiles.slice(0, 11).map((tile, i) => {
           let ownership = game?.ownerships.find((o) => o.tile_position === tile.position);
-          let player = game?.players.find((p) => p.id == ownership?.player);
-
-          return <BoardTile key={i} tile={tile} side="top" owner={player} />;
+          return <BoardTile key={i} tile={tile} side="top" ownership={ownership} />;
         })}
       </div>
       {/* Right */}
       <div className="col-start-11 row-span-10 row-start-2 grid grid-cols-subgrid grid-rows-subgrid gap-[2px]">
         {tiles.slice(11, 21).map((tile, i) => {
           let ownership = game?.ownerships.find((o) => o.tile_position === tile.position);
-          let player = game?.players.find((p) => p.id == ownership?.player);
-
-          return <BoardTile key={i} tile={tile} side="right" owner={player} />;
+          return <BoardTile key={i} tile={tile} side="right" ownership={ownership} />;
         })}
       </div>
       {/* Bottom */}
@@ -56,9 +52,7 @@ export const TileRenderer: React.FC<TileRendererProps> = ({ tiles, onLoad, child
       >
         {tiles.slice(21, 31).map((tile, i) => {
           let ownership = game?.ownerships.find((o) => o.tile_position === tile.position);
-          let player = game?.players.find((p) => p.id == ownership?.player);
-
-          return <BoardTile key={i} tile={tile} side="bottom" owner={player} />;
+          return <BoardTile key={i} tile={tile} side="bottom" ownership={ownership} />;
         })}
       </div>
       {/* Left */}
@@ -68,9 +62,7 @@ export const TileRenderer: React.FC<TileRendererProps> = ({ tiles, onLoad, child
           .reverse()
           .map((tile, i) => {
             let ownership = game?.ownerships.find((o) => o.tile_position === tile.position);
-            let player = game?.players.find((p) => p.id == ownership?.player);
-
-            return <BoardTile key={i} tile={tile} side="left" owner={player} />;
+            return <BoardTile key={i} tile={tile} side="left" ownership={ownership} />;
           })}
       </div>
       {/* Center */}

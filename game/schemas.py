@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, Literal
+from typing import Optional, Literal, List
 
 
 class PropertyGroup(BaseModel):
@@ -31,7 +31,18 @@ class Tile(BaseModel):
     id: int
     position: int
     name: str
-    type: Literal[
-        "START", "PROPERTY", "CHANCE", "TAX", "UTILITY", "JAIL", "CASINO", "POLICE"
-    ]
+    type: Literal["START", "PROPERTY", "CHANCE", "TAX", "UTILITY", "JAIL", "CASINO", "POLICE"]
     propertyData: Optional[PropertyData]
+
+
+class AuctionData(BaseModel):
+    tile_id: int
+    current_price: int
+    next_price: Optional[int]
+    started_by_id: int
+    players: List[int]
+    is_bet: bool
+
+
+class PayRentData(BaseModel):
+    rent: int

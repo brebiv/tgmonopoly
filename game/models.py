@@ -2,13 +2,15 @@ import uuid
 from typing import Union
 
 from django.db import models
-from django.db.models import Q
+from django.db.models import Q, QuerySet
+from django.db import IntegrityError
 from django.core.validators import MinValueValidator
 from django.core.exceptions import ValidationError
 
 from bot.models import TelegramUser
 from .utils import validate_color
 from .game_config import get_config
+from .exceptions import GameException
 
 
 class BoardConfig(models.Model):
@@ -50,7 +52,7 @@ class Tile(models.Model):
             models.UniqueConstraint(fields=["board_config", "position"], name="unique_board_config_position")
         ]
 
-    def downcast(self) -> Union["Start", "Tax", "Chance", "Jail"]:
+    def downcast(self) -> Union["Start", "Tax", "Chance", "Jail", "Property", "Utility"]:
         children_names = [c.__name__.lower() for c in Tile.__subclasses__()]
         for c in children_names:
             try:
@@ -109,7 +111,8 @@ class Property(Tile):
 class Utility(Tile):
     price = models.IntegerField()
     mortgage_value = models.IntegerField()
-    group = models.ForeignKey(UtilityGroup, on_delete=models.CASCADE, null=True, blank=True)
+    group = models.ForeignKey(UtilityGroup, on_delete=models.CASCADE)
+    rent = models.PositiveIntegerField(default=0)
 
     icon = models.ImageField(upload_to="properties", null=True, blank=True)
 
@@ -237,6 +240,55 @@ class Ownership(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
+
+    def calculate_rent(self, dice_sum: int | None = None) -> int:
+        downcasted_tile = self.tile.downcast()
+        if isinstance(downcasted_tile, Utility):
+            if downcasted_tile.group.type == UtilityGroup.Types.UTILITY_1:
+                multiplier = self.get_ownerships_in_the_group().count()
+                return downcasted_tile.rent * multiplier
+            elif downcasted_tile.group.type == UtilityGroup.Types.UTILITY_2:
+                if dice_sum is None:
+                    raise GameException("You have to pass dice_sum for calculating rent on utility type 2")
+
+                if self.owns_entire_group():
+                    return dice_sum * 10
+                else:
+                    return dice_sum * 4
+        elif isinstance(downcasted_tile, Property):
+            return downcasted_tile.rent
+
+        raise GameException("Can not calculate rent for not buyable tile")
+
+    def get_ownerships_in_the_group(self) -> QuerySet["Ownership"]:
+        downcasted_tile = self.tile.downcast()
+        if isinstance(downcasted_tile, Property):
+            tiles_in_group = Property.objects.filter(group=downcasted_tile.group)
+        elif isinstance(downcasted_tile, Utility):
+            tiles_in_group = Utility.objects.filter(group=downcasted_tile.group)  # type: ignore[assignment]
+        else:
+            raise IntegrityError("Ownership on something other then Property or Utility!")
+
+        ownerships = Ownership.objects.filter(
+            player=self.player, game=self.game, tile__in=tiles_in_group, mortgaged=False
+        )
+
+        return ownerships
+
+    def owns_entire_group(self) -> bool:
+        """
+        Checks if the player owns every property in the group.
+        """
+        downcasted_tile = self.tile.downcast()
+        if isinstance(downcasted_tile, Property):
+            tiles_in_group = Property.objects.filter(group=downcasted_tile.group)
+        elif isinstance(downcasted_tile, Utility):
+            tiles_in_group = Utility.objects.filter(group=downcasted_tile.group)  # type: ignore[assignment]
+        else:
+            raise IntegrityError("Ownership on something other then Property or Utility!")
+
+        ownerships = self.get_ownerships_in_the_group()
+        return ownerships.count() == tiles_in_group.count()
 
 
 class GameEvent(models.Model):

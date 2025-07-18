@@ -1,4 +1,7 @@
-import { validateInAuctionAction } from "@/app/lib/gameActionProcessing/gameActionValidators";
+import {
+  validateInAuctionAction,
+  validatePayRentAction,
+} from "@/app/lib/gameActionProcessing/gameActionValidators";
 import { useGameStore } from "@/entities/gameStore";
 import { GameActionType, PendingActionTypes, type BoardConfig } from "@/entities/types";
 import { AcceptActionButton } from "@/features/accept-action/AcceptActionButton";
@@ -79,6 +82,7 @@ export const useActionSheetConfig = (
     case PendingActionTypes.PAY_RENT: {
       let tile = getTileByPosition(myPlayer.position);
       let ownership = getOwnershipByPosition(myPlayer.position);
+      let { rent } = validatePayRentAction(pending);
 
       if (!tile) {
         throw new Error("Could not find tile for player position");
@@ -97,7 +101,7 @@ export const useActionSheetConfig = (
             You landed on <span style={{ color: player.color }}>{tile.name}</span>!
           </>
         ),
-        hint: `You have to pay rent of $${tile.rent}`,
+        hint: `You have to pay rent of $${rent}`,
         actions: [
           <AcceptActionButton>
             <BanknoteIcon />

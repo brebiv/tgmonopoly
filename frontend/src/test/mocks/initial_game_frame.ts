@@ -3,17 +3,17 @@ import type { GameFrame } from "@/entities/types";
 export default {
   type: "game.initial",
   game: {
-    uuid: "915ae7f7-d66f-434b-bf70-015b56c924d3",
+    uuid: "fba63104-6ebb-4596-98ae-91765a17b334",
     board_config: "classic",
     max_players: 2,
-    turn: 5,
+    turn: 3,
     current_player: 1,
     status: "PLAYING",
     players: [
       {
         id: 1,
-        position: 6,
-        cash: 20,
+        position: 5,
+        cash: 900,
         color: "blue",
         rolled_double: false,
         double_count: 0,
@@ -27,16 +27,16 @@ export default {
         pending_action: {
           action_type: "roll_dice",
           action_data: {},
-          created: "2025-07-14T11:33:49.553009Z",
-          expires_at: "2025-07-14T11:33:49.552630Z",
+          created: "2025-07-18T10:42:24.505061Z",
+          expires_at: "2025-07-18T10:42:24.504948Z",
           resolved_at: null,
           player: 1,
         },
       },
       {
         id: 2,
-        position: 6,
-        cash: 0,
+        position: 5,
+        cash: 900,
         color: "red",
         rolled_double: false,
         double_count: 0,
@@ -51,15 +51,14 @@ export default {
       },
     ],
     ownerships: [
-      { tile_position: 3, houses: 0, mortgaged: false, mortage_last_turn: null, player: 1 },
-      { tile_position: 6, houses: 0, mortgaged: false, mortage_last_turn: null, player: 1 },
+      { tile_position: 5, rent: 100, houses: 0, mortgaged: false, mortage_last_turn: null, player: 1 },
     ],
   },
   players: [
     {
       id: 1,
-      position: 6,
-      cash: 20,
+      position: 5,
+      cash: 900,
       color: "blue",
       rolled_double: false,
       double_count: 0,
@@ -73,16 +72,16 @@ export default {
       pending_action: {
         action_type: "roll_dice",
         action_data: {},
-        created: "2025-07-14T11:33:49.553009Z",
-        expires_at: "2025-07-14T11:33:49.552630Z",
+        created: "2025-07-18T10:42:24.505061Z",
+        expires_at: "2025-07-18T10:42:24.504948Z",
         resolved_at: null,
         player: 1,
       },
     },
     {
       id: 2,
-      position: 6,
-      cash: 0,
+      position: 5,
+      cash: 900,
       color: "red",
       rolled_double: false,
       double_count: 0,
@@ -97,7 +96,7 @@ export default {
     },
   ],
   events: [],
-  my_player_id: 2,
+  my_player_id: 1,
   board_config: {
     name: "classic",
     property_groups: [

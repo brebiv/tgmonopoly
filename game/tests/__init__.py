@@ -9,7 +9,7 @@ from game.management.commands.populate_database import (
 )
 from game.models import Game, BoardConfig, Player
 from .mixins import TelegramAuthMixin
-from . import test_data
+from .classic import mock_data
 
 
 class BaseApiTestCase(TestCase, TelegramAuthMixin):
@@ -19,15 +19,15 @@ class BaseApiTestCase(TestCase, TelegramAuthMixin):
     def setUp(self):
         PopulateDatabaseCommand().populate()
 
-        headers_1 = self.generate_auth_headers(test_data._TG_INIT_DATA_1)
-        headers_2 = self.generate_auth_headers(test_data._TG_INIT_DATA_2)
+        headers_1 = self.generate_auth_headers(mock_data._TG_INIT_DATA_1)
+        headers_2 = self.generate_auth_headers(mock_data._TG_INIT_DATA_2)
 
         self.client_1 = Client(headers=headers_1)
         self.client_2 = Client(headers=headers_2)
 
         self.clients = [self.client_1, self.client_2]
 
-        self.tg_users = test_data.create_telegram_users(2)
+        self.tg_users = mock_data.create_telegram_users(2)
         self.tg_user_1 = self.tg_users[0]
         self.tg_user_2 = self.tg_users[1]
 

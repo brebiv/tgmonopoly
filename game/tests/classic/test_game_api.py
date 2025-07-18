@@ -5,6 +5,7 @@ from channels.testing import WebsocketCommunicator
 from channels.db import database_sync_to_async
 from django.db import IntegrityError
 
+from . import mock_data
 from tgmonopoly.asgi import application
 from game.management.commands.populate_database import (
     Command as PopulateDatabaseCommand,
@@ -12,7 +13,7 @@ from game.management.commands.populate_database import (
 from game.models import PendingAction, BoardConfig, Game, Player, Property, Jail, Police, Ownership, GameEvent
 from game.services import get_service_by_name, ClassicMonopolyService
 from game.exceptions import GameException
-from . import BaseApiTestCase, test_data
+from .. import BaseApiTestCase
 
 
 class CreateGameAPITest(BaseApiTestCase):
@@ -39,7 +40,7 @@ class DiceRollAPITest(BaseApiTestCase):
 
         await database_sync_to_async(self._call_create_game)(2)
 
-        ws_url = f"/ws/game/{self.game.uuid}/?" + test_data.TG_INIT_DATA_RAW_LIST[0]
+        ws_url = f"/ws/game/{self.game.uuid}/?" + mock_data.TG_INIT_DATA_RAW_LIST[0]
         communicator = WebsocketCommunicator(application, ws_url)
         connected, _ = await communicator.connect()
 
@@ -72,7 +73,7 @@ class DiceRollAPITest(BaseApiTestCase):
     async def test_not_your_turn(self):
         await database_sync_to_async(self._call_create_game)(2)
 
-        ws_url = f"/ws/game/{self.game.uuid}/?" + test_data.TG_INIT_DATA_RAW_LIST[1]
+        ws_url = f"/ws/game/{self.game.uuid}/?" + mock_data.TG_INIT_DATA_RAW_LIST[1]
         communicator = WebsocketCommunicator(application, ws_url)
         connected, _ = await communicator.connect()
 
@@ -94,7 +95,7 @@ class DiceRollAPITest(BaseApiTestCase):
 
         await database_sync_to_async(self._call_create_game)(2)
 
-        ws_url = f"/ws/game/{self.game.uuid}/?" + test_data.TG_INIT_DATA_RAW_LIST[0]
+        ws_url = f"/ws/game/{self.game.uuid}/?" + mock_data.TG_INIT_DATA_RAW_LIST[0]
         communicator = WebsocketCommunicator(application, ws_url)
         connected, _ = await communicator.connect()
 
@@ -137,7 +138,7 @@ class DiceRollAPITest(BaseApiTestCase):
     async def test_go_to_jail_from_police(self, mock_dice_values):
         await database_sync_to_async(self._call_create_game)(2)
 
-        ws_url = f"/ws/game/{self.game.uuid}/?" + test_data.TG_INIT_DATA_RAW_LIST[0]
+        ws_url = f"/ws/game/{self.game.uuid}/?" + mock_data.TG_INIT_DATA_RAW_LIST[0]
         communicator = WebsocketCommunicator(application, ws_url)
         connected, _ = await communicator.connect()
 
@@ -185,7 +186,7 @@ class TestAuctionLegacy(BaseApiTestCase):
         PopulateDatabaseCommand().handle()
 
     def _create_game(self, players: int):
-        self.tg_users = test_data.create_telegram_users(players, synthetic=True)
+        self.tg_users = mock_data.create_telegram_users(players, synthetic=True)
         self.monopoly_service = get_service_by_name("classic")  # type: ignore[assignment]
         self.game = self.monopoly_service.create_game(self.tg_users[0], players)
 
@@ -368,7 +369,7 @@ class TestAuction:
             player.refresh_from_db()
 
     def _create_game(self, players: int):
-        self.tg_users = test_data.create_telegram_users(players, synthetic=True)
+        self.tg_users = mock_data.create_telegram_users(players, synthetic=True)
         self.monopoly_service = get_service_by_name("classic")  # type: ignore[assignment]
         self.game = self.monopoly_service.create_game(self.tg_users[0], players)
 
@@ -470,7 +471,7 @@ class TestJail:
             player.refresh_from_db()
 
     def _create_game(self, players: int):
-        self.tg_users = test_data.create_telegram_users(players, synthetic=True)
+        self.tg_users = mock_data.create_telegram_users(players, synthetic=True)
         self.monopoly_service = get_service_by_name("classic")  # type: ignore[assignment]
         self.game = self.monopoly_service.create_game(self.tg_users[0], players)
 
@@ -646,7 +647,7 @@ class TestPayRent:
             player.refresh_from_db()
 
     def _create_game(self, players: int):
-        self.tg_users = test_data.create_telegram_users(players, synthetic=True)
+        self.tg_users = mock_data.create_telegram_users(players, synthetic=True)
         self.monopoly_service = get_service_by_name("classic")  # type: ignore[assignment]
         self.game = self.monopoly_service.create_game(self.tg_users[0], players)
 

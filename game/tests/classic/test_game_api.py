@@ -5,6 +5,7 @@ from unittest.mock import patch
 from channels.testing import WebsocketCommunicator
 from channels.db import database_sync_to_async
 from django.db import IntegrityError
+from django.db.models import Count
 
 from . import mock_data
 from tgmonopoly.asgi import application
@@ -17,6 +18,7 @@ from game.models import (
     Game,
     Player,
     Property,
+    PropertyGroup,
     Jail,
     Police,
     Ownership,
@@ -1222,3 +1224,192 @@ class TestCasino:
         else:
             assert self.game.current_player == player_2
             assert player_2.pending_action.action_type == PendingAction.Types.ROLL_DICE
+
+
+@pytest.mark.django_db
+class TestImprovingTiles:
+    monopoly_service: ClassicMonopolyService
+    game: Game
+    player_1: Player
+    player_2: Player
+    player_3: Player
+
+    def setup_method(self, method):
+        PopulateDatabaseCommand().handle()
+
+    def _refresh_game_and_players(self):
+        """Refresh game and all players from DB"""
+        self.game.refresh_from_db()
+        for player in self.players:
+            player.refresh_from_db()
+
+    def _create_game(self, players: int):
+        self.tg_users = mock_data.create_telegram_users(players, synthetic=True)
+        self.monopoly_service = get_service_by_name("classic")  # type: ignore[assignment]
+        self.game = self.monopoly_service.create_game(self.tg_users[0], players)
+
+        for i in range(1, players):
+            player, _ = self.monopoly_service.join_game(self.game.uuid, self.tg_users[i])
+
+        game_players = self.game.players.all()
+        self.players = list(game_players)
+        self._refresh_game_and_players()
+
+    @pytest.mark.parametrize(
+        ("select_group_with_num_tiles", "properties_lvl", "idx_to_improve", "should_succeed", "enough_money"),
+        [
+            # Test success with 2 properties
+            (2, (0, 0), 1, (True, None), True),
+            # Test not enough money
+            (2, (0, 0), 1, (False, None), False),
+            # Test does not own entire group with 2 properties
+            (2, (0,), 0, (False, "You must own entire group"), True),
+            # Test does not own entire group with 3 properties
+            (3, (0, 0), 0, (False, "You must own entire group"), True),
+            # Test success with 3 properties
+            (3, (0, 0, 0), 1, (True, None), True),
+            # Test if improves unevenly with 3 properties
+            (3, (1, 1, 0), 0, (False, "You must improve evenly"), True),
+            # Test if improves unevenly with 2 properties
+            (2, (1, 0), 0, (False, "You must improve evenly"), True),
+            # Test if improves more then 5
+            (2, (5, 5), 0, (False, "You can't improve to more then 5"), True),
+        ],
+    )
+    @no_type_check
+    def test_improving_property(
+        self, select_group_with_num_tiles, properties_lvl, idx_to_improve, should_succeed, enough_money
+    ):
+        self._create_game(2)
+        player_1: Player = self.players[0]
+        player_2: Player = self.players[1]
+
+        if not enough_money:
+            player_1.cash = 1
+            player_1.save()
+
+        player_1_cash_before = player_1.cash
+
+        pg = (
+            PropertyGroup.objects.annotate(num_properties=Count("properties"))
+            .filter(num_properties=select_group_with_num_tiles)
+            .first()
+        )
+
+        all_properties = pg.properties.all()
+        property_to_improve: Property = all_properties[idx_to_improve]
+        ownerships = []
+
+        zipped_properties_and_lvls = zip(all_properties, properties_lvl, strict=False)
+
+        for p, lvl in zipped_properties_and_lvls:
+            ownership = Ownership.objects.create(game=self.game, player=player_1, tile=p, houses=lvl)
+            ownerships.append(ownership)
+
+        if not enough_money:
+            with pytest.raises(GameException, match="You don't have enough money"):
+                game_frame = self.monopoly_service.process_game_action(
+                    self.game.uuid,
+                    player_1.pk,
+                    ActionCommand(action="improve", property_pos=property_to_improve.position),
+                )
+            assert player_1.pending_action.action_type == PendingAction.Types.ROLL_DICE
+            assert self.game.current_player == player_1
+            return
+        else:
+            should_succeed, reason = should_succeed
+            if not should_succeed:
+                with pytest.raises(GameException, match=reason):
+                    game_frame = self.monopoly_service.process_game_action(
+                        self.game.uuid,
+                        player_1.pk,
+                        ActionCommand(action="improve", property_pos=property_to_improve.position),
+                    )
+                return
+
+        game_frame = self.monopoly_service.process_game_action(
+            self.game.uuid,
+            player_1.pk,
+            ActionCommand(action="improve", property_pos=property_to_improve.position),
+        )
+
+        self._refresh_game_and_players()
+        list(map(lambda o: o.refresh_from_db(), ownerships))
+
+        assert self.game.current_player == player_1
+        assert player_1.pending_action.action_type == PendingAction.Types.ROLL_DICE
+        assert player_1.cash == player_1_cash_before - property_to_improve.house_price
+        assert ownerships[idx_to_improve].houses == properties_lvl[idx_to_improve] + 1
+        assert ownerships[idx_to_improve].calculate_rent() == getattr(
+            property_to_improve, f"rent_with_{ownerships[idx_to_improve].houses}_houses"
+        )
+
+    @pytest.mark.parametrize(
+        ("select_group_with_num_tiles", "properties_lvl", "idx_to_degrade", "should_succeed"),
+        [
+            # Test success with 2 properties
+            (2, (1, 1), 1, (True, None)),
+            # Test fail with 2 properties lower then 0
+            (2, (0, 0), 1, (False, "You can't degrade below 0")),
+            # Test fail with 2 properties no tile
+            (2, (0,), 1, (False, "You don't own this tile")),
+            # Test success with 3 properties
+            (3, (1, 1, 1), 1, (True, None)),
+            # Test uneven with 3 properties
+            (3, (2, 1, 1), 1, (False, "You must degrade evenly")),
+        ],
+    )
+    @no_type_check
+    def test_degrade_property(
+        self, select_group_with_num_tiles, properties_lvl, idx_to_degrade, should_succeed
+    ):
+        self._create_game(2)
+        player_1: Player = self.players[0]
+        player_2: Player = self.players[1]
+
+        player_1_cash_before = player_1.cash
+
+        pg = (
+            PropertyGroup.objects.annotate(num_properties=Count("properties"))
+            .filter(num_properties=select_group_with_num_tiles)
+            .first()
+        )
+
+        all_properties = pg.properties.all()
+        property_to_degrade: Property = all_properties[idx_to_degrade]
+        ownerships = []
+
+        zipped_properties_and_lvls = zip(all_properties, properties_lvl, strict=False)
+
+        for p, lvl in zipped_properties_and_lvls:
+            ownership = Ownership.objects.create(game=self.game, player=player_1, tile=p, houses=lvl)
+            ownerships.append(ownership)
+
+        should_succeed, reason = should_succeed
+        if not should_succeed:
+            with pytest.raises(GameException, match=reason):
+                game_frame = self.monopoly_service.process_game_action(
+                    self.game.uuid,
+                    player_1.pk,
+                    ActionCommand(action="degrade", property_pos=property_to_degrade.position),
+                )
+            return
+
+        game_frame = self.monopoly_service.process_game_action(
+            self.game.uuid,
+            player_1.pk,
+            ActionCommand(action="degrade", property_pos=property_to_degrade.position),
+        )
+
+        self._refresh_game_and_players()
+        list(map(lambda o: o.refresh_from_db(), ownerships))
+
+        assert self.game.current_player == player_1
+        assert player_1.pending_action.action_type == PendingAction.Types.ROLL_DICE
+        assert player_1.cash == player_1_cash_before + property_to_degrade.house_price
+        assert ownerships[idx_to_degrade].houses == properties_lvl[idx_to_degrade] - 1
+        assert ownerships[idx_to_degrade].calculate_rent() == getattr(
+            property_to_degrade,
+            f"rent_with_{ownerships[idx_to_degrade].houses}_houses",
+            property_to_degrade.rent,
+        )

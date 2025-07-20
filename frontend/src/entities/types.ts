@@ -158,7 +158,7 @@ type Property = {
   mortgage_value?: number;
   house_price?: number;
   rent?: number;
-  rent_with_1_house?: number;
+  rent_with_1_houses?: number;
   rent_with_2_houses?: number;
   rent_with_3_houses?: number;
   rent_with_4_houses?: number;

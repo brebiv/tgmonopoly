@@ -5,6 +5,7 @@ from typing import Optional, Literal, List
 class ActionCommand(BaseModel):
     action: str
     bet: Optional[int] = None
+    property_pos: Optional[int] = None
 
 
 class PropertyGroup(BaseModel):

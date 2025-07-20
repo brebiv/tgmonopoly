@@ -2,7 +2,7 @@ import uuid
 from typing import Union
 
 from django.db import models
-from django.db.models import Q, QuerySet
+from django.db.models import Q, QuerySet, Max, Min
 from django.db import IntegrityError
 from django.core.validators import MinValueValidator
 from django.core.exceptions import ValidationError
@@ -94,12 +94,12 @@ class Property(Tile):
     mortgage_value = models.PositiveSmallIntegerField()
     house_price = models.PositiveSmallIntegerField()
     rent = models.PositiveSmallIntegerField()
-    rent_with_1_house = models.PositiveSmallIntegerField()
+    rent_with_1_houses = models.PositiveSmallIntegerField()
     rent_with_2_houses = models.PositiveSmallIntegerField()
     rent_with_3_houses = models.PositiveSmallIntegerField()
     rent_with_4_houses = models.PositiveSmallIntegerField()
     rent_with_5_houses = models.PositiveSmallIntegerField()
-    group = models.ForeignKey(PropertyGroup, on_delete=models.CASCADE)
+    group = models.ForeignKey(PropertyGroup, on_delete=models.CASCADE, related_name="properties")
 
     icon = models.ImageField(upload_to="properties", null=True, blank=True)
 
@@ -234,7 +234,8 @@ class Ownership(models.Model):
 
     def clean(self):
         super().clean()
-        if not isinstance(self.tile, (Property, Utility)):
+        downcasted_tile = self.tile.downcast()
+        if not isinstance(downcasted_tile, (Property, Utility)):
             raise ValidationError({"tile": "Tile for ownership must by either Property or Utility"})
 
     def save(self, *args, **kwargs):
@@ -256,7 +257,17 @@ class Ownership(models.Model):
                 else:
                     return dice_sum * 4
         elif isinstance(downcasted_tile, Property):
-            return downcasted_tile.rent
+            attr = f"rent_with_{self.houses}_houses"
+            if self.houses == 0:
+                return downcasted_tile.rent
+
+            rent = getattr(downcasted_tile, attr, None)
+            if rent is None:
+                raise GameException(
+                    f"Could not determine rent for property pk:downcasted_tile.pk attr:{attr}"
+                )
+
+            return rent
 
         raise GameException("Can not calculate rent for not buyable tile")
 
@@ -289,6 +300,67 @@ class Ownership(models.Model):
 
         ownerships = self.get_ownerships_in_the_group()
         return ownerships.count() == tiles_in_group.count()
+
+    def get_group_lvl_max(self) -> int:
+        """
+        Return maximum houses in group
+        """
+        downcasted_tile = self.tile.downcast()
+        if not isinstance(downcasted_tile, Property):
+            raise GameException("You can get group_up lvl only of Property")
+
+        # tiles_in_group = Property.objects.filter(group=downcasted_tile.group)
+        ownerships = self.get_ownerships_in_the_group()
+        max_houses = ownerships.aggregate(Max("houses"))
+        return max_houses["houses__max"]
+
+    def get_group_lvl_min(self) -> int:
+        """
+        Return maximum houses in group
+        """
+        downcasted_tile = self.tile.downcast()
+        if not isinstance(downcasted_tile, Property):
+            raise GameException("You can get group_up lvl only of Property")
+
+        # tiles_in_group = Property.objects.filter(group=downcasted_tile.group)
+        ownerships = self.get_ownerships_in_the_group()
+        min_houses = ownerships.aggregate(Min("houses"))
+        return min_houses["houses__min"]
+
+    def check_can_improve(self) -> bool:
+        """Check if player can build house on this ownership"""
+        if self.houses + 1 > 5:
+            return False
+
+        min_lvl = self.get_group_lvl_min()
+        max_lvl = self.get_group_lvl_max()
+
+        if self.houses + 1 > max_lvl:
+            max_lvl += 1
+
+        diff = max_lvl - min_lvl
+        if diff >= 2:
+            return False
+
+        return True
+
+    def check_can_degrade(self) -> bool:
+        """Check if player can remove house on this ownership"""
+        if self.houses - 1 < 0:
+            return False
+
+        min_lvl = self.get_group_lvl_min()
+        max_lvl = self.get_group_lvl_max()
+
+        new_level = self.houses - 1
+        if new_level < min_lvl:
+            min_lvl = new_level
+
+        diff = max_lvl - min_lvl
+        if diff >= 2:
+            return False
+
+        return True
 
 
 class GameEvent(models.Model):

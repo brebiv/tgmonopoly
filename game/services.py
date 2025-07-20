@@ -115,6 +115,8 @@ class ClassicMonopolyService(BaseMonopoly):
             PendingAction.Types.ROLL_DICE: {
                 "roll_dice": self._handle_dice_roll,
                 "reject": self._handle_pay_jail,
+                "improve": self._handle_improve,
+                "degrade": self._handle_degrade,
             },
             PendingAction.Types.BUY_PROPERTY: {
                 "accept": self._handle_buy_property_accept,
@@ -700,6 +702,92 @@ class ClassicMonopolyService(BaseMonopoly):
     ) -> list[GameEvent]:
         events: list[GameEvent] = []
         self._next_turn(game, player)
+        return events
+
+    def _handle_improve(
+        self, game: Game, player: Player, resolved_pa: PendingAction, command: ActionCommand
+    ) -> list[GameEvent]:
+        events: list[GameEvent] = []
+
+        if not command.property_pos:
+            raise GameException("Property position should be specified")
+
+        try:
+            ownership = Ownership.objects.select_related("tile").get(
+                player=player, tile__position=command.property_pos
+            )
+        except Ownership.DoesNotExist:
+            raise GameException("You don't own this tile")
+
+        if not ownership.owns_entire_group():
+            raise GameException("You must own entire group")
+
+        if ownership.houses + 1 > 5:
+            raise GameException("You can't improve to more then 5")
+
+        if not ownership.check_can_improve():
+            raise GameException("You must improve evenly")
+
+        downcasted_tile = ownership.tile.downcast()
+
+        if not isinstance(downcasted_tile, (Property)):
+            raise GameException("You can't improve non Property tile")
+
+        if player.cash < downcasted_tile.house_price:
+            raise GameException("You don't have enough money")
+
+        player.cash -= downcasted_tile.house_price
+        player.save()
+        ownership.houses += 1
+        ownership.save()
+
+        pa = PendingAction.objects.create(
+            player=player,
+            action_type=PendingAction.Types.ROLL_DICE,
+            expires_at=timezone.now(),
+            action_data=resolved_pa.action_data,
+        )
+
+        return events
+
+    def _handle_degrade(
+        self, game: Game, player: Player, resolved_pa: PendingAction, command: ActionCommand
+    ) -> list[GameEvent]:
+        events: list[GameEvent] = []
+
+        if not command.property_pos:
+            raise GameException("Property position should be specified")
+
+        try:
+            ownership = Ownership.objects.select_related("tile").get(
+                player=player, tile__position=command.property_pos
+            )
+        except Ownership.DoesNotExist:
+            raise GameException("You don't own this tile")
+
+        if ownership.houses - 1 < 0:
+            raise GameException("You can't degrade below 0")
+
+        if not ownership.check_can_degrade():
+            raise GameException("You must degrade evenly")
+
+        downcasted_tile = ownership.tile.downcast()
+
+        if not isinstance(downcasted_tile, (Property)):
+            raise GameException("You can't improve non Property tile")
+
+        player.cash += downcasted_tile.house_price
+        player.save()
+        ownership.houses -= 1
+        ownership.save()
+
+        pa = PendingAction.objects.create(
+            player=player,
+            action_type=PendingAction.Types.ROLL_DICE,
+            expires_at=timezone.now(),
+            action_data=resolved_pa.action_data,
+        )
+
         return events
 
     @transaction.atomic

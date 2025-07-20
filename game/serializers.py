@@ -132,7 +132,7 @@ class PropertySerializer(serializers.ModelSerializer):
             "mortgage_value",
             "house_price",
             "rent",
-            "rent_with_1_house",
+            "rent_with_1_houses",
             "rent_with_2_houses",
             "rent_with_3_houses",
             "rent_with_4_houses",

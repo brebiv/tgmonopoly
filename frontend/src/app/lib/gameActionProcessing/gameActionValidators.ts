@@ -106,3 +106,37 @@ export const validatePayTaxAction = (
   // @ts-ignore
   return pendingAction.action_data;
 };
+
+export const validateInCasinoAction = (
+  pendingAction: PendingAction,
+): {
+  available_bets: number[];
+} => {
+  if (!pendingAction.action_data) {
+    throw new Error("We are fucked");
+  }
+
+  const schema = {
+    type: "object",
+    required: ["available_bets"],
+    additionalProperties: false,
+    properties: {
+      available_bets: {
+        type: "array",
+        items: { type: "integer" },
+      },
+    },
+  };
+
+  const ajv = new Ajv({ allErrors: true });
+  const validate = ajv.compile(schema);
+
+  if (validate(pendingAction.action_data)) {
+  } else {
+    console.error("❌ Validation failed:", validate.errors);
+    throw new Error(`Validation failed: ${validate.errors}`);
+  }
+
+  // @ts-ignore
+  return pendingAction.action_data;
+};

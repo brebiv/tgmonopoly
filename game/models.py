@@ -301,6 +301,8 @@ class GameEvent(models.Model):
         GAME_STARTED = "game.started"
         GAME_AUCTION_FLOP = "game.auction_flop"
         LANDED_ON_OWN_PROPERTY = "game.landed_on_own_property"
+        PLAYER_WON_CASINO = "player.won_casino"
+        PLAYER_LOST_CASINO = "player.lost_casino"
 
     game = models.ForeignKey(to=Game, related_name="events", on_delete=models.CASCADE)
     event_type = models.CharField(max_length=32, choices=Types.choices)
@@ -314,6 +316,7 @@ class PendingAction(models.Model):
         PAY_RENT = "pay_rent"
         PAY_TAX = "pay_tax"
         IN_AUCTION = "IN_AUCTION"
+        IN_CASINO = "IN_CASINO"
 
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4)
     # game = models.ForeignKey(to=Game, related_name="pending_actions", on_delete=models.DO_NOTHING)

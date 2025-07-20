@@ -6,6 +6,7 @@ import { createRoot } from "react-dom/client";
 // import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 
 import "@shared/styles/tailwind.css";
+import "@shared/styles/animation.css";
 
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "../../shared/queryClient";

@@ -9,19 +9,20 @@ import { AcceptActionButton } from "@/features/accept-action/AcceptActionButton"
 import { AcceptButton } from "@/features/action-buttons/AcceptButton";
 import { RejectButton } from "@/features/action-buttons/RejectButton";
 import { StartAuctionButton } from "@/features/auction/StartAuctionButton";
-import { BuyButton } from "@/features/buy-property/BuyPropertyButton";
 import { RollDiceButton } from "@/features/roll-dice/RollDiceButton";
-import { BanknoteIcon, GavelIcon, HandCoinsIcon } from "lucide-react";
+import { BanknoteIcon, DollarSignIcon, GavelIcon, HandCoinsIcon } from "lucide-react";
 import type React from "react";
 
 export const useActionSheetConfig = (
   boardConfig: BoardConfig | undefined,
-  // @ts-ignore
-  showActionSheet: boolean, // for trigerring rerenders
 ):
   | { title: string | React.ReactNode; hint: string | React.ReactNode; actions: React.ReactNode[] }
   | undefined => {
-  const { myPlayer, getTileByPosition, getOwnershipByPosition, getPlayerById } = useGameStore();
+  const myPlayer = useGameStore((s) => s.myPlayer);
+  const getTileByPosition = useGameStore((s) => s.getTileByPosition);
+  const getOwnershipByPosition = useGameStore((s) => s.getOwnershipByPosition);
+  const getPlayerById = useGameStore((s) => s.getPlayerById);
+  const isCasinoBet = useGameStore((s) => s.isCasinoBet);
 
   if (!boardConfig) {
     return;
@@ -33,7 +34,6 @@ export const useActionSheetConfig = (
 
   const pending = myPlayer.pending_action;
   if (!pending) {
-    // console.log("There is no pending action for this player");
     return {
       title: "You don't have any actions",
       hint: "¯\\_(ツ)_/¯",
@@ -75,7 +75,10 @@ export const useActionSheetConfig = (
         title: `Do you want to buy ${tile.name}?`,
         hint: `It would cost $${tile.price}`,
         actions: [
-          <BuyButton key={"buy"} myPlayer={myPlayer} propertyTile={tile} />,
+          <AcceptButton key={"accept"}>
+            <DollarSignIcon />
+            Buy
+          </AcceptButton>,
           <StartAuctionButton key={"start_auction"} />,
         ],
       };
@@ -104,7 +107,7 @@ export const useActionSheetConfig = (
         ),
         hint: `You have to pay rent of $${rent}`,
         actions: [
-          <AcceptActionButton>
+          <AcceptActionButton key={"accept"}>
             <BanknoteIcon />
             {"Pay"}
           </AcceptActionButton>,
@@ -123,7 +126,7 @@ export const useActionSheetConfig = (
         title: "You have to pay tax!",
         hint: `You have to pay $${amount}`,
         actions: [
-          <RejectButton action={GameActionType.ACCEPT}>
+          <RejectButton key={"reject"} action={GameActionType.ACCEPT}>
             <BanknoteIcon />
             {"Pay"}
           </RejectButton>,
@@ -142,11 +145,34 @@ export const useActionSheetConfig = (
         title: title,
         hint: `It would cost $${current_price}`,
         actions: [
-          <AcceptButton>
+          <AcceptButton key={"accept"}>
             <GavelIcon />
             Accept
           </AcceptButton>,
-          <RejectButton>Reject</RejectButton>,
+          <RejectButton key={"reject"}>Reject</RejectButton>,
+        ],
+      };
+    }
+    case PendingActionTypes.IN_CASINO: {
+      let hint = "Choose amount that you want to bet";
+      if (isCasinoBet) {
+        hint = "You can also tap on the coin to accept";
+      }
+      return {
+        title: "You are in casino!",
+        hint: hint,
+        actions: [
+          <AcceptButton
+            key={"accept"}
+            disabled={!isCasinoBet}
+            extraDataFunc={() => {
+              const casinoBet = useGameStore.getState().casinoBet;
+              return { bet: casinoBet };
+            }}
+          >
+            {"Bet"}
+          </AcceptButton>,
+          <RejectButton key={"reject"}>Reject</RejectButton>,
         ],
       };
     }

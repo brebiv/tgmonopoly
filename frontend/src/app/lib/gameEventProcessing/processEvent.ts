@@ -2,8 +2,8 @@ import type { StateCreator } from "zustand";
 import type { GameState } from "@/entities/gameStore";
 import { GameEventTypes, type GameEvent } from "@/entities/types";
 import { sleep } from "@/shared/utils";
-import { DICE_ROLL_DURATION_MS, PLAYER_CHIP_MOVE_DURATION_MS } from "@/shared/config";
-import { validatePlayerMoveEvent, validateRollDiceEvent } from "./gameEventValidators";
+import { COIN_FLIP_DURATION_MS, DICE_ROLL_DURATION_MS, PLAYER_CHIP_MOVE_DURATION_MS } from "@/shared/config";
+import { validatePlayerInEvent, validatePlayerMoveEvent, validateRollDiceEvent } from "./gameEventValidators";
 
 type Set = Parameters<StateCreator<GameState>>[0];
 type Get = Parameters<StateCreator<GameState>>[1];
@@ -27,6 +27,35 @@ export const processEvent = async (event: GameEvent, set: Set, get: Get) => {
     }));
     await sleep(PLAYER_CHIP_MOVE_DURATION_MS);
     set({ showDices: false });
+  } else if (event.event_type === GameEventTypes.PLAYER_WON_CASINO) {
+    let { player: playerID } = validatePlayerInEvent(event);
+    let player = get().players.find((p) => p.id === playerID);
+
+    set(() => ({
+      flipCoin: true,
+      casinoPlayer: player,
+    }));
+
+    await sleep(COIN_FLIP_DURATION_MS);
+    set(() => ({
+      isWonCasino: true,
+    }));
+    await sleep(1500);
+  } else if (event.event_type === GameEventTypes.PLAYER_LOST_CASINO) {
+    let { player: playerID } = validatePlayerInEvent(event);
+    let player = get().players.find((p) => p.id === playerID);
+
+    set(() => ({
+      flipCoin: true,
+      casinoPlayer: player,
+    }));
+
+    await sleep(COIN_FLIP_DURATION_MS);
+
+    set(() => ({
+      isWonCasino: false,
+    }));
+    await sleep(1500);
   }
   console.log("Done processing event", event);
 };

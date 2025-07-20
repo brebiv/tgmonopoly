@@ -1,25 +1,24 @@
-import type { Tile } from "@/entities/types";
 import React, { useEffect } from "react";
 import { BoardTile } from "./BoardTile";
 import { useGameStore } from "@/entities/gameStore";
 
 interface TileRendererProps {
-  tiles: Tile[];
-  onLoad?: () => void;
   children?: React.ReactNode;
 }
 
-export const TileRenderer: React.FC<TileRendererProps> = ({ tiles, onLoad, children }) => {
-  const { game } = useGameStore();
+export const TileRenderer: React.FC<TileRendererProps> = ({ children }) => {
+  const boardConfig = useGameStore((s) => s.boardConfig);
+  const ownerships = useGameStore((s) => s.ownerships);
+  const setTilesLoaded = useGameStore((s) => s.setTilesLoaded);
 
-  if (!tiles) {
+  if (!boardConfig) {
     return <h1>Loading tile renderer</h1>;
   }
 
+  const { tiles } = boardConfig;
+
   useEffect(() => {
-    if (onLoad) {
-      onLoad();
-    }
+    setTilesLoaded(true);
   }, []);
 
   return (
@@ -34,14 +33,14 @@ export const TileRenderer: React.FC<TileRendererProps> = ({ tiles, onLoad, child
       {/* Top */}
       <div className="relative col-span-11 row-start-1 grid grid-cols-subgrid gap-[2px]">
         {tiles.slice(0, 11).map((tile, i) => {
-          let ownership = game?.ownerships.find((o) => o.tile_position === tile.position);
+          let ownership = ownerships.find((o) => o.tile_position === tile.position);
           return <BoardTile key={i} tile={tile} side="top" ownership={ownership} />;
         })}
       </div>
       {/* Right */}
       <div className="col-start-11 row-span-10 row-start-2 grid grid-cols-subgrid grid-rows-subgrid gap-[2px]">
         {tiles.slice(11, 21).map((tile, i) => {
-          let ownership = game?.ownerships.find((o) => o.tile_position === tile.position);
+          let ownership = ownerships.find((o) => o.tile_position === tile.position);
           return <BoardTile key={i} tile={tile} side="right" ownership={ownership} />;
         })}
       </div>
@@ -51,7 +50,7 @@ export const TileRenderer: React.FC<TileRendererProps> = ({ tiles, onLoad, child
         className="col-span-11 col-start-11 col-end-1 row-start-11 grid grid-cols-subgrid grid-rows-subgrid gap-[2px]"
       >
         {tiles.slice(21, 31).map((tile, i) => {
-          let ownership = game?.ownerships.find((o) => o.tile_position === tile.position);
+          let ownership = ownerships.find((o) => o.tile_position === tile.position);
           return <BoardTile key={i} tile={tile} side="bottom" ownership={ownership} />;
         })}
       </div>
@@ -61,12 +60,15 @@ export const TileRenderer: React.FC<TileRendererProps> = ({ tiles, onLoad, child
           .slice(31, 40)
           .reverse()
           .map((tile, i) => {
-            let ownership = game?.ownerships.find((o) => o.tile_position === tile.position);
+            let ownership = ownerships.find((o) => o.tile_position === tile.position);
             return <BoardTile key={i} tile={tile} side="left" ownership={ownership} />;
           })}
       </div>
       {/* Center */}
-      <div className="relative col-span-9 col-start-2 row-span-9 row-start-2 overflow-y-scroll">
+      <div
+        id="board-center"
+        className="relative col-span-9 col-start-2 row-span-9 row-start-2 overflow-y-scroll"
+      >
         {children}
       </div>
     </div>

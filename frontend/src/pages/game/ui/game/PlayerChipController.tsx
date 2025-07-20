@@ -2,17 +2,19 @@ import type { Player } from "@/entities/types";
 import { PlayerChip } from "./PlayChip";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
+import { useGameStore } from "@/entities/gameStore";
 
 const PLAYER_CHIP_SIZE_PX = 12;
 const CORNER_TILE_PADDING = 0.25 / 2;
 
 interface PlayerChipControllerProps {
-  players: Player[];
+  // players: Player[];
 }
 
-export const PlayerChipController: React.FC<PlayerChipControllerProps> = ({ players }) => {
+export const PlayerChipController: React.FC<PlayerChipControllerProps> = () => {
   const playersAreaRef = useRef<HTMLDivElement | null>(null);
   const [ready, setReady] = useState(false);
+  const players = useGameStore((s) => s.players);
 
   const calculatePlayerChipPosition = (
     player: Player,

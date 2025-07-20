@@ -2,7 +2,6 @@ import type React from "react";
 import type { Ownership, Tile } from "@/entities/types";
 import { cn } from "@/shared/utils";
 import { CloverIcon, CoinsIcon, Columns4Icon, GoalIcon, PiggyBankIcon, SirenIcon } from "lucide-react";
-import { useGameBoardContext } from "@/entities/GameBoardContext";
 import { useGameStore } from "@/entities/gameStore";
 
 interface TileProps {
@@ -12,8 +11,8 @@ interface TileProps {
 }
 
 const PurchasableTile: React.FC<TileProps> = ({ tile, side, ownership }) => {
-  const { boardConfig } = useGameBoardContext();
-  const { getPlayerById } = useGameStore();
+  const getPlayerById = useGameStore((s) => s.getPlayerById);
+  const boardConfig = useGameStore((s) => s.boardConfig);
   const propertyGroup = boardConfig?.property_groups.find(
     (property_group) => property_group.id == tile.group,
   );

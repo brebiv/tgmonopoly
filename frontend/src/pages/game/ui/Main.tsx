@@ -9,7 +9,10 @@ import { WebSocketContextProvider } from "@/app/providers/WebSocketProvider";
 export const Main = () => {
   useTelegramColorScheme();
   const { me } = useAuthContext();
-  const { game, processInitialGameFrame, processEventGameFrame } = useGameStore();
+
+  const gameStatus = useGameStore((s) => s.gameStatus);
+  const processInitialGameFrame = useGameStore((s) => s.processInitialGameFrame);
+  const processEventGameFrame = useGameStore((s) => s.processEventGameFrame);
 
   const handleMessage = (message: any) => {
     let data: GameFrame = JSON.parse(message);
@@ -23,7 +26,7 @@ export const Main = () => {
   return (
     // me.current_game is 100% present because there is a check in AuthProvider, maybe I should refactor this
     <WebSocketContextProvider gameUUID={me.current_game!.uuid} onMessage={handleMessage}>
-      {!game ? <h1>Loading game</h1> : <>{game.status === GameStatus.WAITING ? <Lobby /> : <Game />}</>}
+      {!gameStatus ? <h1>Loading game</h1> : <>{gameStatus === GameStatus.WAITING ? <Lobby /> : <Game />}</>}
     </WebSocketContextProvider>
   );
 };

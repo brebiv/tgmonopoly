@@ -4,7 +4,7 @@ import { getBoardConfig } from "../api";
 import { useGameStore } from "@/entities/gameStore";
 
 export const useBoardConfig = (name?: string, runImmediately = false, enableRetry = false) => {
-  const { game } = useGameStore();
+  const game = useGameStore((s) => s.game);
 
   return useQuery<BoardConfig, Error>({
     queryKey: ["boardConfig"],

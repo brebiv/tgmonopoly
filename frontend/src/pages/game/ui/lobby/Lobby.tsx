@@ -11,7 +11,9 @@ export const Lobby = () => {
 
   /////// ADD AUTH HERE, move auth logic from HomePage to context provider so that it will become reusable
 
-  const { eventQueue, players, game } = useGameStore();
+  const eventQueue = useGameStore((s) => s.eventQueue);
+  const players = useGameStore((s) => s.players);
+  const game = useGameStore((s) => s.game);
 
   useEffect(() => {
     console.log("Event queue updated", eventQueue);
@@ -33,13 +35,10 @@ export const Lobby = () => {
       <Card className="w-full">
         <h2>Players</h2>
         <div className="flex w-full flex-col gap-2">
-          {players &&
-            players.map((player, i) => <PlayerCard key={i} player={player} />)}
+          {players && players.map((player, i) => <PlayerCard key={i} player={player} />)}
           {game &&
             players &&
-            Array.from({ length: game.max_players - players.length }).map(
-              (_, i) => <PlayerCard key={i} />,
-            )}
+            Array.from({ length: game.max_players - players.length }).map((_, i) => <PlayerCard key={i} />)}
         </div>
       </Card>
       <div className="w-full">

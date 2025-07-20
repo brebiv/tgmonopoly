@@ -24,9 +24,11 @@ from game.models import (
     Utility,
     UtilityGroup,
     Tax,
+    Casino,
 )
 from game.services import get_service_by_name, ClassicMonopolyService
 from game.exceptions import GameException
+from game.schemas import ActionCommand
 from .. import BaseApiTestCase
 
 
@@ -72,7 +74,7 @@ class DiceRollAPITest(BaseApiTestCase):
         self.assertIsNone(p2["pending_action"])
         self.assertEqual(player_1.position, 0)
 
-        await communicator.send_to("roll_dice")
+        await communicator.send_json_to({"action": "roll_dice"})
         game_frame = await communicator.receive_json_from()
         frame_type = game_frame["type"]
         p1 = game_frame["game"]["players"][0]
@@ -94,7 +96,7 @@ class DiceRollAPITest(BaseApiTestCase):
         self.assertTrue(connected)
         game_frame = await communicator.receive_json_from()
 
-        await communicator.send_to("roll_dice")
+        await communicator.send_json_to({"action": "roll_dice"})
         game_frame = await communicator.receive_json_from()
         await self._refresh_game_and_players_async()
         frame_type = game_frame["type"]
@@ -129,7 +131,7 @@ class DiceRollAPITest(BaseApiTestCase):
         self.assertIsNone(p2["pending_action"])
         self.assertEqual(player_1.position, 0)
 
-        await communicator.send_to("roll_dice")
+        await communicator.send_json_to({"action": "roll_dice"})
 
         for _ in range(5):
             game_frame = await communicator.receive_json_from()
@@ -138,9 +140,9 @@ class DiceRollAPITest(BaseApiTestCase):
                 break
 
             if p1["pending_action"]["action_type"] == PendingAction.Types.ROLL_DICE:
-                await communicator.send_to("roll_dice")
+                await communicator.send_json_to({"action": "roll_dice"})
             elif p1["pending_action"]["action_type"] == PendingAction.Types.BUY_PROPERTY:
-                await communicator.send_to("accept")
+                await communicator.send_json_to({"action": "accept"})
 
         await player_1.arefresh_from_db()
         jail_tile = await database_sync_to_async(Jail.objects.get)(board_config_id=self.game.board_config_id)
@@ -179,7 +181,9 @@ class DiceRollAPITest(BaseApiTestCase):
         dices_values = [police_tile.position, 0]
         mock_dice_values.return_value = dices_values
 
-        await communicator.send_to("roll_dice")
+        import json
+
+        await communicator.send_to(text_data=json.dumps({"action": "roll_dice"}))
 
         game_frame = await communicator.receive_json_from()
 
@@ -1093,3 +1097,128 @@ class TestTax:
             else:
                 assert self.game.current_player == player_2
                 assert player_2.pending_action.action_type == PendingAction.Types.ROLL_DICE
+
+
+@pytest.mark.django_db
+class TestCasino:
+    monopoly_service: ClassicMonopolyService
+    game: Game
+    player_1: Player
+    player_2: Player
+    player_3: Player
+
+    def setup_method(self, method):
+        PopulateDatabaseCommand().handle()
+
+    def _refresh_game_and_players(self):
+        """Refresh game and all players from DB"""
+        self.game.refresh_from_db()
+        for player in self.players:
+            player.refresh_from_db()
+
+    def _create_game(self, players: int):
+        self.tg_users = mock_data.create_telegram_users(players, synthetic=True)
+        self.monopoly_service = get_service_by_name("classic")  # type: ignore[assignment]
+        self.game = self.monopoly_service.create_game(self.tg_users[0], players)
+
+        for i in range(1, players):
+            player, _ = self.monopoly_service.join_game(self.game.uuid, self.tg_users[i])
+
+        game_players = self.game.players.all()
+        self.players = list(game_players)
+        self._refresh_game_and_players()
+
+    @pytest.mark.parametrize(
+        ("should_win", "should_have_enough_money", "should_roll_double"),
+        [
+            (False, False, False),
+            (True, True, False),
+            (True, True, True),
+            (False, True, False),
+            (False, True, True),
+        ],
+    )
+    @no_type_check
+    def test_landing_on_casino(self, should_win, should_roll_double, should_have_enough_money):
+        self._create_game(2)
+        player_1: Player = self.players[0]
+        player_2: Player = self.players[1]
+        player_1_cash_before = player_1.cash
+
+        if not should_have_enough_money:
+            player_1.cash = 1
+            player_1.save()
+
+        casino = Casino.objects.filter(board_config=self.game.board_config).first()
+        dice_values = [casino.position - 1, 1]
+
+        if should_roll_double:
+            player_1.position = (player_1.position - casino.position) % self.game.board_config.tiles.count()
+            player_1.save()
+            dice_values = [casino.position] * 2
+
+        with patch("game.services.ClassicMonopolyService._roll_dice_values", return_value=dice_values):
+            game_frame = self.monopoly_service.process_game_action(self.game.uuid, player_1.pk, "roll_dice")
+
+        self._refresh_game_and_players()
+
+        if not should_have_enough_money:
+            assert player_1.pending_action is None
+            assert self.game.current_player == player_2
+            return
+
+        assert self.game.current_player == player_1
+        assert player_1.pending_action.action_type == PendingAction.Types.IN_CASINO
+        assert player_1.pending_action.action_data.get("available_bets") is not None
+
+        with patch("game.services.ClassicMonopolyService._flip_coin_value", return_value=should_win):
+            self.monopoly_service.process_game_action(
+                self.game.uuid, player_1.pk, ActionCommand(action="accept", bet=10)
+            )
+        self._refresh_game_and_players()
+
+        if should_win:
+            assert player_1.cash == player_1_cash_before + 10
+        else:
+            assert player_1.cash == player_1_cash_before - 10
+
+        if should_roll_double:
+            assert self.game.current_player == player_1
+            assert player_1.pending_action.action_type == PendingAction.Types.ROLL_DICE
+        else:
+            assert self.game.current_player == player_2
+            assert player_2.pending_action.action_type == PendingAction.Types.ROLL_DICE
+
+    @pytest.mark.parametrize(("should_roll_double"), [(False,), (True,)])
+    @no_type_check
+    def test_landing_on_casino_reject(self, should_roll_double):
+        self._create_game(2)
+        player_1: Player = self.players[0]
+        player_2: Player = self.players[1]
+
+        casino = Casino.objects.filter(board_config=self.game.board_config).first()
+        dice_values = [casino.position - 1, 1]
+
+        if should_roll_double:
+            player_1.position = (player_1.position - casino.position) % self.game.board_config.tiles.count()
+            player_1.save()
+            dice_values = [casino.position] * 2
+
+        with patch("game.services.ClassicMonopolyService._roll_dice_values", return_value=dice_values):
+            game_frame = self.monopoly_service.process_game_action(self.game.uuid, player_1.pk, "roll_dice")
+
+        self._refresh_game_and_players()
+
+        assert self.game.current_player == player_1
+        assert player_1.pending_action.action_type == PendingAction.Types.IN_CASINO
+        assert player_1.pending_action.action_data.get("available_bets") is not None
+
+        self.monopoly_service.process_game_action(self.game.uuid, player_1.pk, ActionCommand(action="reject"))
+        self._refresh_game_and_players()
+
+        if should_roll_double:
+            assert self.game.current_player == player_1
+            assert player_1.pending_action.action_type == PendingAction.Types.ROLL_DICE
+        else:
+            assert self.game.current_player == player_2
+            assert player_2.pending_action.action_type == PendingAction.Types.ROLL_DICE

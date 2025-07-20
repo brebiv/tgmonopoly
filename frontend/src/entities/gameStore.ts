@@ -1,7 +1,10 @@
+import { shallow } from "zustand/shallow";
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 
 import {
+  GameStatus,
+  PendingActionTypes,
   type BoardConfig,
   type Game,
   type GameEvent,
@@ -17,17 +20,29 @@ export type GameState = {
   eventQueue: GameEvent[];
   eventLog: GameEvent[];
   players: Player[];
+  ownerships: Ownership[];
   game?: Game;
+  gameStatus?: GameStatus;
   boardConfig?: BoardConfig;
   myPlayer?: Player;
   isMyTurn: boolean;
   dices?: number[];
   showDices: boolean;
   showActionSheet: boolean;
+  casinoBet?: number;
+  isCasinoBet?: boolean;
+  flipCoin?: boolean;
+  isWonCasino?: boolean;
+  casinoPlayer?: Player;
+  tilesLoaded: boolean;
   processEventGameFrame: (gameFrame: GameFrame) => void;
   processInitialGameFrame: (gameFramge: GameFrame) => void;
   enqueueEvents: (events: GameEvent[]) => void;
   processEventQueue: () => Promise<void>;
+  setCasinoBet: (value: number) => void;
+  setIsCasinoBet: (value: boolean) => void;
+  setIsWonCasino: (value: boolean) => void;
+  setTilesLoaded: (value: boolean) => void;
 
   // Utils
   getTileByPosition: (position: number) => Tile | undefined;
@@ -42,25 +57,34 @@ export const useGameStore = create<GameState>(
     eventQueue: [],
     eventLog: [],
     players: [],
+    ownerships: [],
     game: undefined,
     boardConfig: undefined,
     isMyTurn: false,
     showDices: false,
     showActionSheet: false,
+    casinoBet: undefined,
+    tilesLoaded: false,
     processInitialGameFrame: (gameFrame) => {
       let myPlayer = gameFrame.players.find((p) => p.id == gameFrame.my_player_id);
       if (!myPlayer) {
         throw new Error("Could not find my player");
       }
       let isMyTurn = myPlayer.id === gameFrame.game.current_player;
+      let casinoPlayer = gameFrame.players.find(
+        (p) => p.pending_action?.action_type == PendingActionTypes.IN_CASINO,
+      );
 
       set({
         players: gameFrame.players,
         game: gameFrame.game,
+        gameStatus: gameFrame.game.status,
         myPlayer: myPlayer,
         isMyTurn: isMyTurn,
         boardConfig: gameFrame.board_config,
         showActionSheet: isMyTurn,
+        casinoPlayer: casinoPlayer,
+        ownerships: gameFrame.game.ownerships,
         // ownerships: gameFrame.game.ownerships,
       });
     },
@@ -79,13 +103,27 @@ export const useGameStore = create<GameState>(
         throw new Error("Could not find my player");
       }
       // Make sure that all state is updated after event processing did partial updates
-      set({
+      const newState = {
         isMyTurn: isMyTurn,
         myPlayer: myPlayer,
         players: gameFrame.players,
         game: gameFrame.game,
+        gameStatus: gameFrame.game.status,
         showActionSheet: isMyTurn,
-      });
+        casinoBet: undefined,
+        isCasinoBet: undefined,
+        flipCoin: undefined,
+        isWonCasino: undefined,
+        casinoPlayer: undefined,
+      };
+
+      // If ownerships didn't change, don't trigger rerender
+      if (!shallow(get().ownerships, gameFrame.game.ownerships)) {
+        Object.assign(newState, {
+          ownerships: gameFrame.game.ownerships,
+        });
+      }
+      set(newState);
     },
 
     enqueueEvents: (events) => {
@@ -107,6 +145,18 @@ export const useGameStore = create<GameState>(
       }
 
       set({ isProcessingEvents: false });
+    },
+    setCasinoBet: (value) => {
+      set({ casinoBet: value });
+    },
+    setIsCasinoBet: (value) => {
+      set({ isCasinoBet: value });
+    },
+    setIsWonCasino: (value) => {
+      set({ isWonCasino: value });
+    },
+    setTilesLoaded: (value) => {
+      set({ tilesLoaded: value });
     },
 
     // Utils

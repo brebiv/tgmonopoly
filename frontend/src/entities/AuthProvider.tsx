@@ -4,6 +4,7 @@ import { useMe } from "@/shared/hooks/useMe";
 
 interface AuthProviderData {
   me: Me;
+  gameUUID?: string;
 }
 
 const AuthContext = createContext<AuthProviderData | undefined>(undefined);
@@ -19,13 +20,14 @@ export const AuthContextProvider: React.FC<AuthContextProps> = ({
 }) => {
   const contextValue = {} as AuthProviderData;
   const { isLoading: isMeLoading, isError: isMeError, data: me } = useMe(true, true);
+  let gameUUID: string | undefined = undefined;
 
   if (isMeLoading) return <h1>Loading auth</h1>;
   if (isMeError || !me) return <h1>Error with auth</h1>;
 
   if (currentGameUUIDMustMatchWithURL) {
     const pathname = URL.parse(location.href)?.pathname;
-    const gameUUID = pathname?.split("/").pop();
+    gameUUID = pathname?.split("/").pop();
 
     if (!gameUUID) {
       console.error("Could not get UUID from url");
@@ -42,6 +44,7 @@ export const AuthContextProvider: React.FC<AuthContextProps> = ({
   }
 
   contextValue.me = me;
+  contextValue.gameUUID = gameUUID;
 
   return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
 };

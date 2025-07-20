@@ -4,8 +4,6 @@ import { buildGameWebsocketUrl } from "../utils";
 
 export const useReactQuerySubscription = (gameUUID: string) => {
   const websocketRef = useRef<WebSocket | null>(null);
-  // const { processGameFrame } = useGameStore();
-  // const queryClient = useQueryClient();
 
   useEffect(() => {
     const websocket = new WebSocket(buildGameWebsocketUrl(gameUUID));

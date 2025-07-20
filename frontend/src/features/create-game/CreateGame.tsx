@@ -22,10 +22,9 @@ export const CreateGame = () => {
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
-          <div className="grid grid-cols-2">
-            <div className="flex flex-col gap-2">
-              <p>Number of players</p>
-              <SelectGroup defaultValue={2} onChange={setNumPlayers}>
+          <div className="grid grid-cols-2 gap-8">
+            <div className="flex h-18 flex-col gap-2">
+              <SelectGroup defaultValue={2} onChange={setNumPlayers} label="Number of players">
                 <SelectGroup.Item value={2} />
                 <SelectGroup.Item value={3} />
                 <SelectGroup.Item value={100} />
@@ -35,7 +34,7 @@ export const CreateGame = () => {
               <p>Game mode</p>
               <select
                 name="game_config"
-                className="bg-background rounded-md border-[1px] border-hint focus:outline-button px-2 h-full"
+                className="bg-background border-hint focus:outline-button h-full rounded-md border-[1px] px-2"
               >
                 <option value={"classic"}>Classic</option>
               </select>
@@ -45,17 +44,12 @@ export const CreateGame = () => {
 
         {numPlayers}
 
-        <Button
-          onClick={handleCreateGame}
-          disabled={createGameMutation.isPending}
-        >
+        <Button onClick={handleCreateGame} disabled={createGameMutation.isPending}>
           {createGameMutation.isPending ? "Creating…" : "Create"}
         </Button>
 
         {createGameMutation.isError && (
-          <p className="text-red-600">
-            {JSON.stringify(createGameMutation.error)}
-          </p>
+          <p className="text-red-600">{JSON.stringify(createGameMutation.error)}</p>
         )}
       </div>
     </div>

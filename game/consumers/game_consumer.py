@@ -1,4 +1,6 @@
 from uuid import UUID
+import json
+from json.decoder import JSONDecodeError
 
 from channels.generic.websocket import JsonWebsocketConsumer
 from channels.exceptions import DenyConnection
@@ -9,6 +11,7 @@ from game.models import Game, Player
 from game.exceptions import GameException
 from game.services import get_service_by_game, BaseMonopoly
 from game.serializers import BoardConfigDetailSerializer
+from game.schemas import ActionCommand
 from .mixinis import AuthMixin
 
 
@@ -71,11 +74,9 @@ class GameConsumer(JsonWebsocketConsumer, AuthMixin):
 
     def receive_json(self, content):
         print("Well, here we are JSON")
-
-    def receive(self, text_data):
-        action = text_data
+        command = ActionCommand(**content)
         try:
-            game_frame = self.monopoly_service.process_game_action(self.game_uuid, self.player.pk, action)
+            game_frame = self.monopoly_service.process_game_action(self.game_uuid, self.player.pk, command)
             async_to_sync(self.channel_layer.group_send)(self.game_group_name, game_frame)
         except GameException as err:
             resp_msg = {"type": "game.error", "msg": str(err)}
@@ -83,6 +84,26 @@ class GameConsumer(JsonWebsocketConsumer, AuthMixin):
         except ValidationError as err:
             print(err)
             self.send_json(str(err))
+
+    def receive(self, text_data):
+        """For some reason when sending data from unit-tests it handles by this handler"""
+        try:
+            data = json.loads(text_data)
+            self.receive_json(data)
+        except JSONDecodeError:
+            self.send("ಠ_ಠ")
+
+    # def receive(self, text_data):
+    #     action = text_data
+    #     try:
+    #         game_frame = self.monopoly_service.process_game_action(self.game_uuid, self.player.pk, action)
+    #         async_to_sync(self.channel_layer.group_send)(self.game_group_name, game_frame)
+    #     except GameException as err:
+    #         resp_msg = {"type": "game.error", "msg": str(err)}
+    #         self.send_json(resp_msg)
+    #     except ValidationError as err:
+    #         print(err)
+    #         self.send_json(str(err))
 
     def game_event(self, event):
         self.send_json(event)

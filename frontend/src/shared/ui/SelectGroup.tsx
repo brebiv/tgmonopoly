@@ -1,15 +1,21 @@
 import React from "react";
-import cn from "classnames";
+import { cn } from "../utils";
 
 interface SelectGroupProps {
   children?: React.ReactNode;
   defaultValue?: any;
+  label?: string;
+  id?: string;
+  className?: string;
+  disabled?: boolean;
   onChange: (value: any) => void;
 }
 interface SelectGroupItemProps {
   value: any;
   selected?: boolean;
+  disabled?: boolean;
   onClick?: (value: any) => void;
+  className?: string;
 }
 
 type SelectGroupComponent = React.FC<SelectGroupProps> & {
@@ -17,30 +23,45 @@ type SelectGroupComponent = React.FC<SelectGroupProps> & {
 };
 
 export const SelectGroup: SelectGroupComponent = ({
-  children,
+  label,
+  id,
   defaultValue,
+  className,
+  disabled,
   onChange,
+  children,
 }) => {
   const [selectedValue, setSelectedValue] = React.useState<any>(defaultValue);
 
   return (
-    <div role="radiogroup" className="flex">
-      {React.Children.map(children, (child) => {
-        if (!React.isValidElement(child)) {
-          return null;
-        }
+    <div className={cn("flex h-full w-full flex-col gap-2", className)}>
+      <label
+        htmlFor={id}
+        className={cn({
+          "text-hint": disabled,
+        })}
+      >
+        {label}
+      </label>
+      <div role="radiogroup" id={id} className={cn("flex h-full w-full")}>
+        {React.Children.map(children, (child) => {
+          if (!React.isValidElement(child)) {
+            return null;
+          }
 
-        const element = child as React.ReactElement<SelectGroupItemProps>;
-        const { value } = element.props;
-        const isSelected = value === selectedValue;
-        return React.cloneElement(element, {
-          selected: isSelected,
-          onClick: () => {
-            setSelectedValue(value);
-            onChange(value);
-          },
-        });
-      })}
+          const element = child as React.ReactElement<SelectGroupItemProps>;
+          const { value } = element.props;
+          const isSelected = value === selectedValue;
+          return React.cloneElement(element, {
+            selected: isSelected,
+            disabled: disabled,
+            onClick: () => {
+              setSelectedValue(value);
+              onChange(value);
+            },
+          });
+        })}
+      </div>
     </div>
   );
 };
@@ -48,23 +69,27 @@ export const SelectGroup: SelectGroupComponent = ({
 const SelectGroupItem: React.FC<SelectGroupItemProps> = ({
   value,
   selected,
+  disabled,
+  className,
   onClick,
 }) => {
   return (
     <button
       role="radio"
+      disabled={disabled}
       onClick={() => onClick!(value)}
       className={cn(
-        "relative w-10 h-10 bg-background border-[1px] flex items-center justify-center border-hint first:rounded-l-md last:rounded-r-md group"
+        "bg-background border-hint group relative flex h-full w-full items-center justify-center border-[1px] first:rounded-l-md last:rounded-r-md disabled:cursor-not-allowed disabled:opacity-50",
+        className,
       )}
     >
       <div
         className={cn(
-          "absolute bg-link z-0 w-full h-full left-0 top-0 transition-opacity duration-100 group-first:rounded-l-md group-last:rounded-r-md",
+          "bg-link absolute top-0 left-0 z-0 h-full w-full transition-opacity duration-100 group-first:rounded-l-md group-last:rounded-r-md",
           {
             "opacity-100": selected,
             "opacity-0": !selected,
-          }
+          },
         )}
       ></div>
       <p

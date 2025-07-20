@@ -2,6 +2,11 @@ from pydantic import BaseModel
 from typing import Optional, Literal, List
 
 
+class ActionCommand(BaseModel):
+    action: str
+    bet: Optional[int] = None
+
+
 class PropertyGroup(BaseModel):
     id: int
     name: str
@@ -50,3 +55,7 @@ class PayRentData(BaseModel):
 
 class PayTaxData(BaseModel):
     amount: int
+
+
+class CasinoData(BaseModel):
+    available_bets: List[int]

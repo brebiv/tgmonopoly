@@ -7,7 +7,8 @@ import { useEffect, useRef } from "react";
 
 export const DiceController = () => {
   const reactDice = useRef<ReactDiceRef>(null);
-  const { dices, showDices } = useGameStore();
+  const dices = useGameStore((s) => s.dices);
+  const showDices = useGameStore((s) => s.showDices);
 
   const rollAll = (values: number[]) => {
     if (reactDice.current) {
@@ -25,7 +26,7 @@ export const DiceController = () => {
 
   return (
     <div
-      className={cn("flex h-full w-full items-center justify-center", {
+      className={cn("absolute flex h-full w-full items-center justify-center", {
         invisible: !showDices,
       })}
     >

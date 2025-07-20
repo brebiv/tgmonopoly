@@ -23,8 +23,10 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   base: "/static/",
   server: {
-    // port: 5173,          // 5173 is default port
-    // host: "localhost",   // localhost is default host
+    port: 5173, // 5173 is default port
+    host: "localhost", // localhost is default host
+    origin: "http://localhost:5173",
+    strictPort: true,
   },
   build: {
     manifest: "manifest.json",

@@ -33,6 +33,7 @@ export enum PendingActionTypes {
   PAY_RENT = "pay_rent",
   PAY_TAX = "pay_tax",
   IN_AUCTION = "IN_AUCTION",
+  IN_CASINO = "IN_CASINO",
 }
 
 export type ActionData = {
@@ -93,8 +94,14 @@ export type Game = {
 export enum GameEventTypes {
   PLAYER_JOINED = "player.joined",
   PLAYER_ACTION = "player.action",
+  PLAYER_LEAVE = "player.leave",
   PLAYER_ROLL_DICE = "player.roll_dice",
   PLAYER_MOVE = "player.move",
+  GAME_STARTED = "game.started",
+  GAME_AUCTION_FLOP = "game.auction_flop",
+  LANDED_ON_OWN_PROPERTY = "game.landed_on_own_property",
+  PLAYER_WON_CASINO = "player.won_casino",
+  PLAYER_LOST_CASINO = "player.lost_casino",
 }
 
 type GameEventExtraData = {
@@ -189,8 +196,10 @@ export enum GameActionType {
   REJECT = "reject",
 }
 
-export type GameAction = {
-  action: GameActionType;
-  game_uuid: string;
-  extra_data?: object;
+export type GameActionExtraData = {
+  bet?: number;
 };
+
+export type GameActionCommand = {
+  action: GameActionType;
+} & GameActionExtraData;

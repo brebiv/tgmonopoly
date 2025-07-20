@@ -11,7 +11,7 @@ interface PlayerCardProps {
 
 export const PlayerCard: React.FC<PlayerCardProps> = ({ player }) => {
   const empty = player == null;
-  const { game } = useGameStore();
+  const game = useGameStore((s) => s.game);
 
   if (!game) {
     throw new Error("Game should be initialized");

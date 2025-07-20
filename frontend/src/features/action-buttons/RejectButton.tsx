@@ -1,20 +1,26 @@
 import { useWebSocketContext } from "@/app/providers/WebSocketProvider";
-import { GameActionType } from "@/entities/types";
+import { GameActionType, type GameActionExtraData } from "@/entities/types";
 import { Button } from "@/shared/ui/Button";
 import type React from "react";
 
 interface RejectButtonProps {
   action?: GameActionType;
+  extra_data?: GameActionExtraData;
   protocol?: "ws" | "http";
   children: React.ReactNode;
 }
 
-export const RejectButton: React.FC<RejectButtonProps> = ({ action, protocol = "ws", children }) => {
-  const { send } = useWebSocketContext();
+export const RejectButton: React.FC<RejectButtonProps> = ({
+  action,
+  extra_data,
+  protocol = "ws",
+  children,
+}) => {
+  const { sendJSON } = useWebSocketContext();
 
   const handleClickWS = () => {
-    const command = action || GameActionType.REJECT;
-    send(command);
+    const command = { action: action || GameActionType.REJECT, ...extra_data };
+    sendJSON(command);
   };
   const handleClickHTTP = () => {
     console.error("Not implemented");

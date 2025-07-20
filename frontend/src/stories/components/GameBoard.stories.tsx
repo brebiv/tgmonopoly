@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { GameBoard } from "@/pages/game/ui/game/GameBoard";
 import classic_board_config from "@/test/mocks/classic_board_config";

@@ -32,6 +32,7 @@ export enum PendingActionTypes {
   BUY_PROPERTY = "buy_property",
   PAY_RENT = "pay_rent",
   PAY_TAX = "pay_tax",
+  PAY_REPAIRS = "pay_repairs",
   IN_AUCTION = "IN_AUCTION",
   IN_CASINO = "IN_CASINO",
 }

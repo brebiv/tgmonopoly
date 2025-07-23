@@ -13,13 +13,14 @@ from game.models import (
     Casino,
     Property,
     Utility,
+    ChanceCard,
 )
 
 
 class Command(BaseCommand):
     help = "Populates database with predefined monopoly config"
 
-    def populate(self):
+    def populate(self) -> None:
         # fmt: off
         with transaction.atomic():
             board_config = BoardConfig.objects.create(name=BoardConfig.Names.CLASSIC)
@@ -78,6 +79,21 @@ class Command(BaseCommand):
             Property.objects.create(board_config=board_config, position=37, name="TikTok", price=350, mortgage_value=175, house_price=200, rent=35, rent_with_1_houses=175, rent_with_2_houses=500, rent_with_3_houses=1100, rent_with_4_houses=1300, rent_with_5_houses=1500, group=tech, icon="/media/properties/tiktok-logo.webp")
             Tax.objects.create(board_config=board_config, position=38, name="Tax")
             Property.objects.create(board_config=board_config, position=39, name="Telegram", price=400, mortgage_value=200, house_price=200, rent=50, rent_with_1_houses=200, rent_with_2_houses=600, rent_with_3_houses=1400, rent_with_4_houses=1700, rent_with_5_houses=2000, group=tech, icon="/media/properties/Telegram_logo.png")
+
+            # Chance cards
+            ChanceCard.objects.create(board_config=board_config, description="Advance to Go (Collect $200)", action=ChanceCard.Action.MOVE_TO, position=0)
+            ChanceCard.objects.create(board_config=board_config, description="Advance to Illinois Avenue - If you pass Go, collect $200.", action=ChanceCard.Action.MOVE_TO, position=24)
+            ChanceCard.objects.create(board_config=board_config, description="Advance to St. Charles Place - If you pass Go, collect $200.", action=ChanceCard.Action.MOVE_TO, position=11)
+            ChanceCard.objects.create(board_config=board_config, description="Advance token to nearest Railroad. Pay owner twice the rental; if unowned, you may buy it.", action=ChanceCard.Action.MOVE_TO_NEXT_UTILITY)
+            ChanceCard.objects.create(board_config=board_config, description="Bank pays you dividend of $50", action=ChanceCard.Action.COLLECT_BANK, amount=50)
+            # ChanceCard.objects.create(board_config=board_config, description="Get Out of Jail Free - This card may be kept until needed, or traded/sold.", action="GOJF")
+            ChanceCard.objects.create(board_config=board_config, description="Go Back Three Spaces", action=ChanceCard.Action.MOVE_RELATIVE, position_relative=-3)
+            ChanceCard.objects.create(board_config=board_config, description="Go Directly to Jail - Do not pass Go, do not collect $200.", action=ChanceCard.Action.GO_TO_JAIL)
+            ChanceCard.objects.create(board_config=board_config, description="Make general repairs on all your property - For each house pay $25 - For each hotel $100.", action=ChanceCard.Action.REPAIRS)
+            ChanceCard.objects.create(board_config=board_config, description="Pay poor tax of $15", action=ChanceCard.Action.PAY_BANK, amount=100)
+            ChanceCard.objects.create(board_config=board_config, description="Take a trip to Reading Railroad - If you pass Go, collect $200.", action=ChanceCard.Action.MOVE_TO, position=5)
+            ChanceCard.objects.create(board_config=board_config, description="Take a walk on the Boardwalk - Advance token to Boardwalk.", action=ChanceCard.Action.MOVE_TO, position=39)
+            ChanceCard.objects.create(board_config=board_config, description="Your building loan matures - Collect $150.", action=ChanceCard.Action.COLLECT_BANK, amount=150)
         # fmt: on
 
     def handle(self, *args, **options):

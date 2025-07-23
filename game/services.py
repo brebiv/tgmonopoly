@@ -1,13 +1,14 @@
 from uuid import UUID
 from abc import ABC, abstractmethod
-from typing import List, Tuple, Optional, Callable
+from typing import List, Tuple, Optional, Callable, cast
 import datetime
 import random
 import logging
 import math
 
 from django.db import transaction, IntegrityError
-from django.db.models import QuerySet
+from django.db.models import QuerySet, F, Sum
+from django.db.models.functions import Greatest
 from django.utils import timezone
 
 from bot.models import TelegramUser
@@ -26,11 +27,13 @@ from game.models import (
     Tax,
     Start,
     Casino,
+    Chance,
+    ChanceCard,
 )
 from game.game_config import BaseMonopolyConfig, ClassicMonopolyConfig
 from game.exceptions import GameException
 from game.serializers import GameEventSerializer, GameSerializer, PlayerSerializer
-from game.schemas import AuctionData, PayRentData, PayTaxData, CasinoData, ActionCommand
+from game.schemas import AuctionData, PayRentData, PayTaxData, CasinoData, ActionCommand, RepairsData
 
 
 logger = logging.getLogger(__name__)
@@ -121,20 +124,29 @@ class ClassicMonopolyService(BaseMonopoly):
             PendingAction.Types.BUY_PROPERTY: {
                 "accept": self._handle_buy_property_accept,
                 "start_auction": self._handle_start_auction,
+                # Add ability to degrade or mortgage tile
             },
             PendingAction.Types.PAY_RENT: {
                 "accept": self._handle_pay_rent,
+                # Add ability to degrade or mortgage tile
             },
             PendingAction.Types.PAY_TAX: {
                 "accept": self._handle_pay_tax,
+                # Add ability to degrade or mortgage tile
+            },
+            PendingAction.Types.PAY_REPAIRS: {
+                "accept": self._handle_pay_repairs,
+                # Add ability to degrade or mortgage tile
             },
             PendingAction.Types.IN_AUCTION: {
                 "accept": self._handle_accept_auction,
                 "reject": self._handle_reject_auction,
+                # Add ability to degrade or mortgage tile
             },
             PendingAction.Types.IN_CASINO: {
                 "accept": self._handle_accept_casino,
                 "reject": self._handle_reject_casino,
+                # Add ability to degrade or mortgage tile
             },
         }
 
@@ -267,19 +279,14 @@ class ClassicMonopolyService(BaseMonopoly):
 
         return events
 
-    def _handle_normal_roll(self, game: Game, player: Player, dice_values: list[int]) -> list[GameEvent]:
+    def _get_random_chance_card(self) -> ChanceCard:
+        random_card = ChanceCard.objects.order_by("?").first()
+        if not random_card:
+            raise GameException("Could not load any chance card")
+        return random_card
+
+    def _process_land_on_tile(self, game: Game, player: Player, tile: Tile, dice_sum: int) -> list[GameEvent]:
         events = []
-        dice_sum = sum(dice_values)
-        new_position = player.move_forward(dice_sum)
-
-        event = self._create_game_event(
-            game,
-            GameEvent.Types.PLAYER_MOVE,
-            {"player": player.pk, "position": new_position},
-        )
-        events.append(event)
-
-        tile = game.board_config.tiles.get(position=player.position)
         downcasted_tile = tile.downcast()
 
         if isinstance(downcasted_tile, (Property, Utility)):
@@ -329,9 +336,113 @@ class ClassicMonopolyService(BaseMonopoly):
                     expires_at=timezone.now(),
                     action_data=casino_data.model_dump(),
                 )
+        elif isinstance(downcasted_tile, Chance):
+            events = self._process_chance_card(game, player)
+            events.extend(events)
         else:
             raise NotImplementedError()
             self._next_turn(game, player)
+
+        return events
+
+    def _collect_from_players(self, game: Game, player: Player, amount: int) -> None:
+        others = game.players.select_for_update().exclude(pk=player.pk)
+
+        total_before = others.aggregate(total=Sum("cash"))["total"] or 0
+        # others.update(cash=Greatest(F("cash") - amount, Value(0)))
+        others.update(cash=Greatest(F("cash") - amount, 0))
+        total_after = others.aggregate(total=Sum("cash"))["total"] or 0
+
+        actually_paid = total_before - total_after
+        player.cash += actually_paid
+        player.save()
+
+    def _apply_repairs_action(self, game: Game, player: Player) -> None:
+        num_houses = player.houses_owned
+        price_per_house = 50
+        amount = num_houses * price_per_house
+        extra_data = RepairsData(amount=amount, num_houses=num_houses, price_per_house=price_per_house)
+
+        pa = PendingAction.objects.create(
+            player=player,
+            action_type=PendingAction.Types.PAY_REPAIRS,
+            expires_at=timezone.now(),
+            action_data=extra_data.model_dump(),
+        )
+
+    def _process_chance_card(self, game: Game, player: Player) -> list[GameEvent]:
+        events = []
+
+        chance_card = self._get_random_chance_card()
+
+        events.append(
+            self._create_game_event(game, GameEvent.Types.GOT_CHANCE_CARD, extra_data={"player": player.pk})
+        )
+
+        if chance_card.action == ChanceCard.Action.MOVE_TO:
+            player.position = chance_card.position  # type: ignore[assignment]
+            player.save()
+            tile = game.board_config.tiles.get(position=player.position)
+            self._process_land_on_tile(game, player, tile, 0)
+        elif chance_card.action == ChanceCard.Action.MOVE_RELATIVE:
+            pos_relative = chance_card.position_relative
+            pos_relative = cast(int, pos_relative)
+
+            if pos_relative > 0:
+                player.move_forward(pos_relative)
+            else:
+                player.move_backward(abs(pos_relative))
+            player.save()
+            tile = game.board_config.tiles.get(position=player.position)
+            self._process_land_on_tile(game, player, tile, pos_relative)
+        elif chance_card.action == ChanceCard.Action.MOVE_TO_NEXT_UTILITY:
+            closest_util = player.get_next_utility()
+            if not closest_util:
+                raise GameException("Could not find closest utility")
+
+            player.position = closest_util.position
+            player.save()
+            self._process_land_on_tile(game, player, closest_util, 0)
+        elif chance_card.action == ChanceCard.Action.PAY_BANK:
+            paytax_data = PayTaxData(amount=cast(int, chance_card.amount))
+            pa = PendingAction.objects.create(
+                player=player,
+                action_type=PendingAction.Types.PAY_TAX,
+                expires_at=timezone.now(),
+                action_data=paytax_data.model_dump(),
+            )
+        elif chance_card.action == ChanceCard.Action.COLLECT_BANK:
+            player.cash += cast(int, chance_card.amount)
+            player.save()
+            self._next_turn(game, player)
+        elif chance_card.action == ChanceCard.Action.COLLECT_PLAYERS:
+            self._collect_from_players(game, player, cast(int, chance_card.amount))
+            self._next_turn(game, player)
+        elif chance_card.action == ChanceCard.Action.GO_TO_JAIL:
+            self._move_player_to_jail(game, player)
+            self._next_turn(game, player)
+        elif chance_card.action == ChanceCard.Action.REPAIRS:
+            self._apply_repairs_action(game, player)
+        else:
+            raise NotImplementedError()
+
+        return events
+
+    def _handle_normal_roll(self, game: Game, player: Player, dice_values: list[int]) -> list[GameEvent]:
+        events = []
+        dice_sum = sum(dice_values)
+        new_position = player.move_forward(dice_sum)
+
+        event = self._create_game_event(
+            game,
+            GameEvent.Types.PLAYER_MOVE,
+            {"player": player.pk, "position": new_position},
+        )
+        events.append(event)
+
+        tile = game.board_config.tiles.get(position=player.position)
+        landing_events = self._process_land_on_tile(game, player, tile, dice_sum)
+        events.extend(landing_events)
 
         player.save()
         game.save()
@@ -433,7 +544,7 @@ class ClassicMonopolyService(BaseMonopoly):
         if not isinstance(tile, (Property, Utility)):
             raise GameException("You can'y buy something other then Property or Utility")
 
-        price = override_price or tile.price
+        price = override_price if override_price is not None else tile.price
 
         if player.cash < price:
             raise GameException("You don't have enough money to buy this tile")
@@ -492,6 +603,25 @@ class ClassicMonopolyService(BaseMonopoly):
         events = []
 
         action_data = PayTaxData(**resolved_pa.action_data)
+        amount = action_data.amount
+
+        if player.cash < amount:
+            raise GameException("You don't have enough money to pay tax")
+
+        player.cash -= amount
+        player.save()
+
+        next_turn_events = self._next_turn(game, player)
+        events.extend(next_turn_events)
+
+        return events
+
+    def _handle_pay_repairs(
+        self, game: Game, player: Player, resolved_pa: PendingAction, command: ActionCommand
+    ) -> list[GameEvent]:
+        events = []
+
+        action_data = RepairsData(**resolved_pa.action_data)
         amount = action_data.amount
 
         if player.cash < amount:
@@ -704,6 +834,27 @@ class ClassicMonopolyService(BaseMonopoly):
         self._next_turn(game, player)
         return events
 
+    def _improve_ownership(
+        self, game: Game, player: Player, ownership: Ownership, override_price: int | None = None
+    ) -> list[GameEvent]:
+        events: list[GameEvent] = []
+
+        downcasted_tile = ownership.tile.downcast()
+
+        if not isinstance(downcasted_tile, (Property)):
+            raise GameException("You can't improve non Property tile")
+
+        if player.cash < downcasted_tile.house_price:
+            raise GameException("You don't have enough money")
+
+        amount = override_price if override_price is not None else downcasted_tile.house_price
+        player.cash -= amount
+        player.save()
+        ownership.houses += 1
+        ownership.save()
+
+        return events
+
     def _handle_improve(
         self, game: Game, player: Player, resolved_pa: PendingAction, command: ActionCommand
     ) -> list[GameEvent]:
@@ -728,18 +879,7 @@ class ClassicMonopolyService(BaseMonopoly):
         if not ownership.check_can_improve():
             raise GameException("You must improve evenly")
 
-        downcasted_tile = ownership.tile.downcast()
-
-        if not isinstance(downcasted_tile, (Property)):
-            raise GameException("You can't improve non Property tile")
-
-        if player.cash < downcasted_tile.house_price:
-            raise GameException("You don't have enough money")
-
-        player.cash -= downcasted_tile.house_price
-        player.save()
-        ownership.houses += 1
-        ownership.save()
+        self._improve_ownership(game, player, ownership)
 
         pa = PendingAction.objects.create(
             player=player,
@@ -784,6 +924,7 @@ class ClassicMonopolyService(BaseMonopoly):
         pa = PendingAction.objects.create(
             player=player,
             action_type=PendingAction.Types.ROLL_DICE,
+            # action_type=resolved_pa.action_type,
             expires_at=timezone.now(),
             action_data=resolved_pa.action_data,
         )
@@ -797,6 +938,7 @@ class ClassicMonopolyService(BaseMonopoly):
             action = ActionCommand(action=action)
 
         events: list[GameEvent] = []
+        # TODO: Add select/prefetch related
         player = Player.objects.select_for_update().get(pk=player_id)
         game = Game.objects.select_for_update().get(pk=game_uuid)
 
@@ -812,7 +954,7 @@ class ClassicMonopolyService(BaseMonopoly):
 
             handler = self.PENDING_ACTION_COMMAND_HANDLERS.get(prev_pa.action_type, {}).get(action.action)  # type: ignore[call-overload]
             if not handler:
-                raise GameException(f"You are fucked. There is no such action. Action: {action}")
+                raise GameException(f"There is no such action. Action: {action}")
 
             prev_pa.resolved_at = timezone.now()
             prev_pa.save()

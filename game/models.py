@@ -2,7 +2,7 @@ import uuid
 from typing import Union
 
 from django.db import models
-from django.db.models import Q, QuerySet, Max, Min
+from django.db.models import Q, QuerySet, Max, Min, Sum
 from django.db import IntegrityError
 from django.core.validators import MinValueValidator
 from django.core.exceptions import ValidationError
@@ -215,6 +215,18 @@ class Player(models.Model):
     def pending_action(self) -> "PendingAction | None":
         return self.pending_actions.filter(resolved_at__isnull=True).first()
 
+    def get_next_utility(self) -> Utility | None:
+        utils = Utility.objects.filter(
+            board_config=self.game.board_config, group__type=UtilityGroup.Types.UTILITY_1
+        )
+        next_util = utils.filter(position__gt=self.position).order_by("position").first()
+        return next_util or utils.order_by("position").first()
+
+    @property
+    def houses_owned(self) -> int:
+        houses_owned = self.ownerships.all().aggregate(Sum("houses"))["houses__sum"]
+        return houses_owned
+
     def __str__(self):
         return f"{self.user.user_id} in {self.game.uuid}"
 
@@ -375,6 +387,7 @@ class GameEvent(models.Model):
         LANDED_ON_OWN_PROPERTY = "game.landed_on_own_property"
         PLAYER_WON_CASINO = "player.won_casino"
         PLAYER_LOST_CASINO = "player.lost_casino"
+        GOT_CHANCE_CARD = "player.got_chance_card"
 
     game = models.ForeignKey(to=Game, related_name="events", on_delete=models.CASCADE)
     event_type = models.CharField(max_length=32, choices=Types.choices)
@@ -387,6 +400,7 @@ class PendingAction(models.Model):
         BUY_PROPERTY = "buy_property"
         PAY_RENT = "pay_rent"
         PAY_TAX = "pay_tax"
+        PAY_REPAIRS = "pay_repairs"
         IN_AUCTION = "IN_AUCTION"
         IN_CASINO = "IN_CASINO"
 
@@ -409,3 +423,31 @@ class PendingAction(models.Model):
                 name="unique_active_pending_action_per_player",
             )
         ]
+
+
+class ChanceCard(models.Model):
+    class Action(models.TextChoices):
+        MOVE_TO = "MOVE_TO"
+        MOVE_RELATIVE = "MOVE_RELATIVE"
+        MOVE_TO_NEXT_UTILITY = "MOVE_TO_NEXT_UTILITY"
+        PAY_BANK = "PAY_BANK"
+        COLLECT_BANK = "COLLECT_BANK"
+        COLLECT_PLAYERS = "COLLECT_PLAYERS"
+        GO_TO_JAIL = "GO_TO_JAIL"
+        REPAIRS = "REPAIRS"
+        # GET_OUT_OF_JAIL = "GET_OUT_OF_JAIL"
+
+    board_config = models.ForeignKey(to=BoardConfig, related_name="chance_cards", on_delete=models.CASCADE)
+
+    description = models.CharField(max_length=128)
+    action = models.CharField(max_length=32, choices=Action.choices)
+    amount = models.PositiveIntegerField(null=True, blank=True, help_text="Cash value involved (if any)")
+    position = models.PositiveSmallIntegerField(
+        null=True, blank=True, help_text="Board position for MOVE_TO action"
+    )
+    position_relative = models.SmallIntegerField(
+        null=True, blank=True, help_text="Relative move (+/- spaces) for MOVE_RELATIVE"
+    )
+
+    def __str__(self):
+        return f"Chance: {self.description[:40]}"

@@ -60,3 +60,9 @@ class PayTaxData(BaseModel):
 
 class CasinoData(BaseModel):
     available_bets: List[int]
+
+
+class RepairsData(BaseModel):
+    amount: int
+    num_houses: int
+    price_per_house: int

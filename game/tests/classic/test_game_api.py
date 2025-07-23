@@ -27,10 +27,14 @@ from game.models import (
     UtilityGroup,
     Tax,
     Casino,
+    Chance,
+    ChanceCard,
+    Start,
 )
 from game.services import get_service_by_name, ClassicMonopolyService
 from game.exceptions import GameException
 from game.schemas import ActionCommand
+from game import schemas
 from .. import BaseApiTestCase
 
 
@@ -1413,3 +1417,269 @@ class TestImprovingTiles:
             f"rent_with_{ownerships[idx_to_degrade].houses}_houses",
             property_to_degrade.rent,
         )
+
+
+@pytest.mark.django_db
+class TestChanceCards:
+    monopoly_service: ClassicMonopolyService
+    game: Game
+    player_1: Player
+    player_2: Player
+    player_3: Player
+
+    def setup_method(self, method):
+        PopulateDatabaseCommand().handle()
+
+    def _refresh_game_and_players(self):
+        """Refresh game and all players from DB"""
+        self.game.refresh_from_db()
+        for player in self.players:
+            player.refresh_from_db()
+
+    def _create_game(self, players: int):
+        self.tg_users = mock_data.create_telegram_users(players, synthetic=True)
+        self.monopoly_service = get_service_by_name("classic")  # type: ignore[assignment]
+        self.game = self.monopoly_service.create_game(self.tg_users[0], players)
+
+        for i in range(1, players):
+            player, _ = self.monopoly_service.join_game(self.game.uuid, self.tg_users[i])
+
+        game_players = self.game.players.all()
+        self.players = list(game_players)
+        self._refresh_game_and_players()
+
+    @pytest.mark.parametrize(
+        ("card_action", "card_value", "should_be_owned", "num_players"),
+        [
+            (ChanceCard.Action.MOVE_TO, Start, None, 2),
+            (ChanceCard.Action.MOVE_TO, Property, None, 2),
+            (ChanceCard.Action.MOVE_TO, Utility, None, 2),
+            (ChanceCard.Action.MOVE_RELATIVE, -3, None, 2),
+            (ChanceCard.Action.MOVE_RELATIVE, 3, None, 2),
+            (ChanceCard.Action.MOVE_TO_NEXT_UTILITY, Utility, True, 2),
+            (ChanceCard.Action.MOVE_TO_NEXT_UTILITY, Utility, False, 2),
+            (ChanceCard.Action.PAY_BANK, 100, None, 2),
+            (ChanceCard.Action.COLLECT_BANK, 100, None, 2),
+            (ChanceCard.Action.COLLECT_PLAYERS, 50, None, 3),
+            (ChanceCard.Action.GO_TO_JAIL, None, None, 2),
+            (ChanceCard.Action.REPAIRS, None, None, 2),
+        ],
+    )
+    @no_type_check
+    def test_landing_on_chance_card(self, card_action, card_value, should_be_owned: bool | None, num_players):
+        self._create_game(num_players)
+        player_1: Player = self.players[0]
+        player_2: Player = self.players[1]
+        player_1_cash_before = player_1.cash
+        player_2_cash_before = player_2.cash
+
+        if num_players == 3:
+            player_3: Player = self.players[2]
+            # Test with value that is less then chance card amount
+            player_3.cash = card_value - 1
+            player_3.save()
+            player_3_cash_before = player_3.cash
+
+        tile = Chance.objects.filter(board_config=self.game.board_config).first()
+        # Dice values to land on Chance field
+        dice_values = [tile.position, 0]
+
+        if card_action == ChanceCard.Action.MOVE_TO:
+            t = card_value.objects.first()
+
+            forced_card = ChanceCard.objects.create(
+                board_config=self.game.board_config,
+                description="Temporary created card",
+                action=card_action,
+                position=t.position,
+            )
+
+            with patch("game.services.ClassicMonopolyService._roll_dice_values", return_value=dice_values):
+                with patch(
+                    "game.services.ClassicMonopolyService._get_random_chance_card",
+                    return_value=forced_card,
+                ):
+                    game_frame = self.monopoly_service.process_game_action(
+                        self.game.uuid, player_1.pk, "roll_dice"
+                    )
+
+            self._refresh_game_and_players()
+
+            assert player_1.position == t.position
+
+            if isinstance(card_value, Start):
+                assert player_1.pending_action.action_type is None
+            elif isinstance(card_value, (Property, Utility)):
+                assert player_1.pending_action.action_type == PendingAction.Types.BUY_PROPERTY
+        elif card_action == ChanceCard.Action.MOVE_RELATIVE:
+            forced_card = ChanceCard.objects.create(
+                board_config=self.game.board_config,
+                description="Temporary created card",
+                action=card_action,
+                position_relative=card_value,
+            )
+
+            with patch("game.services.ClassicMonopolyService._roll_dice_values", return_value=dice_values):
+                with patch(
+                    "game.services.ClassicMonopolyService._get_random_chance_card",
+                    return_value=forced_card,
+                ):
+                    game_frame = self.monopoly_service.process_game_action(
+                        self.game.uuid, player_1.pk, "roll_dice"
+                    )
+
+            self._refresh_game_and_players()
+            assert player_1.position == (sum(dice_values) + card_value) % 40
+        elif card_action == ChanceCard.Action.MOVE_TO_NEXT_UTILITY:
+            next_utility = player_1.get_next_utility()
+            if should_be_owned:
+                self.monopoly_service._buy_tile(self.game, player_2, next_utility, 0)
+
+            forced_card = ChanceCard.objects.create(
+                board_config=self.game.board_config,
+                description="Temporary created card",
+                action=card_action,
+            )
+
+            with patch("game.services.ClassicMonopolyService._roll_dice_values", return_value=dice_values):
+                with patch(
+                    "game.services.ClassicMonopolyService._get_random_chance_card",
+                    return_value=forced_card,
+                ):
+                    game_frame = self.monopoly_service.process_game_action(
+                        self.game.uuid, player_1.pk, "roll_dice"
+                    )
+
+            self._refresh_game_and_players()
+            assert player_1.position == next_utility.position
+            if should_be_owned:
+                assert player_1.pending_action.action_type == PendingAction.Types.PAY_RENT
+            else:
+                assert player_1.pending_action.action_type == PendingAction.Types.BUY_PROPERTY
+        elif card_action == ChanceCard.Action.PAY_BANK:
+            forced_card = ChanceCard.objects.create(
+                board_config=self.game.board_config,
+                description="Temporary created card",
+                action=card_action,
+                amount=card_value,
+            )
+
+            with patch("game.services.ClassicMonopolyService._roll_dice_values", return_value=dice_values):
+                with patch(
+                    "game.services.ClassicMonopolyService._get_random_chance_card",
+                    return_value=forced_card,
+                ):
+                    self.monopoly_service.process_game_action(self.game.uuid, player_1.pk, "roll_dice")
+
+            self._refresh_game_and_players()
+            assert player_1.position == sum(dice_values)
+            assert player_1.pending_action.action_type == PendingAction.Types.PAY_TAX
+
+            self.monopoly_service.process_game_action(
+                self.game.uuid, player_1.pk, ActionCommand(action="accept")
+            )
+            self._refresh_game_and_players()
+            assert player_1.cash == player_1_cash_before - forced_card.amount
+            assert player_1.pending_action is None
+            assert player_2.pending_action.action_type == PendingAction.Types.ROLL_DICE
+        elif card_action == ChanceCard.Action.COLLECT_BANK:
+            forced_card = ChanceCard.objects.create(
+                board_config=self.game.board_config,
+                description="Temporary created card",
+                action=card_action,
+                amount=card_value,
+            )
+
+            with patch("game.services.ClassicMonopolyService._roll_dice_values", return_value=dice_values):
+                with patch(
+                    "game.services.ClassicMonopolyService._get_random_chance_card",
+                    return_value=forced_card,
+                ):
+                    self.monopoly_service.process_game_action(self.game.uuid, player_1.pk, "roll_dice")
+
+            self._refresh_game_and_players()
+            assert player_1.position == sum(dice_values)
+            assert player_1.pending_action is None
+            assert player_1.cash == player_1_cash_before + forced_card.amount
+            assert player_2.pending_action.action_type == PendingAction.Types.ROLL_DICE
+        elif card_action == ChanceCard.Action.COLLECT_PLAYERS:
+            forced_card = ChanceCard.objects.create(
+                board_config=self.game.board_config,
+                description="Temporary created card",
+                action=card_action,
+                amount=card_value,
+            )
+
+            with patch("game.services.ClassicMonopolyService._roll_dice_values", return_value=dice_values):
+                with patch(
+                    "game.services.ClassicMonopolyService._get_random_chance_card",
+                    return_value=forced_card,
+                ):
+                    self.monopoly_service.process_game_action(self.game.uuid, player_1.pk, "roll_dice")
+
+            self._refresh_game_and_players()
+            assert player_1.position == sum(dice_values)
+            assert player_1.pending_action is None
+            # assert player_1.cash == player_1_cash_before + forced_card.amount * (num_players - 1)
+            assert player_2.cash == player_2_cash_before - forced_card.amount
+            assert player_3.cash == 0
+            assert player_2.pending_action.action_type == PendingAction.Types.ROLL_DICE
+        elif card_action == ChanceCard.Action.GO_TO_JAIL:
+            forced_card = ChanceCard.objects.create(
+                board_config=self.game.board_config,
+                description="Temporary created card",
+                action=card_action,
+            )
+
+            with patch("game.services.ClassicMonopolyService._roll_dice_values", return_value=dice_values):
+                with patch(
+                    "game.services.ClassicMonopolyService._get_random_chance_card",
+                    return_value=forced_card,
+                ):
+                    self.monopoly_service.process_game_action(self.game.uuid, player_1.pk, "roll_dice")
+
+            self._refresh_game_and_players()
+            assert player_1.position == Jail.objects.get().position
+            assert player_1.in_jail is True
+            assert player_1.jail_turns == 0
+            assert player_1.pending_action is None
+            assert player_2.pending_action.action_type == PendingAction.Types.ROLL_DICE
+        elif card_action == ChanceCard.Action.REPAIRS:
+            forced_card = ChanceCard.objects.create(
+                board_config=self.game.board_config,
+                description="Temporary created card",
+                action=card_action,
+            )
+
+            count_of_houses = 0
+
+            for i in range(2):
+                p = Property.objects.all()[i]
+                self.monopoly_service._buy_tile(self.game, player_1, p, 0)
+                o = Ownership.objects.get(player=player_1, tile=p)
+                time_to_improve = 1
+                if i == 1:
+                    time_to_improve = 2
+                for _ in range(time_to_improve):
+                    count_of_houses += 1
+                    self.monopoly_service._improve_ownership(self.game, player_1, o, 0)
+
+            with patch("game.services.ClassicMonopolyService._roll_dice_values", return_value=dice_values):
+                with patch(
+                    "game.services.ClassicMonopolyService._get_random_chance_card",
+                    return_value=forced_card,
+                ):
+                    self.monopoly_service.process_game_action(self.game.uuid, player_1.pk, "roll_dice")
+
+            self._refresh_game_and_players()
+            assert player_1.position == sum(dice_values)
+            assert player_1.pending_action.action_type == PendingAction.Types.PAY_REPAIRS
+            extra_data = schemas.PayTaxData(**player_1.pending_action.action_data)
+            assert extra_data.amount == count_of_houses * 50
+
+            self.monopoly_service.process_game_action(self.game.uuid, player_1.pk, "accept")
+            self._refresh_game_and_players()
+
+            assert player_1.cash == player_1_cash_before - extra_data.amount
+            assert player_1.pending_action is None
+            assert player_2.pending_action.action_type == PendingAction.Types.ROLL_DICE

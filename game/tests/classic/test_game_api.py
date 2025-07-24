@@ -1311,7 +1311,7 @@ class TestImprovingTiles:
             ownerships.append(ownership)
 
         if not enough_money:
-            with pytest.raises(GameException, match="You don't have enough money"):
+            with pytest.raises(GameException, match=r"^You don't have enough money$"):
                 game_frame = self.monopoly_service.process_game_action(
                     self.game.uuid,
                     player_1.pk,
@@ -1323,7 +1323,7 @@ class TestImprovingTiles:
         else:
             should_succeed, reason = should_succeed
             if not should_succeed:
-                with pytest.raises(GameException, match=reason):
+                with pytest.raises(GameException, match=rf"^{reason}$"):
                     game_frame = self.monopoly_service.process_game_action(
                         self.game.uuid,
                         player_1.pk,
@@ -1391,7 +1391,7 @@ class TestImprovingTiles:
 
         should_succeed, reason = should_succeed
         if not should_succeed:
-            with pytest.raises(GameException, match=reason):
+            with pytest.raises(GameException, match=rf"^{reason}$"):
                 game_frame = self.monopoly_service.process_game_action(
                     self.game.uuid,
                     player_1.pk,
@@ -1683,3 +1683,229 @@ class TestChanceCards:
             assert player_1.cash == player_1_cash_before - extra_data.amount
             assert player_1.pending_action is None
             assert player_2.pending_action.action_type == PendingAction.Types.ROLL_DICE
+
+
+@pytest.mark.django_db
+class TestTrade:
+    monopoly_service: ClassicMonopolyService
+    game: Game
+    player_1: Player
+    player_2: Player
+    property_1: Property
+    property_2: Property
+
+    def setup_method(self, method):
+        PopulateDatabaseCommand().handle()
+        self._create_game(2)
+        self.player_1 = self.players[0]
+        self.player_2 = self.players[1]
+
+        self.property_1 = Property.objects.filter(board_config=self.game.board_config)[0]
+        self.property_2 = Property.objects.filter(board_config=self.game.board_config)[1]
+
+        self.monopoly_service._buy_tile(self.game, self.player_1, self.property_1, 0)
+        self.monopoly_service._buy_tile(self.game, self.player_2, self.property_2, 0)
+
+    def _refresh_game_and_players(self):
+        """Refresh game and all players from DB"""
+        self.game.refresh_from_db()
+        for player in self.players:
+            player.refresh_from_db()
+
+    def _create_game(self, players: int):
+        self.tg_users = mock_data.create_telegram_users(players, synthetic=True)
+        self.monopoly_service = get_service_by_name("classic")  # type: ignore[assignment]
+        self.game = self.monopoly_service.create_game(self.tg_users[0], players)
+
+        for i in range(1, players):
+            player, _ = self.monopoly_service.join_game(self.game.uuid, self.tg_users[i])
+
+        game_players = self.game.players.all()
+        self.players = list(game_players)
+        self._refresh_game_and_players()
+
+    @pytest.mark.parametrize(
+        ("to_player", "should_accept", "excpected_error_msg"),
+        [
+            (2, True, None),
+            (2, False, None),
+            (3, True, "Could not find player for trade"),
+        ],
+    )
+    @no_type_check
+    def test_trade_cash_for_property(self, to_player, should_accept, excpected_error_msg):
+        player_1_cash_before = self.player_1.cash
+        player_2_cash_before = self.player_2.cash
+        player_1_ownerships_before = self.player_1.ownerships.count()
+        player_2_ownerships_before = self.player_2.ownerships.count()
+
+        offer = {"cash": 400, "tile_ids": []}
+        request = {"cash": 0, "tile_ids": [self.property_2.pk]}
+
+        if excpected_error_msg:
+            with pytest.raises(GameException, match=rf"^{excpected_error_msg}$"):
+                self.monopoly_service.process_game_action(
+                    self.game.uuid,
+                    self.player_1.pk,
+                    ActionCommand(action="start_trade", to_player=to_player, offer=offer, request=request),
+                )
+            return
+        else:
+            game_frame = self.monopoly_service.process_game_action(
+                self.game.uuid,
+                self.player_1.pk,
+                ActionCommand(action="start_trade", to_player=to_player, offer=offer, request=request),
+            )
+        self._refresh_game_and_players()
+
+        assert self.game.turn == 1
+        assert self.game.current_player == self.player_2
+        assert self.player_2.pending_action.action_type == PendingAction.Types.IN_TRADE
+        assert game_frame["game"]["players"][1]["pending_action"]["action_data"]["offer"] == offer
+        assert game_frame["game"]["players"][1]["pending_action"]["action_data"]["request"] == request
+
+        if should_accept:
+            self.monopoly_service.process_game_action(
+                self.game.uuid, self.player_2.pk, ActionCommand(action="accept")
+            )
+            self._refresh_game_and_players()
+            assert self.game.turn == 1
+            assert self.game.current_player == self.player_1
+            assert self.player_1.pending_action.action_type == PendingAction.Types.ROLL_DICE
+            assert self.player_2.pending_action is None
+            assert self.player_1.cash == player_1_cash_before + -offer["cash"] + request["cash"]
+            assert self.player_2.cash == player_2_cash_before + offer["cash"] - request["cash"]
+            assert self.player_1.ownerships.count() == player_1_ownerships_before - len(
+                offer["tile_ids"]
+            ) + len(request["tile_ids"])
+            assert self.player_2.ownerships.count() == player_2_ownerships_before + len(
+                offer["tile_ids"]
+            ) - len(request["tile_ids"])
+        else:
+            self.monopoly_service.process_game_action(
+                self.game.uuid, self.player_2.pk, ActionCommand(action="reject")
+            )
+            self._refresh_game_and_players()
+            assert self.game.turn == 1
+            assert self.game.current_player == self.player_1
+            assert self.player_1.pending_action.action_type == PendingAction.Types.ROLL_DICE
+            assert self.player_2.pending_action is None
+            assert self.player_1.cash == player_1_cash_before
+            assert self.player_2.cash == player_2_cash_before
+            assert self.player_1.ownerships.count() == player_1_ownerships_before
+            assert self.player_2.ownerships.count() == player_2_ownerships_before
+
+    @pytest.mark.parametrize(
+        ("to_player", "should_accept"),
+        [
+            (2, True),
+            (2, False),
+        ],
+    )
+    @no_type_check
+    def test_trade_property_for_property(self, to_player, should_accept):
+        player_1_cash_before = self.player_1.cash
+        player_2_cash_before = self.player_2.cash
+        player_1_ownerships_before = self.player_1.ownerships.count()
+        player_2_ownerships_before = self.player_2.ownerships.count()
+
+        offer = {"cash": 0, "tile_ids": [self.property_1.pk]}
+        request = {"cash": 0, "tile_ids": [self.property_2.pk]}
+
+        game_frame = self.monopoly_service.process_game_action(
+            self.game.uuid,
+            self.player_1.pk,
+            ActionCommand(action="start_trade", to_player=to_player, offer=offer, request=request),
+        )
+        self._refresh_game_and_players()
+
+        assert self.game.turn == 1
+        assert self.game.current_player == self.player_2
+        assert self.player_2.pending_action.action_type == PendingAction.Types.IN_TRADE
+        assert game_frame["game"]["players"][1]["pending_action"]["action_data"]["offer"] == offer
+        assert game_frame["game"]["players"][1]["pending_action"]["action_data"]["request"] == request
+
+        if should_accept:
+            self.monopoly_service.process_game_action(
+                self.game.uuid, self.player_2.pk, ActionCommand(action="accept")
+            )
+            self._refresh_game_and_players()
+            assert self.game.turn == 1
+            assert self.game.current_player == self.player_1
+            assert self.player_1.pending_action.action_type == PendingAction.Types.ROLL_DICE
+            assert self.player_2.pending_action is None
+            assert self.player_1.cash == player_1_cash_before + -offer["cash"] + request["cash"]
+            assert self.player_2.cash == player_2_cash_before + offer["cash"] - request["cash"]
+            assert self.player_1.ownerships.count() == player_1_ownerships_before - len(
+                offer["tile_ids"]
+            ) + len(request["tile_ids"])
+            assert self.player_2.ownerships.count() == player_2_ownerships_before + len(
+                offer["tile_ids"]
+            ) - len(request["tile_ids"])
+        else:
+            self.monopoly_service.process_game_action(
+                self.game.uuid, self.player_2.pk, ActionCommand(action="reject")
+            )
+            self._refresh_game_and_players()
+            assert self.game.turn == 1
+            assert self.game.current_player == self.player_1
+            assert self.player_1.pending_action.action_type == PendingAction.Types.ROLL_DICE
+            assert self.player_2.pending_action is None
+            assert self.player_1.cash == player_1_cash_before
+            assert self.player_2.cash == player_2_cash_before
+            assert self.player_1.ownerships.count() == player_1_ownerships_before
+            assert self.player_2.ownerships.count() == player_2_ownerships_before
+
+    # Errors
+    @pytest.mark.parametrize(
+        ("excpected_error_msg"),
+        [
+            ("Could not find player for trade"),
+            ("You don't have that much money to offer"),
+            ("You can't request that much money"),
+            ("You don't own this tile to offer"),
+            ("Other player don't own this tiles"),
+            ("You can't trade with yourself"),
+            ("You can't send an empty trade"),
+        ],
+    )
+    @no_type_check
+    def test_errors(self, excpected_error_msg):
+        if excpected_error_msg == "You don't have that much money to offer":
+            to_player = 2
+            offer = {"cash": self.player_1.cash + 1, "tile_ids": []}
+            request = {"cash": 0, "tile_ids": [self.property_2.pk]}
+        elif excpected_error_msg == "Could not find player for trade":
+            to_player = 22
+            offer = {"cash": 40, "tile_ids": []}
+            request = {"cash": 0, "tile_ids": [self.property_2.pk]}
+        elif excpected_error_msg == "You can't request that much money":
+            to_player = 2
+            offer = {"cash": 0, "tile_ids": []}
+            request = {"cash": self.player_2.cash + 1, "tile_ids": [self.property_2.pk]}
+        elif excpected_error_msg == "You don't own this tile to offer":
+            to_player = 2
+            # Property 2 is property owned by player 2
+            offer = {"cash": 0, "tile_ids": [self.property_1.pk, self.property_2.pk]}
+            request = {"cash": 10, "tile_ids": [self.property_2.pk]}
+        elif excpected_error_msg == "Other player don't own this tiles":
+            to_player = 2
+            offer = {"cash": 0, "tile_ids": [self.property_1.pk]}
+            # Property 1 is property owned by player 1
+            request = {"cash": 10, "tile_ids": [self.property_2.pk, self.property_1.pk]}
+        elif excpected_error_msg == "You can't trade with yourself":
+            to_player = 1
+            offer = {"cash": 0, "tile_ids": []}
+            request = {"cash": 10, "tile_ids": [self.property_1.pk]}
+        elif excpected_error_msg == "You can't send an empty trade":
+            to_player = 2
+            offer = {"cash": 0, "tile_ids": []}
+            request = {"cash": 0, "tile_ids": []}
+
+        with pytest.raises(GameException, match=rf"^{excpected_error_msg}$"):
+            self.monopoly_service.process_game_action(
+                self.game.uuid,
+                self.player_1.pk,
+                ActionCommand(action="start_trade", to_player=to_player, offer=offer, request=request),
+            )
+        self._refresh_game_and_players()

@@ -403,6 +403,7 @@ class PendingAction(models.Model):
         PAY_REPAIRS = "pay_repairs"
         IN_AUCTION = "IN_AUCTION"
         IN_CASINO = "IN_CASINO"
+        IN_TRADE = "IN_TRADE"
 
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4)
     # game = models.ForeignKey(to=Game, related_name="pending_actions", on_delete=models.DO_NOTHING)

@@ -1,6 +1,7 @@
 from uuid import UUID
 from abc import ABC, abstractmethod
 from typing import List, Tuple, Optional, Callable, cast
+from pydantic import ValidationError
 import datetime
 import random
 import logging
@@ -33,7 +34,15 @@ from game.models import (
 from game.game_config import BaseMonopolyConfig, ClassicMonopolyConfig
 from game.exceptions import GameException
 from game.serializers import GameEventSerializer, GameSerializer, PlayerSerializer
-from game.schemas import AuctionData, PayRentData, PayTaxData, CasinoData, ActionCommand, RepairsData
+from game.schemas import (
+    AuctionData,
+    PayRentData,
+    PayTaxData,
+    CasinoData,
+    ActionCommand,
+    RepairsData,
+    TradeData,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -120,6 +129,7 @@ class ClassicMonopolyService(BaseMonopoly):
                 "reject": self._handle_pay_jail,
                 "improve": self._handle_improve,
                 "degrade": self._handle_degrade,
+                "start_trade": self._handle_start_trade,
             },
             PendingAction.Types.BUY_PROPERTY: {
                 "accept": self._handle_buy_property_accept,
@@ -147,6 +157,11 @@ class ClassicMonopolyService(BaseMonopoly):
                 "accept": self._handle_accept_casino,
                 "reject": self._handle_reject_casino,
                 # Add ability to degrade or mortgage tile
+            },
+            PendingAction.Types.IN_TRADE: {
+                # Add ability to counter propose
+                "accept": self._handle_accept_trade,
+                "reject": self._handle_reject_trade,
             },
         }
 
@@ -931,6 +946,112 @@ class ClassicMonopolyService(BaseMonopoly):
 
         return events
 
+    def _handle_start_trade(
+        self, game: Game, player: Player, resolved_pa: PendingAction, command: ActionCommand
+    ) -> list[GameEvent]:
+        events: list[GameEvent] = []
+
+        for attr in ("offer", "request", "to_player"):
+            if getattr(command, attr, None) is None:
+                raise GameException(f"{attr} should be specified for trade")
+
+        try:
+            trade_data = TradeData(**command.model_dump(), from_player=player.pk)
+        except ValidationError:
+            raise GameException("Action data is invalid")
+
+        if trade_data.from_player == trade_data.to_player:
+            raise GameException("You can't trade with yourself")
+
+        if (
+            len(trade_data.offer.tile_ids) == 0
+            and len(trade_data.request.tile_ids) == 0
+            and trade_data.offer.cash == 0
+            and trade_data.request.cash == 0
+        ):
+            raise GameException("You can't send an empty trade")
+
+        try:
+            from_player: Player = game.players.get(pk=trade_data.from_player)
+            to_player: Player = game.players.get(pk=trade_data.to_player)
+        except Player.DoesNotExist:
+            raise GameException("Could not find player for trade")
+
+        if from_player.cash < trade_data.offer.cash:
+            raise GameException("You don't have that much money to offer")
+        if to_player.cash < trade_data.request.cash:
+            raise GameException("You can't request that much money")
+
+        trade_data.ensure_owns_all(from_player, trade_data.offer.tile_ids, "You don't own this tile to offer")
+        trade_data.ensure_owns_all(
+            to_player, trade_data.request.tile_ids, "Other player don't own this tiles"
+        )
+
+        game.current_player = to_player
+        game.save()
+
+        print(f"{trade_data.request=}")
+
+        pa = PendingAction.objects.create(
+            player_id=trade_data.to_player,
+            action_type=PendingAction.Types.IN_TRADE,
+            expires_at=timezone.now(),
+            action_data=trade_data.model_dump(),
+        )
+
+        return events
+
+    def _handle_reject_trade(
+        self, game: Game, player: Player, resolved_pa: PendingAction, command: ActionCommand
+    ) -> list[GameEvent]:
+        events: list[GameEvent] = []
+        action_data = TradeData(**resolved_pa.action_data)
+
+        game.current_player_id = action_data.from_player
+        game.save()
+
+        pa = PendingAction.objects.create(
+            player_id=action_data.from_player,
+            action_type=PendingAction.Types.ROLL_DICE,
+            expires_at=timezone.now(),
+        )
+
+        return events
+
+    def _handle_accept_trade(
+        self, game: Game, player: Player, resolved_pa: PendingAction, command: ActionCommand
+    ) -> list[GameEvent]:
+        events: list[GameEvent] = []
+        action_data = TradeData(**resolved_pa.action_data)
+
+        offered_cash = action_data.offer.cash
+        requested_cash = action_data.request.cash
+        from_player_id = action_data.from_player
+        to_player_id = action_data.to_player
+
+        # Giving tiles
+        Ownership.objects.filter(
+            game=game, player_id=from_player_id, tile_id__in=action_data.offer.tile_ids
+        ).update(player_id=to_player_id)
+        # Receiving tiles
+        Ownership.objects.filter(
+            game=game, player_id=to_player_id, tile_id__in=action_data.request.tile_ids
+        ).update(player_id=from_player_id)
+
+        Player.objects.filter(id=from_player_id).update(cash=F("cash") - offered_cash + requested_cash)
+        Player.objects.filter(id=to_player_id).update(cash=F("cash") + offered_cash - requested_cash)
+
+        game.current_player_id = from_player_id
+        game.save()
+
+        pa = PendingAction.objects.create(
+            player_id=action_data.from_player,
+            action_type=PendingAction.Types.ROLL_DICE,
+            expires_at=timezone.now(),
+        )
+
+        return events
+
     @transaction.atomic
     def process_game_action(self, game_uuid, player_id, action) -> dict:
         logger.debug("Processing game action", game_uuid, player_id, action)
@@ -943,7 +1064,7 @@ class ClassicMonopolyService(BaseMonopoly):
         game = Game.objects.select_for_update().get(pk=game_uuid)
 
         if game.current_player != player:
-            raise GameException("WTF? It's not your turn")
+            raise GameException("It's not your turn")
 
         if player.status == player.Status.WAITING:
             print("Whole other deal")
@@ -954,7 +1075,7 @@ class ClassicMonopolyService(BaseMonopoly):
 
             handler = self.PENDING_ACTION_COMMAND_HANDLERS.get(prev_pa.action_type, {}).get(action.action)  # type: ignore[call-overload]
             if not handler:
-                raise GameException(f"There is no such action. Action: {action}")
+                raise GameException(f"There is no such action. Action: {action.action}")
 
             prev_pa.resolved_at = timezone.now()
             prev_pa.save()

@@ -5,7 +5,7 @@ from game.exceptions import GameException
 
 
 class OfferRequest(BaseModel):
-    tile_ids: List[NonNegativeInt]
+    tile_positions: List[NonNegativeInt]
     cash: NonNegativeInt
 
 
@@ -88,7 +88,7 @@ class TradeData(BaseModel):
     def ensure_owns_all(self, player: Player, tile_ids: list[int], err: str):
         if not tile_ids:
             return
-        owned_ids = set(player.ownerships.values_list("tile_id", flat=True))
+        owned_ids = set(player.ownerships.values_list("tile__position", flat=True))
         missing = set(tile_ids) - owned_ids
         if missing:
             raise GameException(err)

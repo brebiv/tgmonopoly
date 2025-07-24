@@ -964,8 +964,8 @@ class ClassicMonopolyService(BaseMonopoly):
             raise GameException("You can't trade with yourself")
 
         if (
-            len(trade_data.offer.tile_ids) == 0
-            and len(trade_data.request.tile_ids) == 0
+            len(trade_data.offer.tile_positions) == 0
+            and len(trade_data.request.tile_positions) == 0
             and trade_data.offer.cash == 0
             and trade_data.request.cash == 0
         ):
@@ -982,9 +982,11 @@ class ClassicMonopolyService(BaseMonopoly):
         if to_player.cash < trade_data.request.cash:
             raise GameException("You can't request that much money")
 
-        trade_data.ensure_owns_all(from_player, trade_data.offer.tile_ids, "You don't own this tile to offer")
         trade_data.ensure_owns_all(
-            to_player, trade_data.request.tile_ids, "Other player don't own this tiles"
+            from_player, trade_data.offer.tile_positions, "You don't own this tile to offer"
+        )
+        trade_data.ensure_owns_all(
+            to_player, trade_data.request.tile_positions, "Other player don't own this tiles"
         )
 
         game.current_player = to_player
@@ -1031,11 +1033,11 @@ class ClassicMonopolyService(BaseMonopoly):
 
         # Giving tiles
         Ownership.objects.filter(
-            game=game, player_id=from_player_id, tile_id__in=action_data.offer.tile_ids
+            game=game, player_id=from_player_id, tile__position__in=action_data.offer.tile_positions
         ).update(player_id=to_player_id)
         # Receiving tiles
         Ownership.objects.filter(
-            game=game, player_id=to_player_id, tile_id__in=action_data.request.tile_ids
+            game=game, player_id=to_player_id, tile__position__in=action_data.request.tile_positions
         ).update(player_id=from_player_id)
 
         Player.objects.filter(id=from_player_id).update(cash=F("cash") - offered_cash + requested_cash)

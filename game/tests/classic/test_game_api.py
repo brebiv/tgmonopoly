@@ -1739,8 +1739,8 @@ class TestTrade:
         player_1_ownerships_before = self.player_1.ownerships.count()
         player_2_ownerships_before = self.player_2.ownerships.count()
 
-        offer = {"cash": 400, "tile_ids": []}
-        request = {"cash": 0, "tile_ids": [self.property_2.pk]}
+        offer = {"cash": 400, "tile_positions": []}
+        request = {"cash": 0, "tile_positions": [self.property_2.position]}
 
         if excpected_error_msg:
             with pytest.raises(GameException, match=rf"^{excpected_error_msg}$"):
@@ -1776,11 +1776,11 @@ class TestTrade:
             assert self.player_1.cash == player_1_cash_before + -offer["cash"] + request["cash"]
             assert self.player_2.cash == player_2_cash_before + offer["cash"] - request["cash"]
             assert self.player_1.ownerships.count() == player_1_ownerships_before - len(
-                offer["tile_ids"]
-            ) + len(request["tile_ids"])
+                offer["tile_positions"]
+            ) + len(request["tile_positions"])
             assert self.player_2.ownerships.count() == player_2_ownerships_before + len(
-                offer["tile_ids"]
-            ) - len(request["tile_ids"])
+                offer["tile_positions"]
+            ) - len(request["tile_positions"])
         else:
             self.monopoly_service.process_game_action(
                 self.game.uuid, self.player_2.pk, ActionCommand(action="reject")
@@ -1809,8 +1809,8 @@ class TestTrade:
         player_1_ownerships_before = self.player_1.ownerships.count()
         player_2_ownerships_before = self.player_2.ownerships.count()
 
-        offer = {"cash": 0, "tile_ids": [self.property_1.pk]}
-        request = {"cash": 0, "tile_ids": [self.property_2.pk]}
+        offer = {"cash": 0, "tile_positions": [self.property_1.position]}
+        request = {"cash": 0, "tile_positions": [self.property_2.position]}
 
         game_frame = self.monopoly_service.process_game_action(
             self.game.uuid,
@@ -1837,11 +1837,11 @@ class TestTrade:
             assert self.player_1.cash == player_1_cash_before + -offer["cash"] + request["cash"]
             assert self.player_2.cash == player_2_cash_before + offer["cash"] - request["cash"]
             assert self.player_1.ownerships.count() == player_1_ownerships_before - len(
-                offer["tile_ids"]
-            ) + len(request["tile_ids"])
+                offer["tile_positions"]
+            ) + len(request["tile_positions"])
             assert self.player_2.ownerships.count() == player_2_ownerships_before + len(
-                offer["tile_ids"]
-            ) - len(request["tile_ids"])
+                offer["tile_positions"]
+            ) - len(request["tile_positions"])
         else:
             self.monopoly_service.process_game_action(
                 self.game.uuid, self.player_2.pk, ActionCommand(action="reject")
@@ -1873,34 +1873,34 @@ class TestTrade:
     def test_errors(self, excpected_error_msg):
         if excpected_error_msg == "You don't have that much money to offer":
             to_player = 2
-            offer = {"cash": self.player_1.cash + 1, "tile_ids": []}
-            request = {"cash": 0, "tile_ids": [self.property_2.pk]}
+            offer = {"cash": self.player_1.cash + 1, "tile_positions": []}
+            request = {"cash": 0, "tile_positions": [self.property_2.position]}
         elif excpected_error_msg == "Could not find player for trade":
             to_player = 22
-            offer = {"cash": 40, "tile_ids": []}
-            request = {"cash": 0, "tile_ids": [self.property_2.pk]}
+            offer = {"cash": 40, "tile_positions": []}
+            request = {"cash": 0, "tile_positions": [self.property_2.position]}
         elif excpected_error_msg == "You can't request that much money":
             to_player = 2
-            offer = {"cash": 0, "tile_ids": []}
-            request = {"cash": self.player_2.cash + 1, "tile_ids": [self.property_2.pk]}
+            offer = {"cash": 0, "tile_positions": []}
+            request = {"cash": self.player_2.cash + 1, "tile_positions": [self.property_2.position]}
         elif excpected_error_msg == "You don't own this tile to offer":
             to_player = 2
             # Property 2 is property owned by player 2
-            offer = {"cash": 0, "tile_ids": [self.property_1.pk, self.property_2.pk]}
-            request = {"cash": 10, "tile_ids": [self.property_2.pk]}
+            offer = {"cash": 0, "tile_positions": [self.property_1.position, self.property_2.position]}
+            request = {"cash": 10, "tile_positions": [self.property_2.position]}
         elif excpected_error_msg == "Other player don't own this tiles":
             to_player = 2
-            offer = {"cash": 0, "tile_ids": [self.property_1.pk]}
+            offer = {"cash": 0, "tile_positions": [self.property_1.position]}
             # Property 1 is property owned by player 1
-            request = {"cash": 10, "tile_ids": [self.property_2.pk, self.property_1.pk]}
+            request = {"cash": 10, "tile_positions": [self.property_2.position, self.property_1.position]}
         elif excpected_error_msg == "You can't trade with yourself":
             to_player = 1
-            offer = {"cash": 0, "tile_ids": []}
-            request = {"cash": 10, "tile_ids": [self.property_1.pk]}
+            offer = {"cash": 0, "tile_positions": []}
+            request = {"cash": 10, "tile_positions": [self.property_1.position]}
         elif excpected_error_msg == "You can't send an empty trade":
             to_player = 2
-            offer = {"cash": 0, "tile_ids": []}
-            request = {"cash": 0, "tile_ids": []}
+            offer = {"cash": 0, "tile_positions": []}
+            request = {"cash": 0, "tile_positions": []}
 
         with pytest.raises(GameException, match=rf"^{excpected_error_msg}$"):
             self.monopoly_service.process_game_action(

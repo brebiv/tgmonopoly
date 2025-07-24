@@ -94,7 +94,18 @@ DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": BASE_DIR / "db.sqlite3",
-    }
+    },
+    # "default": {
+    #     "ENGINE": "django.db.backends.mysql",
+    #     "NAME": os.getenv("MYSQL_DATABASE", "tgmonopoly"),
+    #     "USER": os.getenv("MYSQL_USER", "root"),
+    #     "PASSWORD": os.getenv("MYSQL_PASSWORD", "devpassword"),
+    #     "HOST": os.getenv("MYSQL_HOST", "127.0.0.1"),
+    #     "PORT": 3306,
+    #     "OPTIONS": {
+    #         "charset": "utf8mb4",
+    #     },
+    # }
 }
 
 
@@ -170,6 +181,31 @@ CHANNEL_LAYERS = {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
             "hosts": [(os.getenv("CHANNELS_HOST"), os.getenv("CHANNELS_PORT"))],
+        },
+    },
+}
+
+
+# Logging
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "level": "DEBUG",
+            "class": "logging.StreamHandler",
+        },
+        "file": {
+            "level": "DEBUG",
+            "class": "logging.FileHandler",
+            "filename": "django_queries.log",
+        },
+    },
+    "loggers": {
+        "django.db.backends": {
+            "handlers": ["console", "file"],
+            "level": "DEBUG",
+            "propagate": False,
         },
     },
 }

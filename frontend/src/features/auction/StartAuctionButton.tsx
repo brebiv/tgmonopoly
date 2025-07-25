@@ -7,12 +7,13 @@ interface StartAuctionButtonProps {
 }
 
 export const StartAuctionButton = ({ protocol = "ws" }: StartAuctionButtonProps) => {
-  const { send } = useWebSocketContext();
+  const { sendJSON } = useWebSocketContext();
 
   const handleClickWS = () => {
-    const command = "start_auction";
-    send(command);
+    const command = { action: "start_auction" };
+    sendJSON(command);
   };
+
   const handleClickHTTP = () => {
     console.error("Not implemented");
   };

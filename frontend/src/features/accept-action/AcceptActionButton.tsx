@@ -8,12 +8,13 @@ interface AcceptActionButtonProps {
 }
 
 export const AcceptActionButton: React.FC<AcceptActionButtonProps> = ({ protocol = "ws", children }) => {
-  const { send } = useWebSocketContext();
+  const { sendJSON } = useWebSocketContext();
 
   const handleClickWS = () => {
-    const command = "accept";
-    send(command);
+    const command = { action: "accept" };
+    sendJSON(command);
   };
+
   const handleClickHTTP = () => {
     console.error("Not implemented");
   };

@@ -75,8 +75,8 @@ class BaseMonopoly(ABC):
                 "Current only two dices supported because of dice double calculation logic"
             )
         # return [2, 1]
-        return [19, 1]
-        # return [random.randint(min_value, max_value) for _ in range(dices_count)]
+        # return [19, 1]
+        return [random.randint(min_value, max_value) for _ in range(dices_count)]
 
     def _flip_coin_value(self) -> bool:
         return random.choice((True, False))
@@ -115,6 +115,19 @@ class BaseMonopoly(ABC):
         next_player = game_players[next_player_index]
 
         return next_player
+
+
+def resolve_pa(resolve_pa=True):
+    def decorator(func):
+        def wrapper(self, game: Game, player: Player, prev_pa: PendingAction, command: ActionCommand):
+            if resolve_pa:
+                prev_pa.resolved_at = timezone.now()
+                prev_pa.save()
+            return func(self, game, player, prev_pa, command)
+
+        return wrapper
+
+    return decorator
 
 
 class ClassicMonopolyService(BaseMonopoly):
@@ -443,7 +456,7 @@ class ClassicMonopolyService(BaseMonopoly):
 
         return events
 
-    def _handle_normal_roll(self, game: Game, player: Player, dice_values: list[int]) -> list[GameEvent]:
+    def _process_normal_roll(self, game: Game, player: Player, dice_values: list[int]) -> list[GameEvent]:
         events = []
         dice_sum = sum(dice_values)
         new_position = player.move_forward(dice_sum)
@@ -464,7 +477,7 @@ class ClassicMonopolyService(BaseMonopoly):
 
         return events
 
-    def _handle_jail_dice_roll(self, game: Game, player: Player, dice_values: list[int]) -> list[GameEvent]:
+    def _process_jail_dice_roll(self, game: Game, player: Player, dice_values: list[int]) -> list[GameEvent]:
         events: list[GameEvent] = []
 
         if dice_values[0] == dice_values[1]:
@@ -491,6 +504,7 @@ class ClassicMonopolyService(BaseMonopoly):
         player.save()
         return events
 
+    @resolve_pa()
     def _handle_pay_jail(
         self, game: Game, player: Player, resolved_pa: PendingAction, commmand: ActionCommand
     ) -> list[GameEvent]:
@@ -516,6 +530,7 @@ class ClassicMonopolyService(BaseMonopoly):
 
         return events
 
+    @resolve_pa()
     def _handle_dice_roll(
         self, game: Game, player: Player, resolved_pa: PendingAction, command: ActionCommand
     ) -> list[GameEvent]:
@@ -535,9 +550,9 @@ class ClassicMonopolyService(BaseMonopoly):
         if player.in_jail:
             if player.jail_turns >= 3:
                 raise GameException("You can't roll dice in jail anymore")
-            self._handle_jail_dice_roll(game, player, dice_values)
+            self._process_jail_dice_roll(game, player, dice_values)
         else:
-            roll_events = self._handle_normal_roll(game, player, dice_values)
+            roll_events = self._process_normal_roll(game, player, dice_values)
             events.extend(roll_events)
 
         return events
@@ -574,6 +589,7 @@ class ClassicMonopolyService(BaseMonopoly):
 
         return events
 
+    @resolve_pa()
     def _handle_buy_property_accept(
         self, game: Game, player: Player, resolved_pa: PendingAction, command: ActionCommand
     ) -> list[GameEvent]:
@@ -588,6 +604,7 @@ class ClassicMonopolyService(BaseMonopoly):
 
         return events
 
+    @resolve_pa()
     def _handle_pay_rent(
         self, game: Game, player: Player, resolved_pa: PendingAction, command: ActionCommand
     ) -> list[GameEvent]:
@@ -612,6 +629,7 @@ class ClassicMonopolyService(BaseMonopoly):
 
         return events
 
+    @resolve_pa()
     def _handle_pay_tax(
         self, game: Game, player: Player, resolved_pa: PendingAction, command: ActionCommand
     ) -> list[GameEvent]:
@@ -631,6 +649,7 @@ class ClassicMonopolyService(BaseMonopoly):
 
         return events
 
+    @resolve_pa()
     def _handle_pay_repairs(
         self, game: Game, player: Player, resolved_pa: PendingAction, command: ActionCommand
     ) -> list[GameEvent]:
@@ -650,6 +669,7 @@ class ClassicMonopolyService(BaseMonopoly):
 
         return events
 
+    @resolve_pa()
     def _handle_start_auction(
         self, game: Game, player: Player, resolved_pa: PendingAction, command: ActionCommand
     ) -> list[GameEvent]:
@@ -699,7 +719,7 @@ class ClassicMonopolyService(BaseMonopoly):
 
         return events
 
-    @transaction.atomic
+    @resolve_pa()
     def _handle_accept_auction(
         self, game: Game, player: Player, resolved_pa: PendingAction, command: ActionCommand
     ) -> list[GameEvent]:
@@ -753,6 +773,7 @@ class ClassicMonopolyService(BaseMonopoly):
 
         return events
 
+    @resolve_pa()
     def _handle_reject_auction(
         self, game: Game, player: Player, resolved_pa: PendingAction, command: ActionCommand
     ) -> list[GameEvent]:
@@ -807,6 +828,7 @@ class ClassicMonopolyService(BaseMonopoly):
 
         return events
 
+    @resolve_pa()
     def _handle_accept_casino(
         self, game: Game, player: Player, resolved_pa: PendingAction, command: ActionCommand
     ) -> list[GameEvent]:
@@ -842,6 +864,7 @@ class ClassicMonopolyService(BaseMonopoly):
 
         return events
 
+    @resolve_pa()
     def _handle_reject_casino(
         self, game: Game, player: Player, resolved_pa: PendingAction, command: ActionCommand
     ) -> list[GameEvent]:
@@ -870,6 +893,7 @@ class ClassicMonopolyService(BaseMonopoly):
 
         return events
 
+    @resolve_pa(False)
     def _handle_improve(
         self, game: Game, player: Player, resolved_pa: PendingAction, command: ActionCommand
     ) -> list[GameEvent]:
@@ -896,15 +920,9 @@ class ClassicMonopolyService(BaseMonopoly):
 
         self._improve_ownership(game, player, ownership)
 
-        pa = PendingAction.objects.create(
-            player=player,
-            action_type=PendingAction.Types.ROLL_DICE,
-            expires_at=timezone.now(),
-            action_data=resolved_pa.action_data,
-        )
-
         return events
 
+    @resolve_pa(False)
     def _handle_degrade(
         self, game: Game, player: Player, resolved_pa: PendingAction, command: ActionCommand
     ) -> list[GameEvent]:
@@ -936,16 +954,9 @@ class ClassicMonopolyService(BaseMonopoly):
         ownership.houses -= 1
         ownership.save()
 
-        pa = PendingAction.objects.create(
-            player=player,
-            action_type=PendingAction.Types.ROLL_DICE,
-            # action_type=resolved_pa.action_type,
-            expires_at=timezone.now(),
-            action_data=resolved_pa.action_data,
-        )
-
         return events
 
+    @resolve_pa()
     def _handle_start_trade(
         self, game: Game, player: Player, resolved_pa: PendingAction, command: ActionCommand
     ) -> list[GameEvent]:
@@ -1003,6 +1014,7 @@ class ClassicMonopolyService(BaseMonopoly):
 
         return events
 
+    @resolve_pa()
     def _handle_reject_trade(
         self, game: Game, player: Player, resolved_pa: PendingAction, command: ActionCommand
     ) -> list[GameEvent]:
@@ -1020,6 +1032,7 @@ class ClassicMonopolyService(BaseMonopoly):
 
         return events
 
+    @resolve_pa()
     def _handle_accept_trade(
         self, game: Game, player: Player, resolved_pa: PendingAction, command: ActionCommand
     ) -> list[GameEvent]:
@@ -1069,6 +1082,7 @@ class ClassicMonopolyService(BaseMonopoly):
             raise GameException("It's not your turn")
 
         if player.status == player.Status.WAITING:
+            # Game lobby commands
             print("Whole other deal")
         elif player.status == player.Status.PLAYING:
             prev_pa = player.pending_action
@@ -1079,8 +1093,8 @@ class ClassicMonopolyService(BaseMonopoly):
             if not handler:
                 raise GameException(f"There is no such action. Action: {action.action}")
 
-            prev_pa.resolved_at = timezone.now()
-            prev_pa.save()
+            # prev_pa.resolved_at = timezone.now()
+            # prev_pa.save()
 
             events = handler(game, player, prev_pa, action)
 

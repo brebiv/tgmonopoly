@@ -9,7 +9,6 @@ from django.core.exceptions import ValidationError
 
 from bot.models import TelegramUser
 from .utils import validate_color
-from .game_config import get_config
 from .exceptions import GameException
 
 
@@ -103,9 +102,9 @@ class Property(Tile):
 
     icon = models.ImageField(upload_to="properties", null=True, blank=True)
 
-    @property
-    def mortgage_buyback_price(self) -> int:
-        return int(self.mortgage_value * get_config().MORTGAGE_INTEREST_RATE)
+    # @property
+    # def mortgage_buyback_price(self) -> int:
+    #     return int(self.mortgage_value * get_config().MORTGAGE_INTEREST_RATE)
 
 
 class Utility(Tile):
@@ -172,7 +171,7 @@ class Player(models.Model):
     game = models.ForeignKey(Game, related_name="players", on_delete=models.CASCADE)
 
     position = models.PositiveSmallIntegerField(default=0)
-    cash = models.IntegerField(default=get_config().STARTING_CASH)
+    cash = models.IntegerField()
     color = models.CharField(max_length=12, choices=Color.choices)
     rolled_double = models.BooleanField(default=False)
     double_count = models.PositiveSmallIntegerField(default=0)
@@ -207,9 +206,8 @@ class Player(models.Model):
         self.position = (self.position - amount) % 40
         return self.position
 
-    @property
-    def exceded_doubles(self) -> bool:
-        return self.double_count > get_config().MAX_DOUBLES
+    def check_exceded_doubles(self, max_doubles: int) -> bool:
+        return self.double_count > max_doubles
 
     @property
     def pending_action(self) -> "PendingAction | None":

@@ -139,7 +139,7 @@ class PropertySerializer(serializers.ModelSerializer):
             "rent_with_5_houses",
             "group",
             "icon",
-            "mortgage_buyback_price",
+            # "mortgage_buyback_price",
         )
 
 

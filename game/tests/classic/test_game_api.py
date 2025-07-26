@@ -50,9 +50,9 @@ class CreateGameAPITest(BaseApiTestCase):
     def test_unique_color_constraint(self):
         board_config = BoardConfig.objects.get(name=BoardConfig.Names.CLASSIC)
         game = Game.objects.create(board_config=board_config, max_players=2)
-        Player.objects.create(user=self.tg_user_1, game=game, color=Player.Color.BLUE)
+        Player.objects.create(user=self.tg_user_1, game=game, color=Player.Color.BLUE, cash=1000)
         with self.assertRaises(IntegrityError):
-            Player.objects.create(user=self.tg_user_2, game=game, color=Player.Color.BLUE)
+            Player.objects.create(user=self.tg_user_2, game=game, color=Player.Color.BLUE, cash=1000)
 
 
 class DiceRollAPITest(BaseApiTestCase):
@@ -379,32 +379,15 @@ class TestAuctionLegacy(BaseApiTestCase):
 
 
 @pytest.mark.django_db
-class TestAuction:
+class TestAuction(TestGameMixin):
     monopoly_service: ClassicMonopolyService
     player_1: Player
     player_2: Player
     player_3: Player
 
     def setup_method(self, method):
+        super().setup_method(method)
         PopulateDatabaseCommand().handle()
-
-    def _refresh_game_and_players(self):
-        """Refresh game and all players from DB"""
-        self.game.refresh_from_db()
-        for player in self.players:
-            player.refresh_from_db()
-
-    def _create_game(self, players: int):
-        self.tg_users = mock_data.create_telegram_users(players, synthetic=True)
-        self.monopoly_service = get_service_by_name("classic")  # type: ignore[assignment]
-        self.game = self.monopoly_service.create_game(self.tg_users[0], players)
-
-        for i in range(1, players):
-            player, _ = self.monopoly_service.join_game(self.game.uuid, self.tg_users[i])
-
-        game_players = self.game.players.all()
-        self.players = list(game_players)
-        self._refresh_game_and_players()
 
     @pytest.mark.parametrize(
         ("actions_sequence", "expected_winner_idx", "description"),
@@ -480,7 +463,7 @@ class TestAuction:
 
 
 @pytest.mark.django_db
-class TestJail:
+class TestJail(TestGameMixin):
     monopoly_service: ClassicMonopolyService
     game: Game
     player_1: Player
@@ -488,25 +471,8 @@ class TestJail:
     player_3: Player
 
     def setup_method(self, method):
+        super().setup_method(method)
         PopulateDatabaseCommand().handle()
-
-    def _refresh_game_and_players(self):
-        """Refresh game and all players from DB"""
-        self.game.refresh_from_db()
-        for player in self.players:
-            player.refresh_from_db()
-
-    def _create_game(self, players: int):
-        self.tg_users = mock_data.create_telegram_users(players, synthetic=True)
-        self.monopoly_service = get_service_by_name("classic")  # type: ignore[assignment]
-        self.game = self.monopoly_service.create_game(self.tg_users[0], players)
-
-        for i in range(1, players):
-            player, _ = self.monopoly_service.join_game(self.game.uuid, self.tg_users[i])
-
-        game_players = self.game.players.all()
-        self.players = list(game_players)
-        self._refresh_game_and_players()
 
     def test_getting_out_of_jail_on_first_attempt(self):
         self._create_game(2)
@@ -656,7 +622,7 @@ class TestJail:
 
 
 @pytest.mark.django_db
-class TestPayRent:
+class TestPayRent(TestGameMixin):
     monopoly_service: ClassicMonopolyService
     game: Game
     player_1: Player
@@ -664,25 +630,8 @@ class TestPayRent:
     player_3: Player
 
     def setup_method(self, method):
+        super().setup_method(method)
         PopulateDatabaseCommand().handle()
-
-    def _refresh_game_and_players(self):
-        """Refresh game and all players from DB"""
-        self.game.refresh_from_db()
-        for player in self.players:
-            player.refresh_from_db()
-
-    def _create_game(self, players: int):
-        self.tg_users = mock_data.create_telegram_users(players, synthetic=True)
-        self.monopoly_service = get_service_by_name("classic")  # type: ignore[assignment]
-        self.game = self.monopoly_service.create_game(self.tg_users[0], players)
-
-        for i in range(1, players):
-            player, _ = self.monopoly_service.join_game(self.game.uuid, self.tg_users[i])
-
-        game_players = self.game.players.all()
-        self.players = list(game_players)
-        self._refresh_game_and_players()
 
     def test_pay_rent(self):
         self._create_game(2)
@@ -794,7 +743,7 @@ class TestPayRent:
 
 
 @pytest.mark.django_db
-class TestUtility:
+class TestUtility(TestGameMixin):
     monopoly_service: ClassicMonopolyService
     game: Game
     player_1: Player
@@ -802,25 +751,8 @@ class TestUtility:
     player_3: Player
 
     def setup_method(self, method):
+        super().setup_method(method)
         PopulateDatabaseCommand().handle()
-
-    def _refresh_game_and_players(self):
-        """Refresh game and all players from DB"""
-        self.game.refresh_from_db()
-        for player in self.players:
-            player.refresh_from_db()
-
-    def _create_game(self, players: int):
-        self.tg_users = mock_data.create_telegram_users(players, synthetic=True)
-        self.monopoly_service = get_service_by_name("classic")  # type: ignore[assignment]
-        self.game = self.monopoly_service.create_game(self.tg_users[0], players)
-
-        for i in range(1, players):
-            player, _ = self.monopoly_service.join_game(self.game.uuid, self.tg_users[i])
-
-        game_players = self.game.players.all()
-        self.players = list(game_players)
-        self._refresh_game_and_players()
 
     @pytest.mark.parametrize(
         ("should_roll_double",),
@@ -1013,7 +945,7 @@ class TestUtility:
 
 
 @pytest.mark.django_db
-class TestTax:
+class TestTax(TestGameMixin):
     monopoly_service: ClassicMonopolyService
     game: Game
     player_1: Player
@@ -1021,25 +953,8 @@ class TestTax:
     player_3: Player
 
     def setup_method(self, method):
+        super().setup_method(method)
         PopulateDatabaseCommand().handle()
-
-    def _refresh_game_and_players(self):
-        """Refresh game and all players from DB"""
-        self.game.refresh_from_db()
-        for player in self.players:
-            player.refresh_from_db()
-
-    def _create_game(self, players: int):
-        self.tg_users = mock_data.create_telegram_users(players, synthetic=True)
-        self.monopoly_service = get_service_by_name("classic")  # type: ignore[assignment]
-        self.game = self.monopoly_service.create_game(self.tg_users[0], players)
-
-        for i in range(1, players):
-            player, _ = self.monopoly_service.join_game(self.game.uuid, self.tg_users[i])
-
-        game_players = self.game.players.all()
-        self.players = list(game_players)
-        self._refresh_game_and_players()
 
     @pytest.mark.parametrize(
         ("should_roll_double", "should_have_enough_money"),
@@ -1108,7 +1023,7 @@ class TestTax:
 
 
 @pytest.mark.django_db
-class TestCasino:
+class TestCasino(TestGameMixin):
     monopoly_service: ClassicMonopolyService
     game: Game
     player_1: Player
@@ -1116,25 +1031,8 @@ class TestCasino:
     player_3: Player
 
     def setup_method(self, method):
+        super().setup_method(method)
         PopulateDatabaseCommand().handle()
-
-    def _refresh_game_and_players(self):
-        """Refresh game and all players from DB"""
-        self.game.refresh_from_db()
-        for player in self.players:
-            player.refresh_from_db()
-
-    def _create_game(self, players: int):
-        self.tg_users = mock_data.create_telegram_users(players, synthetic=True)
-        self.monopoly_service = get_service_by_name("classic")  # type: ignore[assignment]
-        self.game = self.monopoly_service.create_game(self.tg_users[0], players)
-
-        for i in range(1, players):
-            player, _ = self.monopoly_service.join_game(self.game.uuid, self.tg_users[i])
-
-        game_players = self.game.players.all()
-        self.players = list(game_players)
-        self._refresh_game_and_players()
 
     @pytest.mark.parametrize(
         ("should_win", "should_have_enough_money", "should_roll_double"),
@@ -1241,6 +1139,7 @@ class TestImprovingTiles(TestGameMixin):
     player_3: Player
 
     def setup_method(self, method):
+        super().setup_method(method)
         PopulateDatabaseCommand().handle()
 
     @pytest.mark.parametrize(
@@ -1400,7 +1299,7 @@ class TestImprovingTiles(TestGameMixin):
 
 
 @pytest.mark.django_db
-class TestChanceCards:
+class TestChanceCards(TestGameMixin):
     monopoly_service: ClassicMonopolyService
     game: Game
     player_1: Player
@@ -1408,25 +1307,8 @@ class TestChanceCards:
     player_3: Player
 
     def setup_method(self, method):
+        super().setup_method(method)
         PopulateDatabaseCommand().handle()
-
-    def _refresh_game_and_players(self):
-        """Refresh game and all players from DB"""
-        self.game.refresh_from_db()
-        for player in self.players:
-            player.refresh_from_db()
-
-    def _create_game(self, players: int):
-        self.tg_users = mock_data.create_telegram_users(players, synthetic=True)
-        self.monopoly_service = get_service_by_name("classic")  # type: ignore[assignment]
-        self.game = self.monopoly_service.create_game(self.tg_users[0], players)
-
-        for i in range(1, players):
-            player, _ = self.monopoly_service.join_game(self.game.uuid, self.tg_users[i])
-
-        game_players = self.game.players.all()
-        self.players = list(game_players)
-        self._refresh_game_and_players()
 
     @pytest.mark.parametrize(
         ("card_action", "card_value", "should_be_owned", "num_players"),
@@ -1675,6 +1557,7 @@ class TestTrade(TestGameMixin):
     property_2: Property
 
     def setup_method(self, method):
+        super().setup_method(method)
         PopulateDatabaseCommand().handle()
         self._create_game(2)
         self.player_1 = self.players[0]

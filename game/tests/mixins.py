@@ -1,4 +1,5 @@
 from abc import ABC
+from django.conf import settings
 
 from game.services.classic import ClassicMonopolyService
 from game.services import get_service_by_name
@@ -17,13 +18,16 @@ class TelegramAuthMixin(ABC):
         return {"Authorization": self.generate_auth_header(init_data)}
 
 
-class TestGameMixin:
+class TestGameMixin(ABC):
     monopoly_service: ClassicMonopolyService
     game: Game
     player_1: Player
     player_2: Player
     property_1: Property
     property_2: Property
+
+    def setup_method(self, method):
+        settings.IN_TEST_MODE = True
 
     def _refresh_game_and_players(self):
         """Refresh game and all players from DB"""

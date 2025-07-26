@@ -49,6 +49,7 @@ export const validatePayRentAction = (
   pendingAction: PendingAction,
 ): {
   rent: number;
+  to_player_id: number;
 } => {
   if (!pendingAction.action_data) {
     throw new Error("We are fucked");
@@ -56,10 +57,11 @@ export const validatePayRentAction = (
 
   const schema = {
     type: "object",
-    required: ["rent"],
+    required: ["rent", "to_player_id"],
     additionalProperties: false,
     properties: {
       rent: { type: "integer" },
+      to_player_id: { type: "integer" },
     },
   };
 

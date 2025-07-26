@@ -82,7 +82,7 @@ class WebSocketAuthTest(TestCase):
         board_config = BoardConfig.objects.get()
         game = Game.objects.create(board_config=board_config)
         created_users = mock_data.create_telegram_users(limit=1)
-        player = Player.objects.create(game=game, user=created_users[0])
+        player = Player.objects.create(game=game, user=created_users[0], cash=1000)
 
         self.game = game
 

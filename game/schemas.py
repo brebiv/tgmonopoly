@@ -63,6 +63,7 @@ class AuctionData(BaseModel):
 
 class PayRentData(BaseModel):
     rent: int
+    to_player_id: int
 
 
 class PayTaxData(BaseModel):

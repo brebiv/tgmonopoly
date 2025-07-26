@@ -8,6 +8,7 @@ from django.db import transaction, IntegrityError
 from django.db.models import QuerySet, F, Sum
 from django.db.models.functions import Greatest
 from django.utils import timezone
+from django.conf import settings
 from celery import current_app
 
 from bot.models import TelegramUser
@@ -62,6 +63,8 @@ def resolve_pa(resolve_pa=True):
 
 
 class ClassicMonopolyService(BaseMonopoly):
+    config: ClassicMonopolyConfig
+
     def __init__(self) -> None:
         self.config = ClassicMonopolyConfig()
         self.PENDING_ACTION_COMMAND_HANDLERS: dict[
@@ -109,6 +112,27 @@ class ClassicMonopolyService(BaseMonopoly):
             },
         }
 
+    def apply_pending_action(
+        self, player: Player, action_type: PendingAction.Types, action_data: dict | None = None
+    ) -> PendingAction:
+        countdown = self.config.PENDING_ACTION_TIMEOUTS[action_type]
+        pa = PendingAction.objects.create(
+            expires_at=timezone.now() + datetime.timedelta(seconds=countdown),
+            player=player,
+            action_type=action_type,
+            action_data=action_data if action_data else {},
+        )
+
+        # maybe signals?
+        if not getattr(settings, "IN_TEST_MODE", False):  # type: ignore[misc]
+            transaction.on_commit(
+                lambda: current_app.send_task(
+                    "game.tasks.trigger_afk", args=({"pa_uuid": pa.uuid},), countdown=countdown
+                )
+            )
+
+        return pa
+
     def create_game(self, user: TelegramUser, max_players: int) -> Game:
         if max_players < self.config.MIN_PLAYERS:
             raise GameException(f"max_players should be greater than or equal {self.config.MIN_PLAYERS}")
@@ -123,7 +147,9 @@ class ClassicMonopolyService(BaseMonopoly):
             board_config = BoardConfig.objects.get(name=BoardConfig.Names.CLASSIC)
 
             game = Game.objects.create(board_config=board_config, max_players=max_players)
-            Player.objects.create(user=user, game=game, color=Player.Color.BLUE)
+            Player.objects.create(
+                user=user, game=game, color=Player.Color.BLUE, cash=self.config.STARTING_CASH
+            )
 
         return game
 
@@ -145,9 +171,7 @@ class ClassicMonopolyService(BaseMonopoly):
             color = available_colors.pop(0)
 
             player = Player.objects.create(
-                user=telegram_user,
-                game=game,
-                color=color,
+                user=telegram_user, game=game, color=color, cash=self.config.STARTING_CASH
             )
         except IntegrityError:
             raise GameException("You are already playing this game")
@@ -206,9 +230,7 @@ class ClassicMonopolyService(BaseMonopoly):
 
             events.append(game_event)
 
-            pa = PendingAction.objects.create(
-                player=player, action_type=PendingAction.Types.ROLL_DICE, expires_at=timezone.now()
-            )
+            self.apply_pending_action(player, PendingAction.Types.ROLL_DICE)
 
         return events
 
@@ -227,14 +249,15 @@ class ClassicMonopolyService(BaseMonopoly):
         else:
             next_player = self._calculate_next_player(game, player)
 
+        if next_player is None:
+            raise GameException("There is no next player")
+
         game.current_player = next_player
         game.turn += 1
         game.save(update_fields=["turn", "current_player"])
         player.save()
 
-        pa = PendingAction.objects.create(
-            player=next_player, action_type=PendingAction.Types.ROLL_DICE, expires_at=timezone.now()
-        )
+        self.apply_pending_action(next_player, PendingAction.Types.ROLL_DICE)
 
         return events
 
@@ -251,23 +274,12 @@ class ClassicMonopolyService(BaseMonopoly):
         if isinstance(downcasted_tile, (Property, Utility)):
             ownership = Ownership.objects.filter(tile=downcasted_tile, game=game).first()
             if not ownership:
-                pa = PendingAction.objects.create(
-                    player=player,
-                    action_type=PendingAction.Types.BUY_PROPERTY,
-                    expires_at=timezone.now() + datetime.timedelta(seconds=30),
-                )
-                current_app.send_task("game.tasks.trigger_afk", args=({"pa_uuid": pa.uuid},), countdown=5)
+                self.apply_pending_action(player, PendingAction.Types.BUY_PROPERTY)
             else:
                 if ownership.player != player:
                     rent = ownership.calculate_rent(dice_sum)
-                    payrent_data = PayRentData(rent=rent)
-                    pa = PendingAction.objects.create(
-                        expires_at=timezone.now() + datetime.timedelta(seconds=30),
-                        player=player,
-                        action_type=PendingAction.Types.PAY_RENT,
-                        action_data=payrent_data.model_dump(),
-                    )
-                    current_app.send_task("game.tasks.trigger_afk", args=({"pa_uuid": pa.uuid},), countdown=5)
+                    payrent_data = PayRentData(rent=rent, to_player_id=ownership.player.pk)
+                    self.apply_pending_action(player, PendingAction.Types.PAY_RENT, payrent_data.model_dump())
                 else:
                     events.append(self._create_game_event(game, GameEvent.Types.LANDED_ON_OWN_PROPERTY))
                     self._next_turn(game, player)
@@ -278,12 +290,7 @@ class ClassicMonopolyService(BaseMonopoly):
             events.extend(next_turn_events)
         elif isinstance(downcasted_tile, Tax):
             paytax_data = PayTaxData(amount=100)
-            pa = PendingAction.objects.create(
-                player=player,
-                action_type=PendingAction.Types.PAY_TAX,
-                expires_at=timezone.now(),
-                action_data=paytax_data.model_dump(),
-            )
+            self.apply_pending_action(player, PendingAction.Types.PAY_TAX, paytax_data.model_dump())
         elif isinstance(downcasted_tile, Start):
             self._next_turn(game, player)
         elif isinstance(downcasted_tile, Casino):
@@ -292,12 +299,7 @@ class ClassicMonopolyService(BaseMonopoly):
             if player.cash < 10:
                 self._next_turn(game, player)
             else:
-                pa = PendingAction.objects.create(
-                    player=player,
-                    action_type=PendingAction.Types.IN_CASINO,
-                    expires_at=timezone.now(),
-                    action_data=casino_data.model_dump(),
-                )
+                self.apply_pending_action(player, PendingAction.Types.IN_CASINO, casino_data.model_dump())
         elif isinstance(downcasted_tile, Chance):
             events = self._process_chance_card(game, player)
             events.extend(events)
@@ -324,13 +326,7 @@ class ClassicMonopolyService(BaseMonopoly):
         price_per_house = 50
         amount = num_houses * price_per_house
         extra_data = RepairsData(amount=amount, num_houses=num_houses, price_per_house=price_per_house)
-
-        pa = PendingAction.objects.create(
-            player=player,
-            action_type=PendingAction.Types.PAY_REPAIRS,
-            expires_at=timezone.now(),
-            action_data=extra_data.model_dump(),
-        )
+        self.apply_pending_action(player, PendingAction.Types.PAY_REPAIRS, extra_data.model_dump())
 
     def _process_chance_card(self, game: Game, player: Player) -> list[GameEvent]:
         events = []
@@ -367,12 +363,7 @@ class ClassicMonopolyService(BaseMonopoly):
             self._process_land_on_tile(game, player, closest_util, 0)
         elif chance_card.action == ChanceCard.Action.PAY_BANK:
             paytax_data = PayTaxData(amount=cast(int, chance_card.amount))
-            pa = PendingAction.objects.create(
-                player=player,
-                action_type=PendingAction.Types.PAY_TAX,
-                expires_at=timezone.now(),
-                action_data=paytax_data.model_dump(),
-            )
+            self.apply_pending_action(player, PendingAction.Types.PAY_TAX, paytax_data.model_dump())
         elif chance_card.action == ChanceCard.Action.COLLECT_BANK:
             player.cash += cast(int, chance_card.amount)
             player.save()
@@ -417,23 +408,14 @@ class ClassicMonopolyService(BaseMonopoly):
         if dice_values[0] == dice_values[1]:
             player.in_jail = False
             player.jail_turns = 0
-            pa = PendingAction.objects.create(
-                # expires_at = timezone.now() + datetime.timedelta(seconds=30)
-                player=player,
-                action_type=PendingAction.Types.ROLL_DICE,
-                expires_at=timezone.now(),
-            )
+            self.apply_pending_action(player, PendingAction.Types.ROLL_DICE)
         else:
             player.jail_turns += 1
             if player.jail_turns < 3:
                 next_turn_events = self._next_turn(game, player)
                 events.extend(next_turn_events)
             else:
-                pa = PendingAction.objects.create(
-                    player=player,
-                    action_type=PendingAction.Types.ROLL_DICE,
-                    expires_at=timezone.now(),
-                )
+                self.apply_pending_action(player, PendingAction.Types.ROLL_DICE)
 
         player.save()
         return events
@@ -456,11 +438,7 @@ class ClassicMonopolyService(BaseMonopoly):
         player.jail_turns = 0
         player.save()
 
-        pa = PendingAction.objects.create(
-            player=player,
-            action_type=PendingAction.Types.ROLL_DICE,
-            expires_at=timezone.now(),
-        )
+        self.apply_pending_action(player, PendingAction.Types.ROLL_DICE)
 
         return events
 
@@ -644,12 +622,7 @@ class ClassicMonopolyService(BaseMonopoly):
                 is_bet=False,
             )
 
-            pa = PendingAction.objects.create(
-                player=next_player,
-                action_type=PendingAction.Types.IN_AUCTION,
-                expires_at=timezone.now(),
-                action_data=auction_data.model_dump(),
-            )
+            self.apply_pending_action(next_player, PendingAction.Types.IN_AUCTION, auction_data.model_dump())
 
         return events
 
@@ -678,6 +651,7 @@ class ClassicMonopolyService(BaseMonopoly):
             events.extend(next_turn_events)
         else:
             next_in_auction_id = players_ids[(players_ids.index(player.pk) + 1) % len(players_ids)]
+            next_player_in_auction = game.players.get(pk=next_in_auction_id)
 
             if next_price:
                 new_current_price = next_price
@@ -698,11 +672,8 @@ class ClassicMonopolyService(BaseMonopoly):
                 is_bet=True,
             )
 
-            pa = PendingAction.objects.create(
-                player_id=next_in_auction_id,
-                action_type=PendingAction.Types.IN_AUCTION,
-                expires_at=timezone.now(),
-                action_data=auction_data.model_dump(),
+            self.apply_pending_action(
+                next_player_in_auction, PendingAction.Types.IN_AUCTION, auction_data.model_dump()
             )
 
         return events
@@ -740,7 +711,8 @@ class ClassicMonopolyService(BaseMonopoly):
                 events.extend(next_turn_events)
             else:
                 next_in_auction_id = players_ids[0]
-                game.current_player_id = next_in_auction_id
+                next_player_in_auction = game.players.get(pk=next_in_auction_id)
+                game.current_player = next_player_in_auction
                 game.save()
                 auction_data = AuctionData(
                     tile_id=tile_id,
@@ -751,11 +723,8 @@ class ClassicMonopolyService(BaseMonopoly):
                     is_bet=True,
                 )
 
-                pa = PendingAction.objects.create(
-                    player_id=next_in_auction_id,
-                    action_type=PendingAction.Types.IN_AUCTION,
-                    expires_at=timezone.now(),
-                    action_data=auction_data.model_dump(),
+                self.apply_pending_action(
+                    next_player_in_auction, PendingAction.Types.IN_AUCTION, auction_data.model_dump()
                 )
         else:
             raise NotImplementedError()
@@ -788,12 +757,6 @@ class ClassicMonopolyService(BaseMonopoly):
             )
 
         player.save()
-        # pa = PendingAction.objects.create(
-        #     player=player,
-        #     action_type=PendingAction.Types.IN_CASINO,
-        #     expires_at=timezone.now(),
-        #     action_data=resolved_pa.action_data,
-        # )
         self._next_turn(game, player)
 
         return events
@@ -937,15 +900,7 @@ class ClassicMonopolyService(BaseMonopoly):
         game.current_player = to_player
         game.save()
 
-        print(f"{trade_data.request=}")
-
-        pa = PendingAction.objects.create(
-            player_id=trade_data.to_player,
-            action_type=PendingAction.Types.IN_TRADE,
-            expires_at=timezone.now(),
-            action_data=trade_data.model_dump(),
-        )
-
+        self.apply_pending_action(to_player, PendingAction.Types.IN_TRADE, trade_data.model_dump())
         return events
 
     @resolve_pa()
@@ -958,11 +913,8 @@ class ClassicMonopolyService(BaseMonopoly):
         game.current_player_id = action_data.from_player
         game.save()
 
-        pa = PendingAction.objects.create(
-            player_id=action_data.from_player,
-            action_type=PendingAction.Types.ROLL_DICE,
-            expires_at=timezone.now(),
-        )
+        from_player = game.players.get(pk=action_data.from_player)
+        self.apply_pending_action(from_player, PendingAction.Types.ROLL_DICE)
 
         return events
 
@@ -993,27 +945,31 @@ class ClassicMonopolyService(BaseMonopoly):
         game.current_player_id = from_player_id
         game.save()
 
-        pa = PendingAction.objects.create(
-            player_id=action_data.from_player,
-            action_type=PendingAction.Types.ROLL_DICE,
-            expires_at=timezone.now(),
-        )
+        from_player = game.players.get(pk=from_player_id)
+        self.apply_pending_action(from_player, PendingAction.Types.ROLL_DICE)
 
         return events
 
     @resolve_pa()
     def handle_afk(
         self, game: Game, player: Player, prev_pa: PendingAction, command: ActionCommand | None = None
-    ) -> list[GameEvent]:
+    ) -> dict:
         events = []
 
+        if prev_pa.action_type == PendingAction.Types.PAY_RENT:
+            action_data = PayRentData(**prev_pa.action_data)
+            to_player: Player = game.players.select_for_update().get(pk=action_data.to_player_id)
+            amount = max(0, min(player.cash, action_data.rent))
+            to_player.cash += amount
+            to_player.save()
+
+        player.ownerships.all().delete()
         player.status = player.Status.TIMEOUT
         player.save()
-
         next_turn_events = self._next_turn(game, player)
         events.extend(next_turn_events)
 
-        return events
+        return self.assemble_game_frame(game, events)
 
     @transaction.atomic
     def process_game_action(self, game_uuid, player_id, action) -> dict:
@@ -1040,9 +996,6 @@ class ClassicMonopolyService(BaseMonopoly):
             handler = self.PENDING_ACTION_COMMAND_HANDLERS.get(prev_pa.action_type, {}).get(action.action)  # type: ignore[call-overload]
             if not handler:
                 raise GameException(f"There is no such action. Action: {action.action}")
-
-            # prev_pa.resolved_at = timezone.now()
-            # prev_pa.save()
 
             events = handler(game, player, prev_pa, action)
 

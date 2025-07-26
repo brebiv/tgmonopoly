@@ -1,10 +1,22 @@
 from .base import BaseMonopolyConfig
+from game.models import PendingAction
 
 
 class ClassicMonopolyConfig(BaseMonopolyConfig):
     STARTING_CASH: int = 1000
     MORTGAGE_INTEREST_RATE: float = 1.1
     MAX_DOUBLES: int = 3
+
+    PENDING_ACTION_TIMEOUTS: dict[PendingAction.Types, int] = {
+        PendingAction.Types.ROLL_DICE: 10,
+        PendingAction.Types.BUY_PROPERTY: 10,
+        PendingAction.Types.PAY_RENT: 10,
+        PendingAction.Types.PAY_TAX: 10,
+        PendingAction.Types.PAY_REPAIRS: 10,
+        PendingAction.Types.IN_CASINO: 10,
+        PendingAction.Types.IN_AUCTION: 10,
+        PendingAction.Types.IN_TRADE: 10,
+    }
 
 
 # MAXIMUM_JAIL_TURNS = 3

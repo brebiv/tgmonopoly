@@ -235,7 +235,7 @@ class Ownership(models.Model):
     tile = models.ForeignKey(Tile, related_name="ownerships", on_delete=models.CASCADE)
     houses = models.IntegerField(default=0)
     mortgaged = models.BooleanField(default=False)
-    mortage_last_turn = models.IntegerField(null=True, blank=True)
+    mortgage_last_turn = models.IntegerField(null=True, blank=True)
 
     created = models.DateTimeField(auto_now_add=True)
 
@@ -371,6 +371,9 @@ class Ownership(models.Model):
             return False
 
         return True
+
+    def check_can_mortgage(self) -> bool:
+        return self.houses == 0
 
 
 class GameEvent(models.Model):

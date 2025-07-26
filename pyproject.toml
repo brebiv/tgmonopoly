@@ -3,6 +3,7 @@ name = "tgmonopoly"
 version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
+    "celery[redis]>=5.5.3",
     "channels-redis>=4.2.1",
     "channels[daphne]>=4.2.2",
     "django>=5.2.3",

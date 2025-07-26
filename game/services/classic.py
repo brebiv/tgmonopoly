@@ -1,9 +1,6 @@
-from uuid import UUID
-from abc import ABC, abstractmethod
-from typing import List, Tuple, Optional, Callable, cast
+from typing import Callable, cast
 from pydantic import ValidationError
 import datetime
-import random
 import logging
 import math
 
@@ -11,8 +8,10 @@ from django.db import transaction, IntegrityError
 from django.db.models import QuerySet, F, Sum
 from django.db.models.functions import Greatest
 from django.utils import timezone
+from celery import current_app
 
 from bot.models import TelegramUser
+from game.services.base import BaseMonopoly
 from game.models import (
     BoardConfig,
     Game,
@@ -31,9 +30,8 @@ from game.models import (
     Chance,
     ChanceCard,
 )
-from game.game_config import BaseMonopolyConfig, ClassicMonopolyConfig
+from game.game_config import ClassicMonopolyConfig
 from game.exceptions import GameException
-from game.serializers import GameEventSerializer, GameSerializer, PlayerSerializer
 from game.schemas import (
     AuctionData,
     PayRentData,
@@ -48,78 +46,11 @@ from game.schemas import (
 logger = logging.getLogger(__name__)
 
 
-class BaseMonopoly(ABC):
-    config: BaseMonopolyConfig
-
-    def assemble_game_frame(
-        self,
-        game: Game,
-        events: List[GameEvent],
-        game_frame_type: str = "game.event",
-    ) -> dict:
-        # Check if users are prefetched
-        game_event_serializer = GameEventSerializer(events, many=True)
-        game_serializer = GameSerializer(game)
-        players = [PlayerSerializer(player).data for player in game.players.all()]
-
-        return {
-            "type": game_frame_type,
-            "game": game_serializer.data,
-            "players": players,
-            "events": game_event_serializer.data,
-        }
-
-    def _roll_dice_values(self, dices_count=2, min_value=1, max_value=6):
-        if dices_count > 2:
-            raise NotImplementedError(
-                "Current only two dices supported because of dice double calculation logic"
-            )
-        # return [2, 1]
-        # return [19, 1]
-        return [random.randint(min_value, max_value) for _ in range(dices_count)]
-
-    def _flip_coin_value(self) -> bool:
-        return random.choice((True, False))
-
-    def _create_game_event(self, game: Game, event_type: GameEvent.Types, extra_data: Optional[dict] = None):
-        event = GameEvent.objects.create(game=game, event_type=event_type, extra_data=extra_data or {})
-        return event
-
-    @abstractmethod
-    def create_game(self, owner: TelegramUser, max_players: int) -> Game: ...
-
-    @abstractmethod
-    def join_game(self, game_uuid: UUID, telegram_user: TelegramUser) -> Tuple[Player, list[GameEvent]]: ...
-
-    @abstractmethod
-    def leave_game(self, player: Player) -> list[GameEvent]: ...
-
-    @abstractmethod
-    def start_game(self, game: Game, player: Player) -> list[GameEvent]: ...
-
-    @abstractmethod
-    def process_game_action(self, game_uuid: UUID, player_id: int, action: ActionCommand) -> dict: ...
-
-    def _calculate_next_player(self, game: Game, after_player: Player) -> Player:
-        game_players = game.players.filter(status=Player.Status.PLAYING).order_by("created")
-        current_player_index = None
-
-        for i, p in enumerate(game_players):
-            if p.pk == after_player.pk:
-                current_player_index = i
-
-        if current_player_index is None:
-            raise GameException("Could not find next player")
-
-        next_player_index = (current_player_index + 1) % game_players.count()
-        next_player = game_players[next_player_index]
-
-        return next_player
-
-
 def resolve_pa(resolve_pa=True):
     def decorator(func):
-        def wrapper(self, game: Game, player: Player, prev_pa: PendingAction, command: ActionCommand):
+        def wrapper(
+            self, game: Game, player: Player, prev_pa: PendingAction, command: ActionCommand | None = None
+        ):
             if resolve_pa:
                 prev_pa.resolved_at = timezone.now()
                 prev_pa.save()
@@ -321,19 +252,22 @@ class ClassicMonopolyService(BaseMonopoly):
             ownership = Ownership.objects.filter(tile=downcasted_tile, game=game).first()
             if not ownership:
                 pa = PendingAction.objects.create(
-                    player=player, action_type=PendingAction.Types.BUY_PROPERTY, expires_at=timezone.now()
+                    player=player,
+                    action_type=PendingAction.Types.BUY_PROPERTY,
+                    expires_at=timezone.now() + datetime.timedelta(seconds=30),
                 )
+                current_app.send_task("game.tasks.trigger_afk", args=({"pa_uuid": pa.uuid},), countdown=5)
             else:
                 if ownership.player != player:
                     rent = ownership.calculate_rent(dice_sum)
                     payrent_data = PayRentData(rent=rent)
                     pa = PendingAction.objects.create(
-                        # expires_at = timezone.now() + datetime.timedelta(seconds=30)
+                        expires_at=timezone.now() + datetime.timedelta(seconds=30),
                         player=player,
                         action_type=PendingAction.Types.PAY_RENT,
-                        expires_at=timezone.now(),
                         action_data=payrent_data.model_dump(),
                     )
+                    current_app.send_task("game.tasks.trigger_afk", args=({"pa_uuid": pa.uuid},), countdown=5)
                 else:
                     events.append(self._create_game_event(game, GameEvent.Types.LANDED_ON_OWN_PROPERTY))
                     self._next_turn(game, player)
@@ -1067,6 +1001,20 @@ class ClassicMonopolyService(BaseMonopoly):
 
         return events
 
+    @resolve_pa()
+    def handle_afk(
+        self, game: Game, player: Player, prev_pa: PendingAction, command: ActionCommand | None = None
+    ) -> list[GameEvent]:
+        events = []
+
+        player.status = player.Status.TIMEOUT
+        player.save()
+
+        next_turn_events = self._next_turn(game, player)
+        events.extend(next_turn_events)
+
+        return events
+
     @transaction.atomic
     def process_game_action(self, game_uuid, player_id, action) -> dict:
         logger.debug("Processing game action", game_uuid, player_id, action)
@@ -1099,22 +1047,3 @@ class ClassicMonopolyService(BaseMonopoly):
             events = handler(game, player, prev_pa, action)
 
         return self.assemble_game_frame(game, events)
-
-
-_STRATEGIES: dict[str, type[BaseMonopoly]] = {
-    BoardConfig.Names.CLASSIC.value: ClassicMonopolyService,
-}
-
-
-def get_service_by_game(game: Game) -> BaseMonopoly:
-    try:
-        return _STRATEGIES[game.board_config.name]()
-    except KeyError:
-        raise GameException("There is no such board config")
-
-
-def get_service_by_name(config_name: str) -> BaseMonopoly:
-    try:
-        return _STRATEGIES[config_name]()
-    except KeyError:
-        raise GameException("There is no such board config")

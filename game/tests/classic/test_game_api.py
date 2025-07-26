@@ -31,11 +31,13 @@ from game.models import (
     ChanceCard,
     Start,
 )
-from game.services import get_service_by_name, ClassicMonopolyService
+from game.services import get_service_by_name
+from game.services.classic import ClassicMonopolyService
 from game.exceptions import GameException
 from game.schemas import ActionCommand
 from game import schemas
-from .. import BaseApiTestCase, TestGameMixin
+from game.tests import BaseApiTestCase
+from game.tests.mixins import TestGameMixin
 
 
 class CreateGameAPITest(BaseApiTestCase):

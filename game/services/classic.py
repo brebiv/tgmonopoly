@@ -76,6 +76,8 @@ class ClassicMonopolyService(BaseMonopoly):
                 "reject": self._handle_pay_jail,
                 "improve": self._handle_improve,
                 "degrade": self._handle_degrade,
+                "mortgage": self._handle_mortgage,
+                "buyback": self._handle_mortgage_buyback,
                 "start_trade": self._handle_start_trade,
             },
             PendingAction.Types.BUY_PROPERTY: {
@@ -234,6 +236,14 @@ class ClassicMonopolyService(BaseMonopoly):
 
         return events
 
+    def _calculate_mortgages(self, game: Game, player: Player) -> list[GameEvent]:
+        events: list[GameEvent] = []
+        for o in player.ownerships.filter(mortgaged=True):
+            o = cast(Ownership, o)
+            if o.mortgage_last_turn == game.turn:
+                o.delete()
+        return events
+
     def _next_turn(self, game: Game, player: Player) -> list[GameEvent]:
         events: list[GameEvent] = []
 
@@ -256,6 +266,7 @@ class ClassicMonopolyService(BaseMonopoly):
         game.turn += 1
         game.save(update_fields=["turn", "current_player"])
         player.save()
+        self._calculate_mortgages(game, player)
 
         self.apply_pending_action(next_player, PendingAction.Types.ROLL_DICE)
 
@@ -276,7 +287,9 @@ class ClassicMonopolyService(BaseMonopoly):
             if not ownership:
                 self.apply_pending_action(player, PendingAction.Types.BUY_PROPERTY)
             else:
-                if ownership.player != player:
+                if ownership.mortgaged:
+                    self._next_turn(game, player)
+                elif ownership.player != player:
                     rent = ownership.calculate_rent(dice_sum)
                     payrent_data = PayRentData(rent=rent, to_player_id=ownership.player.pk)
                     self.apply_pending_action(player, PendingAction.Types.PAY_RENT, payrent_data.model_dump())
@@ -850,6 +863,75 @@ class ClassicMonopolyService(BaseMonopoly):
         player.save()
         ownership.houses -= 1
         ownership.save()
+
+        return events
+
+    @resolve_pa(False)
+    def _handle_mortgage(
+        self, game: Game, player: Player, resolved_pa: PendingAction, command: ActionCommand
+    ) -> list[GameEvent]:
+        events: list[GameEvent] = []
+
+        if not command.property_pos:
+            raise GameException("Property position should be specified")
+
+        try:
+            ownership = Ownership.objects.select_related("tile").get(
+                player=player, tile__position=command.property_pos
+            )
+        except Ownership.DoesNotExist:
+            raise GameException("You don't own this tile")
+
+        if ownership.mortgaged:
+            raise GameException("This property is already mortgaged")
+
+        if not ownership.check_can_mortgage():
+            raise GameException("You can't mortgage improved property")
+
+        downcasted_tile = ownership.tile.downcast()
+
+        if not isinstance(downcasted_tile, (Property, Utility)):
+            raise GameException("You can't mortgage non Property or Utility tile")
+
+        ownership.mortgaged = True
+        ownership.mortgage_last_turn = game.turn + self.config.MORTGAGE_MAX_TURNS
+        ownership.save()
+        player.cash += downcasted_tile.mortgage_value
+        player.save()
+
+        return events
+
+    @resolve_pa(False)
+    def _handle_mortgage_buyback(
+        self, game: Game, player: Player, resolved_pa: PendingAction, command: ActionCommand
+    ) -> list[GameEvent]:
+        events: list[GameEvent] = []
+
+        if not command.property_pos:
+            raise GameException("Property position should be specified")
+
+        try:
+            ownership = Ownership.objects.select_related("tile").get(
+                player=player, tile__position=command.property_pos
+            )
+        except Ownership.DoesNotExist:
+            raise GameException("You don't own this tile")
+
+        downcasted_tile = ownership.tile.downcast()
+
+        if not isinstance(downcasted_tile, (Property, Utility)):
+            raise GameException("You can't mortgage non Property or Utility tile")
+
+        buyback_price = downcasted_tile.mortgage_value * self.config.MORTGAGE_INTEREST_RATE
+
+        if player.cash < buyback_price:
+            raise GameException("You don't have enough money to buy property back")
+
+        ownership.mortgaged = False
+        ownership.mortgage_last_turn = 0
+        ownership.save()
+        player.cash -= buyback_price
+        player.save()
 
         return events
 

@@ -4,8 +4,9 @@ from game.models import PendingAction
 
 class ClassicMonopolyConfig(BaseMonopolyConfig):
     STARTING_CASH: int = 1000
-    MORTGAGE_INTEREST_RATE: float = 1.1
     MAX_DOUBLES: int = 3
+    MORTGAGE_MAX_TURNS: int = 15
+    MORTGAGE_INTEREST_RATE: float = 1.1
 
     PENDING_ACTION_TIMEOUTS: dict[PendingAction.Types, int] = {
         PendingAction.Types.ROLL_DICE: 10,
@@ -21,7 +22,6 @@ class ClassicMonopolyConfig(BaseMonopolyConfig):
 
 # MAXIMUM_JAIL_TURNS = 3
 # PRISON_PAY_AMOUNT = 50
-# MORTAGE_MAX_TURNS = 15
 # MAX_HOUSES = 5
 # AUCTION_STEP = 10
 # MAX_TRADE_PROPOSALS = 2

@@ -51,7 +51,7 @@ export default {
       },
     ],
     ownerships: [
-      { tile_position: 5, rent: 100, houses: 0, mortgaged: false, mortage_last_turn: null, player: 1 },
+      { tile_position: 5, rent: 100, houses: 0, mortgaged: false, mortgage_last_turn: null, player: 1 },
     ],
   },
   players: [

@@ -38,6 +38,7 @@ from game.schemas import ActionCommand
 from game import schemas
 from game.tests import BaseApiTestCase
 from game.tests.mixins import TestGameMixin
+from game.game_config.classic import ClassicMonopolyConfig
 
 
 class CreateGameAPITest(BaseApiTestCase):
@@ -1744,4 +1745,172 @@ class TestTrade(TestGameMixin):
                 self.player_1,
                 ActionCommand(action="start_trade", to_player=to_player, offer=offer, request=request),
                 True,
+            )
+
+
+@pytest.mark.django_db
+class TestMortgage(TestGameMixin):
+    monopoly_service: ClassicMonopolyService
+    game: Game
+    player_1: Player
+    player_2: Player
+    player_3: Player
+
+    def setup_method(self, method):
+        super().setup_method(method)
+        PopulateDatabaseCommand().handle()
+        self._create_game(2)
+        self.player_1 = self.players[0]
+        self.player_2 = self.players[1]
+
+        self.property_1 = Property.objects.filter(board_config=self.game.board_config)[0]
+        self.property_2 = Property.objects.filter(board_config=self.game.board_config)[1]
+
+        # self.monopoly_service._buy_tile(self.game, self.player_1, self.property_1, 0)
+        # self.monopoly_service._buy_tile(self.game, self.player_2, self.property_2, 0)
+
+    @pytest.mark.parametrize(
+        (
+            "select_group_with_num_tiles",
+            "properties_lvl",
+            "idx_to_mortgage",
+            "should_succeed",
+        ),
+        [
+            # Test success with 2 properties
+            (2, (0, 0), 1, (True, None)),
+            # Mortgages with house
+            (2, (1, 0), 0, (False, "You can't mortgage improved property")),
+            (2, (1, 0), 1, (True, None)),
+            # Test success with 3 properties
+            (3, (0, 0, 0), 1, (True, None)),
+        ],
+    )
+    @no_type_check
+    def test_mortgage(self, select_group_with_num_tiles, properties_lvl, idx_to_mortgage, should_succeed):
+        self._create_game(2)
+        player_1: Player = self.players[0]
+
+        player_1_cash_before = player_1.cash
+
+        pg = (
+            PropertyGroup.objects.annotate(num_properties=Count("properties"))
+            .filter(num_properties=select_group_with_num_tiles)
+            .first()
+        )
+
+        all_properties = pg.properties.all()
+        property_to_mortgage: Property = all_properties[idx_to_mortgage]
+        ownerships: list[Ownership] = []
+
+        zipped_properties_and_lvls = zip(all_properties, properties_lvl, strict=False)
+
+        for p, lvl in zipped_properties_and_lvls:
+            # print(f"{p.pk==self.property_1.pk=}")
+            print(f"{p.name=}")
+            print(f"{self.property_1.name=}")
+            # if len(all_properties) == 2:
+            #     raise Exception()
+            ownership = Ownership.objects.create(game=self.game, player=player_1, tile=p, houses=lvl)
+            ownerships.append(ownership)
+
+        should_succeed, reason = should_succeed
+        if not should_succeed:
+            with pytest.raises(GameException, match=rf"^{reason}$"):
+                self._send_game_action(
+                    player_1,
+                    ActionCommand(action="mortgage", property_pos=property_to_mortgage.position),
+                    False,
+                )
+            return
+
+        self._send_game_action(
+            player_1, ActionCommand(action="mortgage", property_pos=property_to_mortgage.position), False
+        )
+
+        # Refresh ownerships
+        list(map(lambda o: o.refresh_from_db(), ownerships))
+
+        assert self.game.current_player == player_1
+        assert player_1.pending_action.action_type == PendingAction.Types.ROLL_DICE
+        assert player_1.cash == player_1_cash_before + property_to_mortgage.mortgage_value
+        assert ownerships[idx_to_mortgage].mortgaged
+        assert (
+            ownerships[idx_to_mortgage].mortgage_last_turn
+            == self.game.turn + ClassicMonopolyConfig().MORTGAGE_MAX_TURNS
+        )
+
+    def test_expiration(self):
+        test_config = ClassicMonopolyConfig(MORTGAGE_MAX_TURNS=1)
+        self.monopoly_service.config = test_config
+        property_to_mortgage = self.property_1
+        self.monopoly_service._buy_tile(self.game, self.player_1, property_to_mortgage, 0)
+        ownership = Ownership.objects.get(game=self.game, tile=property_to_mortgage)
+
+        self._send_game_action(
+            self.player_1, ActionCommand(action="mortgage", property_pos=property_to_mortgage.position), False
+        )
+        with patch(
+            "game.services.ClassicMonopolyService._roll_dice_values",
+            return_value=[property_to_mortgage.position, 0],
+        ):
+            self._send_game_action(self.player_1, ActionCommand(action="roll_dice"), True)
+
+        with pytest.raises(Ownership.DoesNotExist):
+            ownership.refresh_from_db()
+
+    @pytest.mark.parametrize(
+        ("enough_money",),
+        [(True,), (False,)],
+    )
+    def test_buyback(self, enough_money):
+        property_to_mortgage = self.property_1
+        self.monopoly_service._buy_tile(self.game, self.player_1, property_to_mortgage, 0)
+
+        self._send_game_action(
+            self.player_1, ActionCommand(action="mortgage", property_pos=property_to_mortgage.position), False
+        )
+
+        cash_before = self.player_1.cash
+
+        if not enough_money:
+            self.player_1.cash = 1
+            self.player_1.save()
+            with pytest.raises(GameException, match=r"^You don't have enough money to buy property back$"):
+                self._send_game_action(
+                    self.player_1,
+                    ActionCommand(action="buyback", property_pos=property_to_mortgage.position),
+                    False,
+                )
+            return
+
+        assert self.player_1.ownerships.filter(mortgaged=True).count() == 1
+        assert (
+            self.player_1.ownerships.get().mortgage_last_turn
+            == self.game.turn + ClassicMonopolyConfig().MORTGAGE_MAX_TURNS
+        )
+        self._send_game_action(
+            self.player_1, ActionCommand(action="buyback", property_pos=property_to_mortgage.position), False
+        )
+        assert self.player_1.ownerships.filter(mortgaged=True).count() == 0
+        assert self.player_1.ownerships.get().mortgage_last_turn == 0
+        assert (
+            self.player_1.cash
+            == cash_before
+            - property_to_mortgage.mortgage_value * ClassicMonopolyConfig().MORTGAGE_INTEREST_RATE
+        )
+
+    def test_mortgage_twice(self):
+        property_to_mortgage = self.property_1
+        self.monopoly_service._buy_tile(self.game, self.player_1, property_to_mortgage, 0)
+
+        self._send_game_action(
+            self.player_1, ActionCommand(action="mortgage", property_pos=property_to_mortgage.position), False
+        )
+
+        with pytest.raises(GameException, match="^This property is already mortgaged$"):
+            self._send_game_action(
+                self.player_1,
+                ActionCommand(action="mortgage", property_pos=property_to_mortgage.position),
+                False,
             )

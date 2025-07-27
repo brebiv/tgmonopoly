@@ -77,7 +77,7 @@ export type Ownership = {
   tile_position: number;
   houses: number;
   mortgaged: boolean;
-  mortage_last_turn: number | null;
+  mortgage_last_turn: number | null;
   rent: number | string;
 };
 

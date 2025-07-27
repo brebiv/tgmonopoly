@@ -2,6 +2,7 @@ import pytest
 from pytest_mock import MockerFixture
 from unittest.mock import patch
 from typing import no_type_check
+from django.utils.timezone import now
 
 from game.management.commands.populate_database import (
     Command as PopulateDatabaseCommand,
@@ -70,3 +71,18 @@ class TestCelery(TestGameMixin):
 
         if action_type == PendingAction.Types.PAY_RENT:
             assert self.player_2.cash == p2_cash_before + self.player_1.cash
+
+    @no_type_check
+    def test_afk_already_resolved(self):
+        pa: PendingAction = self.player_1.pending_action
+        pa.resolved_at = now()
+        pa.save()
+
+        assert self.player_1.ownerships.count() == 1
+
+        trigger_afk({"pa_uuid": pa.uuid})
+        self._refresh_game_and_players()
+
+        assert self.game.current_player == self.player_1
+        assert self.player_1.status == Player.Status.PLAYING
+        assert self.player_1.ownerships.count() == 1

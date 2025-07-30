@@ -159,6 +159,9 @@ class ClassicMonopolyService(BaseMonopoly):
     def join_game(self, game_uuid, telegram_user):
         events = []
 
+        if Player.objects.filter(user=telegram_user, status__in=Player.ACTIVE_STATUSES).exists():
+            raise GameException("You can't join game while in another game")
+
         game = Game.objects.select_for_update().prefetch_related("players").get(pk=game_uuid)
 
         if game.status != game.Status.WAITING:

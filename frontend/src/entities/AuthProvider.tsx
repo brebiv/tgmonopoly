@@ -1,6 +1,7 @@
 import React, { createContext, useContext } from "react";
 import type { Me } from "./types";
 import { useMe } from "@/shared/hooks/useMe";
+import { AuthErrorScreen } from "@/pages/home/ui/AuthErrorScreen";
 
 interface AuthProviderData {
   me: Me;
@@ -19,11 +20,15 @@ export const AuthContextProvider: React.FC<AuthContextProps> = ({
   children,
 }) => {
   const contextValue = {} as AuthProviderData;
-  const { isLoading: isMeLoading, isError: isMeError, data: me } = useMe(true, true);
+  const { isLoading: isMeLoading, isError: isMeError, data: me } = useMe(true, false);
   let gameUUID: string | undefined = undefined;
 
+  if (isMeError) return <AuthErrorScreen />;
   if (isMeLoading) return <h1>Loading auth</h1>;
-  if (isMeError || !me) return <h1>Error with auth</h1>;
+
+  if (!me) {
+    return;
+  }
 
   if (currentGameUUIDMustMatchWithURL) {
     const pathname = URL.parse(location.href)?.pathname;

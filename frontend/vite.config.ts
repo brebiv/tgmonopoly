@@ -18,6 +18,7 @@ export default defineConfig({
       "@shared": resolve("./src/shared"),
       "@components": resolve("./src/components"),
       "@pages": resolve("./src/pages"),
+      "@assets": resolve("./src/assets"),
     },
   },
   plugins: [react(), tailwindcss()],

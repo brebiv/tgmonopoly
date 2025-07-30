@@ -12,6 +12,8 @@
     --color-button: var(--tg-theme-button-color);
     --color-button-text: var(--tg-theme-button-text-color);
     --color-destructive: var(--tg-theme-destructive-text-color);
+    --color-accent-text: var(--tg-theme-accent-text-color);
+    --color-section-separator: var(--tg-theme-section-separator-color);
 }
 
 @layer base {
@@ -23,6 +25,8 @@
         --color-hint: var(--tg-theme-hint-color);
         --color-link: var(--tg-theme-link-color);
         --color-destructive: var(--tg-theme-destructive-text-color);
+        --color-accent-text: var(--tg-theme-accent-text-color);
+        --color-section-separator: var(--tg-theme-section-separator-color);
         
         /* Animations */
         --player-chip-move-duration: 500ms;

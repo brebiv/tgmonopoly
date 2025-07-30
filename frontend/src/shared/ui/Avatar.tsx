@@ -12,12 +12,9 @@ export const Avatar: React.FC<AvatarProps> = ({ player }) => {
 
   return (
     <div
-      className={cn(
-        "rounded-full flex items-center justify-center w-full h-full border-2",
-        {
-          "border-hint border-dashed": empty,
-        }
-      )}
+      className={cn("flex h-full w-full items-center justify-center rounded-full border-2", {
+        "border-hint border-dashed": empty,
+      })}
       style={{
         borderColor: player?.color,
       }}
@@ -25,7 +22,7 @@ export const Avatar: React.FC<AvatarProps> = ({ player }) => {
       {empty && <p className="text-hint">open</p>}
       {player && (
         <img
-          className="rounded-full w-full h-full"
+          className="h-full w-full rounded-full"
           src={player.avatar}
           alt={`Avatar for player ${player.name}`}
         />

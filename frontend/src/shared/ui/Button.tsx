@@ -14,7 +14,7 @@ export const Button: React.FC<ButtonProps> = ({ children, className, disabled = 
     <motion.button
       disabled={disabled}
       className={cn(
-        "flex items-center justify-center rounded-lg px-2 py-1",
+        "flex items-center justify-center rounded-full px-2 py-1",
         "disabled:cursor-not-allowed disabled:opacity-50",
         className,
       )}

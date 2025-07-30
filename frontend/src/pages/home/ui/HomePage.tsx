@@ -1,40 +1,13 @@
-import { NavButton } from "@/shared/ui/NavButton";
-import { GameList } from "./components/GameList";
 import { Header } from "./components/Header";
-import { useState } from "react";
-import { CreateGame } from "@/features/create-game/CreateGame";
-import { CurrentGameCard } from "./components/CurrentGameCard";
-import { useAuthContext } from "@/entities/AuthProvider";
+import { BottomNav } from "./components/BottomNav";
+import { MenuContent } from "./MenuContent";
 
 export const HomePage = () => {
-  const [activeTab, setActiveTab] = useState<"list" | "create">("list");
-  const { me } = useAuthContext();
-
   return (
-    <div className="bg-secondary-background relative flex h-screen w-full flex-col gap-4 pt-2">
+    <div className="bg-background relative flex h-screen w-full flex-col gap-4 px-8 pt-4 pb-6">
       <Header />
-      <div className="flex flex-col gap-6 px-8">
-        {me.current_game && <CurrentGameCard game={me.current_game} />}
-        <div className="grid grid-cols-2 justify-evenly gap-4">
-          <NavButton
-            active={activeTab == "list"}
-            text="Game list"
-            onClick={() => {
-              setActiveTab("list");
-            }}
-          />
-          <NavButton
-            disabled={me.current_game != null}
-            active={activeTab == "create"}
-            text="Create game"
-            onClick={() => {
-              setActiveTab("create");
-            }}
-          />
-        </div>
-        {activeTab == "list" && <GameList />}
-        {activeTab == "create" && <CreateGame />}
-      </div>
+      <MenuContent />
+      <BottomNav />
     </div>
   );
 };

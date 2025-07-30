@@ -40,26 +40,16 @@ const initAPI = () => {
 
 export const getAuth = () => {
   const api = initAPI();
-  return api
-    .get("/api/me")
-    .then((response) => {
-      return response.data;
-    })
-    .catch((error) => {
-      return error.response.data;
-    });
+  return api.get("/api/me").then((response) => {
+    return response.data;
+  });
 };
 
 export const getGames = () => {
   const api = initAPI();
-  return api
-    .get("/api/games/")
-    .then((response) => {
-      return response.data;
-    })
-    .catch((error) => {
-      return error.response.data;
-    });
+  return api.get("/api/games/").then((response) => {
+    return response.data;
+  });
 };
 
 export const createGame = async (max_players: number, config = "classic"): Promise<CreateGameResponse> => {

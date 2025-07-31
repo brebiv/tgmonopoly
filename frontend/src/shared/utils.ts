@@ -19,7 +19,7 @@ export const navigateToGame = (game: Game | string) => {
 
 export const buildGameWebsocketUrl = (gameUUID: string) => {
   const path = "ws/game/" + gameUUID;
-  const protocol = import.meta.env.VITE_USE_WSS == "True" ? "wss" : "ws";
+  const protocol = window.location.protocol === "https:" ? "wss" : "ws";
 
   return `${protocol}://${window.location.host}/${path}/?${Telegram.WebApp.initData}`;
 };

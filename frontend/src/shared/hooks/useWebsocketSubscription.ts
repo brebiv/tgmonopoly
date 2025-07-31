@@ -1,14 +1,11 @@
 import { useEffect, useRef } from "react";
 
 const addAuthToWSUrl = (path: string) => {
-  const protocol = import.meta.env.VITE_USE_WSS == "True" ? "wss" : "ws";
+  const protocol = window.location.protocol === "https:" ? "wss" : "ws";
   return `${protocol}://${window.location.host}${path}?${Telegram.WebApp.initData}`;
 };
 
-export const useWebsocketSubscription = (
-  path: string,
-  eventHandler: (event: any) => void,
-) => {
+export const useWebsocketSubscription = (path: string, eventHandler: (event: any) => void) => {
   const websocketRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {

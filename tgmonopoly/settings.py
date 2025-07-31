@@ -15,7 +15,7 @@ import os
 
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=False)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -65,6 +65,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
 ]
 
 ROOT_URLCONF = "tgmonopoly.urls"
@@ -176,43 +177,46 @@ TG_UPDATE_USER_ON_EACH_REQUEST = False if DEBUG else True
 # Channels
 ASGI_APPLICATION = "tgmonopoly.asgi.application"
 
+REDIS_HOST = os.getenv("REDIS_HOST")
+REDIS_PORT = os.getenv("REDIS_PORT")
+
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [(os.getenv("CHANNELS_HOST"), os.getenv("CHANNELS_PORT"))],
+            "hosts": [(REDIS_HOST, REDIS_PORT)],
         },
     },
 }
 
 
 # Logging
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "handlers": {
-        "console": {
-            "level": "DEBUG",
-            "class": "logging.StreamHandler",
-        },
-        "file": {
-            "level": "DEBUG",
-            "class": "logging.FileHandler",
-            "filename": "django_queries.log",
-        },
-    },
-    "loggers": {
-        "django.db.backends": {
-            "handlers": ["console", "file"],
-            "level": "DEBUG",
-            "propagate": False,
-        },
-    },
-}
+# LOGGING = {
+#     "version": 1,
+#     "disable_existing_loggers": False,
+#     "handlers": {
+#         "console": {
+#             "level": "DEBUG",
+#             "class": "logging.StreamHandler",
+#         },
+#         "file": {
+#             "level": "DEBUG",
+#             "class": "logging.FileHandler",
+#             "filename": "django_queries.log",
+#         },
+#     },
+#     "loggers": {
+#         "django.db.backends": {
+#             "handlers": ["console", "file"],
+#             "level": "DEBUG",
+#             "propagate": False,
+#         },
+#     },
+# }
 
 # Celery
-CELERY_BROKER_URL = "redis://127.0.0.1:6379/0"
-CELERY_RESULT_BACKEND = "redis://127.0.0.1:6379/0"
+CELERY_BROKER_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/0"
+CELERY_RESULT_BACKEND = f"redis://{REDIS_HOST}:{REDIS_PORT}/0"
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"

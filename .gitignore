@@ -38,3 +38,5 @@ kool_thing
 
 # .env's
 .env
+.env.production
+

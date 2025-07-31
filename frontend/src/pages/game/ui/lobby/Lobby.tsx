@@ -2,32 +2,20 @@ import { useGameStore } from "@/entities/gameStore";
 import { LeaveGameButton } from "@/features/leave-game/LeaveGameButton";
 import { Card } from "@/shared/ui/Card";
 import { PlayerCard } from "@/shared/ui/PlayerCard";
-import { useEffect } from "react";
 
 export const Lobby = () => {
-  const pathname = URL.parse(location.href)?.pathname;
-  const gameUUID = pathname?.split("/").pop();
-  // const gameFrame = useGameFrame();
+  const pathname = location.pathname;
+  const gameUUID = pathname.split("/").filter(Boolean).pop() ?? null;
 
   /////// ADD AUTH HERE, move auth logic from HomePage to context provider so that it will become reusable
 
-  const eventQueue = useGameStore((s) => s.eventQueue);
   const players = useGameStore((s) => s.players);
   const game = useGameStore((s) => s.game);
-
-  useEffect(() => {
-    console.log("Event queue updated", eventQueue);
-  }, [eventQueue]);
 
   if (!gameUUID) {
     console.error("Could not get UUID from url");
     return;
   }
-
-  // useEffect(() => {
-  //   // Do I really need react query for this?
-  //   console.log("Got gameFrame", gameFrame);
-  // }, [gameFrame]);
 
   return (
     <div className="bg-secondary-background relative flex h-screen w-full flex-col items-center gap-4 px-8 pt-2">
@@ -44,20 +32,6 @@ export const Lobby = () => {
       <div className="w-full">
         <LeaveGameButton gameUUID={gameUUID} />
       </div>
-      {/* <Button
-        onClick={() => {
-          send("hello");
-        }}
-      >
-        send text
-      </Button>
-      <Button
-        onClick={() => {
-          sendJSON({ command: "fuck me" });
-        }}
-      >
-        send json
-      </Button> */}
     </div>
   );
 };

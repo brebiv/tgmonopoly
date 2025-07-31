@@ -31,8 +31,8 @@ export const AuthContextProvider: React.FC<AuthContextProps> = ({
   }
 
   if (currentGameUUIDMustMatchWithURL) {
-    const pathname = URL.parse(location.href)?.pathname;
-    gameUUID = pathname?.split("/").pop();
+    const pathname = location.pathname;
+    const gameUUID = pathname.split("/").filter(Boolean).pop() ?? null;
 
     if (!gameUUID) {
       console.error("Could not get UUID from url");

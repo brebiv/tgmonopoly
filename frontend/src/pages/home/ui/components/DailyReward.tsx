@@ -18,7 +18,7 @@ export const DailyReward = ({}: DailyRewardProps) => {
     >
       <div className="flex flex-col items-center gap-4">
         <h1 className="text-button-text text-lin uppercase">Daily reward</h1>
-        <div className="grid h-20 w-full grid-cols-5 gap-2">
+        <div className="grid w-full grid-cols-5 gap-2">
           {Array.from({ length: 5 }).map((_, i) => (
             <div
               className={cn("bg-button border-button relative flex w-full flex-col rounded-md border-1", {

@@ -20,9 +20,12 @@ COPY --from=ghcr.io/astral-sh/uv:0.7.13 /uv /uvx /bin/
 # RUN sh /uv-installer.sh && rm /uv-installer.sh
 # ENV PATH="/root/.local/bin/:$PATH"
 
+COPY ./uv.lock .
+COPY ./pyproject.toml .
+RUN uv sync --locked
+
 ADD . /app
 RUN rm -rf frontend
-RUN uv sync --locked
 COPY --from=frontend /frontend/assets ./frontend/assets
 
 COPY entrypoint.sh /entrypoint.sh

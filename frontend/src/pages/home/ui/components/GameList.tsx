@@ -6,7 +6,7 @@ interface GameListProps {
   disabled?: boolean;
 }
 
-export const GameList = ({ disabled }: GameListProps) => {
+export const GameList = ({}: GameListProps) => {
   const { games, setGames } = useGameListStore();
   const handleGamesStreamEvent = (data: any) => {
     setGames(data.games);
@@ -16,8 +16,7 @@ export const GameList = ({ disabled }: GameListProps) => {
 
   return (
     <div className="flex w-full flex-col gap-3">
-      {disabled && <div className="bg-background absolute z-10 h-full w-full opacity-70"></div>}
-      {games &&
+      {games.length > 0 ? (
         games?.map((game, i) => (
           <>
             <GameCard key={i} game={game} />
@@ -26,7 +25,10 @@ export const GameList = ({ disabled }: GameListProps) => {
             <GameCard key={i + 3} game={game} />
             <GameCard key={i + 4} game={game} />
           </>
-        ))}
+        ))
+      ) : (
+        <h2 className="text-center">There are no games. Create a new one!</h2>
+      )}
     </div>
   );
 };

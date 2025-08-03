@@ -1,8 +1,7 @@
-import { cn } from "@/shared/utils";
 import { Gamepad2Icon, PlusCircleIcon, StoreIcon, UsersRoundIcon } from "lucide-react";
 import { motion, LayoutGroup, AnimatePresence } from "motion/react";
 import { useState } from "react";
-import { useHomeStore } from "../../stores/homeStore";
+import { useHomeStore, type MenuTabs } from "../../stores/homeStore";
 
 interface BottomNavProps {}
 
@@ -11,19 +10,19 @@ export const BottomNav = ({}: BottomNavProps) => {
   const menuTab = useHomeStore((s) => s.menuTab);
   const setMenuTab = useHomeStore((s) => s.setMenuTab);
 
+  const handleMenuClick = (selectedIdx: number, menuTab: MenuTabs) => {
+    setSelected(selectedIdx);
+    setMenuTab(menuTab);
+    Telegram.WebApp.HapticFeedback.impactOccurred("medium");
+  };
+
   return (
     <LayoutGroup id="bottom-nav">
-      {/* <div className="fixed bottom-6 left-0 h-14 w-full px-8 py-2"> */}
       <div className="mt-auto h-14 w-full shrink-0 py-2">
         <div className="bg-secondary-background relative grid h-full w-full grid-cols-3 rounded-full">
           <div
-            className={cn("relative -top-2 flex h-14 flex-col items-center justify-center rounded-full", {
-              // "bg-button h-14": selected == 1,
-            })}
-            onClick={() => {
-              setSelected(0);
-              setMenuTab("store");
-            }}
+            className="relative -top-2 flex h-14 flex-col items-center justify-center rounded-full"
+            onClick={() => handleMenuClick(0, "store")}
           >
             {/* Selection pill */}
             <motion.div
@@ -36,24 +35,23 @@ export const BottomNav = ({}: BottomNavProps) => {
             <StoreIcon className="z-10" />
           </div>
           <div
-            className={cn("relative -top-2 flex h-14 flex-col items-center justify-center rounded-full", {
-              // "bg-button h-14": selected == 2,
-            })}
+            className="relative -top-2 flex h-14 flex-col items-center justify-center rounded-full"
             onClick={() => {
+              let newMenuTab: MenuTabs;
+
               switch (menuTab) {
                 case "games": {
-                  setMenuTab("create_game");
+                  newMenuTab = "create_game";
                   break;
                 }
                 default: {
-                  setMenuTab("games");
+                  newMenuTab = "games";
                 }
               }
 
-              setSelected(1);
+              handleMenuClick(1, newMenuTab);
             }}
           >
-            {/* <p className="text-button-text">New game</p> */}
             <motion.p layout="position" className="text-button-text flex flex-col items-center">
               <AnimatePresence mode="wait" initial={false}>
                 {menuTab === "games" ? (
@@ -95,13 +93,8 @@ export const BottomNav = ({}: BottomNavProps) => {
             </motion.p>
           </div>
           <div
-            className={cn("relative -top-2 flex h-14 flex-col items-center justify-center rounded-full", {
-              // "bg-button h-14": selected == 3,
-            })}
-            onClick={() => {
-              setSelected(2);
-              setMenuTab("friends");
-            }}
+            className="relative -top-2 flex h-14 flex-col items-center justify-center rounded-full"
+            onClick={() => handleMenuClick(2, "friends")}
           >
             <UsersRoundIcon />
           </div>

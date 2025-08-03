@@ -10,7 +10,7 @@ interface GameCardProps {
 
 export const GameCard: React.FC<GameCardProps> = ({ game }) => {
   return (
-    <Card>
+    <Card className="">
       <div className="flex items-center justify-between gap-4">
         <h2>Default game</h2>
         <p className="text-primary flex gap-2 font-mono">
@@ -20,18 +20,18 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
       </div>
       <div className="flex justify-between gap-4">
         <div
-          className="grid h-12 gap-2"
+          className="grid h-full gap-2"
           style={{
             gridTemplateColumns: `repeat(${game.max_players}, minmax(0, 1fr))`,
           }}
         >
           {Array.from({ length: game.max_players }).map((_, i) => {
             return game.players[i] ? (
-              <div key={i} className="h-12">
+              <div key={i} className="h-16">
                 <Avatar player={game.players[i]} />
               </div>
             ) : (
-              <div className="h-12">
+              <div className="h-16">
                 <Avatar key={i} />
               </div>
             );

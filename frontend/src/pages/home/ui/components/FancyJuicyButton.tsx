@@ -46,12 +46,20 @@ export const FancyJuicyButton: React.FC<ButtonProps> = ({
           "flex items-center justify-center rounded-full px-2 py-1",
           "disabled:cursor-not-allowed disabled:opacity-50",
           "from-accent-text to-button bg-linear-to-b",
-          "outline-button outline-2",
-          "relative",
+          // "outline-button outline-2",
+          "relative overflow-hidden",
           className,
         )}
+        // initial={{scale:}}
+        animate={{ scale: [0.95, 1.05, 1] }}
+        transition={{
+          duration: 0.3,
+          // times: [0, 0.35, 1], // optional: timing of each keyframe
+          ease: "easeOut", // optional
+        }}
         whileTap={{ scale: 0.95 }}
         onClick={() => {
+          Telegram.WebApp.HapticFeedback.impactOccurred("heavy");
           if (onClick) {
             onClick();
           }
@@ -77,6 +85,18 @@ export const FancyJuicyButton: React.FC<ButtonProps> = ({
           transition={{ duration: 6, repeat: Infinity, ease: "anticipate" }}
         ></motion.div> */}
         {children ? children : "Button"}
+        <motion.div
+          initial={{ bottom: "-100%", left: "-100%" }}
+          animate={{ bottom: "100%", left: "100%" }}
+          transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 6 }}
+          className={`absolute h-[120%] w-[120%] rotate-45`}
+          style={{
+            background:
+              "linear-gradient(to bottom, rgba(229, 172, 142, 0), rgba(255,255,255,0.5) 50%, rgba(229, 172, 142, 0))",
+            // bottom: "-100%",
+            // left: "-100%",
+          }}
+        ></motion.div>
       </motion.button>
     </>
   );

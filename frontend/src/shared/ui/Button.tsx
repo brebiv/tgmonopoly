@@ -1,6 +1,6 @@
 import React from "react";
-import cn from "classnames";
 import { motion } from "motion/react";
+import { cn } from "../utils";
 
 interface ButtonProps {
   children?: React.ReactNode;

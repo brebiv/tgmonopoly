@@ -36,6 +36,8 @@ type HomeStore = {
   resetCoinsFinishCount: () => void;
   handleCoinFinished: () => void;
   claimCurrentDay: () => void;
+  inTheMiddle: boolean;
+  setInTheMiddle: (value: boolean) => void;
 };
 
 export const useHomeStore = create<HomeStore>()((set, get) => ({
@@ -83,5 +85,9 @@ export const useHomeStore = create<HomeStore>()((set, get) => ({
     set({ streak: newStreak, fireShaking: true });
     await sleep(500);
     set({ fireCoins: true, amountPerCoin: amountPerCoin });
+    await sleep(3000);
+    set({ fireCoins: false, amountPerCoin: 0, inTheMiddle: false, fireShaking: false });
   },
+  inTheMiddle: false,
+  setInTheMiddle: (value) => set({ inTheMiddle: value }),
 }));

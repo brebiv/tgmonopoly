@@ -10,27 +10,32 @@ import { CoinsController } from "./CoinsController";
 import { useHomeStore, type HomeData, type StreakDay } from "../../stores/homeStore";
 import { useEffect, useRef } from "react";
 import { DailyRewardParticles } from "./DailyRewardParticles";
+import { RippleEffect } from "./RippleEffect";
 
 const data = {
+  // streak: [
+  //   { day: 1, status: "past", reward: 100, claimed: true },
+  //   { day: 2, status: "past", reward: 200, claimed: true },
+  //   { day: 3, status: "past", reward: 300, claimed: true },
+  //   { day: 4, status: "present", reward: 400, claimed: false },
+  //   { day: 5, status: "future", reward: 500, claimed: false },
+  // ],
+  // streak: [
+  //   { day: 1, status: "present", reward: 100, claimed: false },
+  //   { day: 2, status: "future", reward: 200, claimed: false },
+  //   { day: 3, status: "future", reward: 300, claimed: false },
+  //   { day: 4, status: "future", reward: 400, claimed: false },
+  //   { day: 5, status: "future", reward: 500, claimed: false },
+  // ],
   streak: [
     { day: 1, status: "past", reward: 100, claimed: true },
-    { day: 2, status: "past", reward: 200, claimed: true },
-    { day: 3, status: "past", reward: 300, claimed: true },
-    { day: 4, status: "present", reward: 400, claimed: false },
+    { day: 2, status: "present", reward: 200, claimed: false },
+    { day: 3, status: "future", reward: 300, claimed: false },
+    { day: 4, status: "future", reward: 400, claimed: false },
     { day: 5, status: "future", reward: 500, claimed: false },
   ],
   coins: 1500,
 };
-// const data2 = {
-//   streak: [
-//     { day: 1, status: "past", reward: 100, claimed: true },
-//     { day: 2, status: "past", reward: 200, claimed: true },
-//     { day: 3, status: "past", reward: 300, claimed: true },
-//     { day: 4, status: "present", reward: 400, claimed: true },
-//     { day: 5, status: "future", reward: 500, claimed: false },
-//   ],
-//   coins: 1900,
-// };
 
 const PastDay = ({ streakDay }: { streakDay: StreakDay }) => {
   const { reward, day, claimed } = streakDay;
@@ -103,6 +108,7 @@ const FutureDay = ({ streakDay }: { streakDay: StreakDay }) => {
 const PresentDay = ({ streakDay }: { streakDay: StreakDay }) => {
   const { reward, day, claimed } = streakDay;
   const fireShaking = useHomeStore((s) => s.fireShaking);
+  const setInTheMiddle = useHomeStore((s) => s.setInTheMiddle);
 
   const controls = useAnimationControls();
   const colorControls = useAnimationControls();
@@ -146,6 +152,7 @@ const PresentDay = ({ streakDay }: { streakDay: StreakDay }) => {
           if (!firedHaptic.current) {
             Telegram.WebApp.HapticFeedback.impactOccurred("medium");
             firedHaptic.current = true;
+            setInTheMiddle(true);
           }
         }
       }}
@@ -192,7 +199,7 @@ const PresentDay = ({ streakDay }: { streakDay: StreakDay }) => {
 
         {/* Footer */}
         <motion.div className="mt-auto flex h-4 w-full items-center rounded-b-md" animate={footerControls}>
-          <p className="w-full text-center text-xs">+{reward}</p>
+          <p className="text-button-text w-full text-center text-xs">+{reward}</p>
         </motion.div>
       </div>
 
@@ -225,9 +232,7 @@ export const DailyReward = ({}: DailyRewardProps) => {
 
   return (
     <>
-      {/* <div className="absolute top-0 left-0 h-full w-full">
-        <WaterRippleEffect />
-      </div> */}
+      <RippleEffect />
       <CoinsController />
       <Card
         className="relative pb-3"
@@ -236,7 +241,6 @@ export const DailyReward = ({}: DailyRewardProps) => {
             "linear-gradient(0deg,var(--color-secondary-background) 00%, var(--color-accent-text) 100%",
         }}
       >
-        {/* <DailyRewardParticles /> */}
         <DailyRewardParticles />
         <div id="gameCard" className="flex flex-col items-center gap-4">
           <h1 className="text-button-text text-lin z-10 uppercase">Daily reward</h1>

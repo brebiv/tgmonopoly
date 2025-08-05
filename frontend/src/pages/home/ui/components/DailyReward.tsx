@@ -3,7 +3,7 @@ import { cn, getRandomArbitrary } from "@/shared/utils";
 
 import checkmark from "@/assets/checkmark.png";
 import coins from "@/assets/coins.png";
-import { FancyJuicyButton } from "./FancyJuicyButton";
+import { FancyJuicyButtonController } from "./FancyJuicyButtonController";
 
 import { motion, useAnimationControls } from "motion/react";
 import { CoinsController } from "./CoinsController";
@@ -242,7 +242,7 @@ export const DailyReward = ({}: DailyRewardProps) => {
         }}
       >
         <DailyRewardParticles />
-        <div id="gameCard" className="flex flex-col items-center gap-4">
+        <div id="daily-reward" className="flex flex-col items-center gap-4">
           <h1 className="text-button-text text-lin z-10 uppercase">Daily reward</h1>
           <div className="grid h-full w-full grid-cols-5 gap-2">
             {streak &&
@@ -260,15 +260,17 @@ export const DailyReward = ({}: DailyRewardProps) => {
                 }
               })}
           </div>
+          {/* h-8 is the height of default button */}
+          {/* <div className="h-8 w-full"> */}
           <div className="w-full">
-            <FancyJuicyButton
+            <FancyJuicyButtonController
               className="w-full"
               onClick={() => {
                 claimCurrentDay();
               }}
             >
               Claim
-            </FancyJuicyButton>
+            </FancyJuicyButtonController>
           </div>
         </div>
       </Card>

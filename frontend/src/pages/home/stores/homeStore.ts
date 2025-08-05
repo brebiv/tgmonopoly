@@ -14,6 +14,13 @@ export type HomeData = {
   coins: number;
 };
 
+export enum DailyRewardAnimationState {
+  AWAIT = 0,
+  CARD_SHAKING = 1,
+  COINS_BOOM = 2,
+  FINISHED = 3,
+}
+
 type HomeStore = {
   menuTab: MenuTabs;
   setMenuTab: (value: MenuTabs) => void;
@@ -38,6 +45,7 @@ type HomeStore = {
   claimCurrentDay: () => void;
   inTheMiddle: boolean;
   setInTheMiddle: (value: boolean) => void;
+  dailyRewardAnimationState: DailyRewardAnimationState;
 };
 
 export const useHomeStore = create<HomeStore>()((set, get) => ({
@@ -82,12 +90,23 @@ export const useHomeStore = create<HomeStore>()((set, get) => ({
     );
     const amountPerCoin = currentDay.reward / 20;
 
-    set({ streak: newStreak, fireShaking: true });
+    set({
+      streak: newStreak,
+      fireShaking: true,
+      dailyRewardAnimationState: DailyRewardAnimationState.CARD_SHAKING,
+    });
     await sleep(500);
     set({ fireCoins: true, amountPerCoin: amountPerCoin });
     await sleep(3000);
-    set({ fireCoins: false, amountPerCoin: 0, inTheMiddle: false, fireShaking: false });
+    set({
+      fireCoins: false,
+      amountPerCoin: 0,
+      inTheMiddle: false,
+      fireShaking: false,
+      dailyRewardAnimationState: DailyRewardAnimationState.FINISHED,
+    });
   },
   inTheMiddle: false,
   setInTheMiddle: (value) => set({ inTheMiddle: value }),
+  dailyRewardAnimationState: DailyRewardAnimationState.AWAIT,
 }));

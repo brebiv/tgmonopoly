@@ -6,7 +6,8 @@ sleep 2
 
 # DB migrations (safe to run every start)
 # uv run manage.py migrate --noinput
-uv run manage.py migrate && uv run manage.py populate_database
+# uv run manage.py migrate && uv run manage.py populate_database || echo "Ignoring"
+uv run manage.py reset_db <<< "yes" && uv run manage.py migrate && uv run manage.py populate_database
 
 # Collect static (includes Vite build you've copied in)
 uv run manage.py collectstatic --noinput

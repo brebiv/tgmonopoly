@@ -1,18 +1,18 @@
 import { CreateGame } from "@/features/create-game/CreateGame";
 import { useHomeStore } from "../stores/homeStore";
-import { GameList } from "./components/GameList";
+// import { GameList } from "./components/GameList";
 // @ts-ignore
 import { useEffect, useRef, useState } from "react";
-import { useAuthContext } from "@/entities/AuthProvider";
+// import { useAuthContext } from "@/entities/AuthProvider";
 import { TopBaner } from "./components/TopBanner";
-import { Gamepad2Icon, UsersRound } from "lucide-react";
-import { cn } from "@/shared/utils";
+// import { cn } from "@/shared/utils";
+import { MainMenu } from "./components/MainMenu";
 
 export const MenuContent = () => {
   const menuTab = useHomeStore((s) => s.menuTab);
-  const { me } = useAuthContext();
+  // const { me } = useAuthContext();
 
-  const scrollerRef = useRef<HTMLDivElement | null>(null);
+  // const scrollerRef = useRef<HTMLDivElement | null>(null);
 
   return (
     <div id="menu-content" className="flex min-h-0 grow-1 flex-col gap-6">
@@ -20,17 +20,8 @@ export const MenuContent = () => {
       {menuTab == "games" && (
         <>
           <TopBaner />
-          <div className="relative flex min-h-0 flex-1 flex-col gap-2 rounded-xl">
-            <div className="flex">
-              <div className="flex gap-2">
-                <div className="flex gap-1">
-                  <UsersRound /> 7k
-                </div>
-                <div className="flex gap-1">
-                  <Gamepad2Icon /> 532
-                </div>
-              </div>
-            </div>
+          <MainMenu />
+          {/* <div className="relative flex min-h-0 flex-1 flex-col gap-2 rounded-xl">
             <div
               ref={scrollerRef}
               className={cn("relative min-h-0 overflow-y-auto overscroll-contain rounded-lg", {
@@ -42,7 +33,7 @@ export const MenuContent = () => {
               )}
               <GameList disabled={me.current_game != null} />
             </div>
-          </div>
+          </div> */}
         </>
       )}
     </div>

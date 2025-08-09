@@ -89,16 +89,18 @@ export const FancyJuicyButtonController: React.FC<ButtonProps> = ({
         ></motion.div> */}
           {dailyRewardAnimationState == DailyRewardAnimationState.AWAIT ? children : "Come back tomorrow"}
           {/* Shining */}
-          <motion.div
-            initial={{ bottom: "-100%", left: "-100%" }}
-            animate={{ bottom: "100%", left: "100%" }}
-            transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 6 }}
-            className={`absolute h-[120%] w-[120%] rotate-45`}
-            style={{
-              background:
-                "linear-gradient(to bottom, rgba(229, 172, 142, 0), rgba(255,255,255,0.5) 50%, rgba(229, 172, 142, 0))",
-            }}
-          ></motion.div>
+          {dailyRewardAnimationState != DailyRewardAnimationState.FINISHED && (
+            <motion.div
+              initial={{ bottom: "-100%", left: "-100%" }}
+              animate={{ bottom: "100%", left: "100%" }}
+              transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 6 }}
+              className={`absolute h-[120%] w-[120%] rotate-45`}
+              style={{
+                background:
+                  "linear-gradient(to bottom, rgba(229, 172, 142, 0), rgba(255,255,255,0.5) 50%, rgba(229, 172, 142, 0))",
+              }}
+            />
+          )}
         </motion.button>
       </AnimatePresence>
     </>

@@ -104,6 +104,7 @@ const CoinsSection = () => {
 export const Header = () => {
   return (
     <header className="text-primary grid w-full shrink-0 grid-cols-3">
+      <div className="h-full bg-cyan-600">tg avatar</div>
       <CoinsSection />
     </header>
   );

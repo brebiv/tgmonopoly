@@ -2,6 +2,7 @@ import type { Player } from "@/entities/types";
 import type React from "react";
 
 import cn from "classnames";
+import { PLAYER_CHIP_COLORS } from "../config";
 
 interface AvatarProps {
   player?: Player;
@@ -12,11 +13,12 @@ export const Avatar: React.FC<AvatarProps> = ({ player }) => {
 
   return (
     <div
-      className={cn("flex h-full w-full items-center justify-center rounded-full border-2", {
+      className={cn("flex h-full w-full items-center justify-center rounded-full border-3", {
         "border-hint border-dashed": empty,
       })}
       style={{
-        borderColor: player?.color,
+        // @ts-ignore
+        borderColor: player ? `${PLAYER_CHIP_COLORS[player.color][0]}` : undefined,
       }}
     >
       {empty && <p className="text-hint">open</p>}

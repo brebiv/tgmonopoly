@@ -1,6 +1,6 @@
 import { Button } from "@/shared/ui/Button";
 import { Shining } from "@/shared/ui/Shining";
-import { Gamepad2Icon, PlusIcon, SettingsIcon, UsersRoundIcon } from "lucide-react";
+import { PlusIcon, SettingsIcon } from "lucide-react";
 
 export const MainMenu = () => {
   return (

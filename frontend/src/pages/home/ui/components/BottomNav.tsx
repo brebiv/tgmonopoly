@@ -2,7 +2,6 @@ import { Gamepad2Icon, StoreIcon, UsersRoundIcon } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useState } from "react";
 import { useHomeStore, type MenuTabs } from "../../stores/homeStore";
-import { Shining } from "@/shared/ui/Shining";
 
 interface BottomNavProps {}
 

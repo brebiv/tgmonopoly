@@ -2,14 +2,15 @@
 import { motion, useAnimationControls } from "motion/react";
 import { useEffect } from "react";
 import { useHomeStore } from "../../stores/homeStore";
+import { detectAppleBrowser } from "@/shared/utils";
 
 export const RippleEffect = () => {
   const inTheMiddle = useHomeStore((s) => s.inTheMiddle);
   const controls = useAnimationControls();
 
-  useEffect(() => {
+  useEffect(() => {    
     if (!inTheMiddle) return;
-    if (import.meta.env.VITE_DISABLE_SVG_FILTERS_IN_SAFARI == true && (window as any).safari) return;
+    if (import.meta.env.VITE_DISABLE_SVG_FILTERS_IN_SAFARI == true && detectAppleBrowser().isAnyAppleBrowser) return;
 
     document.body.style.filter = "url(#filters-noise)";
     controls.start(

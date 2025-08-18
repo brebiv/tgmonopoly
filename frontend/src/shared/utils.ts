@@ -189,3 +189,66 @@ export {
 export const getRandomArbitrary = (min: number, max: number) => {
   return Math.random() * (max - min) + min;
 };
+
+
+// Claude generated code start
+export const detectAppleBrowser = ()=> {
+  const userAgent = navigator.userAgent;
+  const vendor = navigator.vendor;
+  
+  // Check if it's a WebKit-based browser
+  const isWebKit = /WebKit/i.test(userAgent);
+  
+  // Check if it's iOS (iPhone, iPad, iPod)
+  const isIOS = /iPad|iPhone|iPod/i.test(userAgent);
+  
+  // Check if it's Safari (desktop or mobile)
+  // Note: iOS Safari has "Safari/" in user agent, vendor check is for desktop Safari
+  const isSafari = isWebKit && 
+    /Safari/i.test(userAgent) && 
+    !/Chrome|Chromium|Edge|Opera/i.test(userAgent) &&
+    (isIOS || /Apple Computer/i.test(vendor));
+  
+  // Check if it's mobile Safari specifically
+  const isMobileSafari = isIOS && isSafari;
+  
+  // Check if it's desktop Safari
+  const isDesktopSafari = isSafari && !isIOS;
+  
+  // Check if it's likely an iOS WebView
+  // WebViews on iOS often lack the "Safari/" string but have WebKit
+  // Also check for absence of "Version/" which Safari includes
+  const isIOSWebView = isIOS && isWebKit && 
+    (!/Safari\//i.test(userAgent) || !/Version\//i.test(userAgent));
+  
+  // Check if it's likely a macOS WebView (WKWebView)
+  const isMacWebView = /Macintosh/i.test(userAgent) && 
+    isWebKit && 
+    !/Safari/i.test(userAgent) &&
+    /Apple Computer/i.test(vendor);
+  
+  // Additional WebView detection methods
+  const hasStandaloneMode = (window as any).navigator.standalone !== undefined;
+  const isStandalone = (window as any).navigator.standalone === true;
+  
+  // Check for WKWebView specific properties
+  const isWKWebView = (window as any).webkit && (window as any).webkit.messageHandlers;
+  
+  return {
+    isSafari: isSafari,
+    isDesktopSafari: isDesktopSafari,
+    isMobileSafari: isMobileSafari,
+    isIOSWebView: isIOSWebView,
+    isMacWebView: isMacWebView,
+    isAnyAppleWebView: isIOSWebView || isMacWebView || isWKWebView,
+    isAnyAppleBrowser: isSafari || isIOSWebView || isMacWebView,
+    isIOS: isIOS,
+    isWebKit: isWebKit,
+    hasStandaloneMode: hasStandaloneMode,
+    isStandalone: isStandalone,
+    isWKWebView: !!isWKWebView,
+    userAgent: userAgent
+  };
+}
+
+// Claude generated code end

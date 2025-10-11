@@ -40,7 +40,7 @@ const initAPI = () => {
 
 export const getAuth = () => {
   const api = initAPI();
-  return api.get("/api/me").then((response) => {
+  return api.get("/api/me/").then((response) => {
     return response.data;
   });
 };

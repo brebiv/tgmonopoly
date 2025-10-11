@@ -10,7 +10,7 @@ router.register(r"board_configs", api.BoardConfigViewSet, "board_configs")
 
 urlpatterns = [
     # api
-    path("api/me", api.me, name="me"),
+    path("api/me/", api.me, name="me"),
     path("api/", include(router.urls)),
     # web
     path("", web.home, name="home"),

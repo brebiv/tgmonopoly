@@ -15,7 +15,7 @@ export const TopBaner = () => {
   }
 
   return (
-    <div>
+    <div className="col-span-2 row-span-4">
       {state === "current_game" && <CurrentGameCard game={me.current_game!} />}
       {state === "home" && <DailyReward />}
     </div>

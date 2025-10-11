@@ -57,12 +57,8 @@ class TelegramWebAppAuthentication(BaseAuthentication):
 
         data_check = sorted([f"{key}={value}" for key, value in auth_data_dict.items()])
         data_check_string = "\n".join(data_check)
-        secret_key = hmac.new(
-            "WebAppData".encode(), self.bot_token.encode(), hashlib.sha256
-        ).digest()
-        verification_hash = hmac.new(
-            secret_key, data_check_string.encode(), hashlib.sha256
-        ).hexdigest()
+        secret_key = hmac.new("WebAppData".encode(), self.bot_token.encode(), hashlib.sha256).digest()
+        verification_hash = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
 
         data_is_valid = hmac.compare_digest(verification_hash, hash)
         validated_data = auth_data_dict if data_is_valid else {}

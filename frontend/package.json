@@ -32,6 +32,7 @@
     "react-dice-complete": "^2.2.0",
     "react-dom": "^19.1.0",
     "react-modal-sheet": "^4.4.0",
+    "recharts": "^3.1.2",
     "tailwind-merge": "^3.3.1",
     "tailwindcss": "^4.1.10",
     "zustand": "^5.0.5"
